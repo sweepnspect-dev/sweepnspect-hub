@@ -1,0 +1,34 @@
+[
+  {
+    "id": "r-001",
+    "type": "subscription",
+    "amount": 49,
+    "subscriberId": "s-001",
+    "date": "2026-02-13T07:59:06.885Z",
+    "note": "Monthly - Mike's Sweeps"
+  },
+  {
+    "id": "r-002",
+    "type": "subscription",
+    "amount": 99,
+    "subscriberId": "s-002",
+    "date": "2026-02-13T07:59:06.952Z",
+    "note": "Monthly - Heritage Chimney"
+  },
+  {
+    "id": "r-003",
+    "type": "subscription",
+    "amount": 29,
+    "subscriberId": "s-003",
+    "date": "2026-02-13T07:59:07.010Z",
+    "note": "Monthly - Tristate"
+  },
+  {
+    "id": "r-004",
+    "type": "one-time",
+    "amount": 150,
+    "subscriberId": "s-002",
+    "date": "2026-02-13T07:59:07.072Z",
+    "note": "Custom report setup"
+  }
+]

@@ -1,0 +1,61 @@
+[
+  {
+    "id": "t-001",
+    "status": "review",
+    "priority": "critical",
+    "customer": {
+      "name": "Mike",
+      "email": "mike@mikessweeps.com",
+      "subscriberId": "s-001"
+    },
+    "subject": "App crashes on photo capture - Galaxy S21",
+    "description": "When I try to take a photo during an inspection, the app crashes back to the home screen. Started happening after the latest update. Galaxy S21, Android 15.",
+    "aiAnalysis": {
+      "diagnosis": "Camera permission regression in v2.4.1. The new photo capture module does not re-request CAMERA permission after app update on Android 14+. The permission grant survives the update but the runtime check fails because the new module uses a different permission check path.",
+      "proposedFix": "In CameraModule.kt, replace the deprecated checkSelfPermission call with the new ActivityResultContracts.RequestPermission API. This is a 3-line fix in the capture() method. Patch already tested on emulator.",
+      "confidence": 0.92,
+      "relatedIssues": [
+        "Camera permission issue on Pixel 7 (resolved Oct 2025)"
+      ],
+      "analyzedAt": "2026-02-12T22:00:00Z"
+    },
+    "resolution": "",
+    "createdAt": "2026-02-13T07:59:07.134Z",
+    "resolvedAt": null,
+    "messages": []
+  },
+  {
+    "id": "t-002",
+    "status": "new",
+    "priority": "high",
+    "customer": {
+      "name": "Heritage Chimney",
+      "email": "info@heritagechimney.com",
+      "subscriberId": "s-002"
+    },
+    "subject": "Invoice PDF not generating for amended reports",
+    "description": "When I amend a completed inspection report and try to generate a new invoice PDF, it just spins forever. The original PDF works fine.",
+    "aiAnalysis": null,
+    "resolution": "",
+    "createdAt": "2026-02-13T07:59:07.194Z",
+    "resolvedAt": null,
+    "messages": []
+  },
+  {
+    "id": "t-003",
+    "status": "resolved",
+    "priority": "high",
+    "customer": {
+      "name": "Tristate Sweep",
+      "email": "dispatch@tristatesweep.com",
+      "subscriberId": "s-003"
+    },
+    "subject": "Login loop after Android 15 update",
+    "description": "Since updating to Android 15, the app asks me to log in, I enter credentials, it accepts them, then immediately asks me to log in again. Endless loop.",
+    "aiAnalysis": null,
+    "resolution": "Root cause: Android 15 changed session token handling. Fixed in v2.4.2 hotfix pushed to Play Store.",
+    "createdAt": "2026-02-13T07:59:07.256Z",
+    "resolvedAt": "2026-02-13T07:59:07.377Z",
+    "messages": []
+  }
+]
