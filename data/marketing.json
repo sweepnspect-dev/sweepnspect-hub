@@ -1,0 +1,63 @@
+{
+  "website": {
+    "daily": [
+      { "date": "2026-02-07", "visitors": 142, "pageViews": 387, "bounceRate": 42, "avgSession": 185 },
+      { "date": "2026-02-08", "visitors": 168, "pageViews": 445, "bounceRate": 38, "avgSession": 203 },
+      { "date": "2026-02-09", "visitors": 95, "pageViews": 218, "bounceRate": 51, "avgSession": 142 },
+      { "date": "2026-02-10", "visitors": 131, "pageViews": 356, "bounceRate": 44, "avgSession": 178 },
+      { "date": "2026-02-11", "visitors": 189, "pageViews": 512, "bounceRate": 35, "avgSession": 221 },
+      { "date": "2026-02-12", "visitors": 201, "pageViews": 548, "bounceRate": 33, "avgSession": 234 },
+      { "date": "2026-02-13", "visitors": 176, "pageViews": 467, "bounceRate": 37, "avgSession": 198 }
+    ],
+    "sources": [
+      { "source": "Google Search", "visitors": 485, "percent": 43 },
+      { "source": "Direct", "visitors": 248, "percent": 22 },
+      { "source": "Facebook", "visitors": 169, "percent": 15 },
+      { "source": "Yelp", "visitors": 112, "percent": 10 },
+      { "source": "Referral", "visitors": 88, "percent": 8 },
+      { "source": "Other", "visitors": 22, "percent": 2 }
+    ],
+    "topPages": [
+      { "path": "/", "title": "Home", "views": 892, "avgTime": 45 },
+      { "path": "/services", "title": "Our Services", "views": 634, "avgTime": 72 },
+      { "path": "/book", "title": "Book Inspection", "views": 423, "avgTime": 180 },
+      { "path": "/pricing", "title": "Pricing", "views": 387, "avgTime": 95 },
+      { "path": "/about", "title": "About Us", "views": 245, "avgTime": 58 },
+      { "path": "/blog/chimney-safety", "title": "Chimney Safety Tips", "views": 198, "avgTime": 210 }
+    ]
+  },
+  "app": {
+    "overview": {
+      "totalDownloads": 847,
+      "activeUsers": 312,
+      "dailyActive": 89,
+      "avgSessionMin": 4.2,
+      "crashRate": 1.8,
+      "appRating": 4.6,
+      "reviewCount": 127
+    },
+    "daily": [
+      { "date": "2026-02-07", "downloads": 12, "activeUsers": 78, "sessions": 234, "crashes": 3 },
+      { "date": "2026-02-08", "downloads": 18, "activeUsers": 92, "sessions": 276, "crashes": 2 },
+      { "date": "2026-02-09", "downloads": 8, "activeUsers": 61, "sessions": 183, "crashes": 5 },
+      { "date": "2026-02-10", "downloads": 14, "activeUsers": 85, "sessions": 255, "crashes": 1 },
+      { "date": "2026-02-11", "downloads": 22, "activeUsers": 97, "sessions": 291, "crashes": 4 },
+      { "date": "2026-02-12", "downloads": 25, "activeUsers": 103, "sessions": 309, "crashes": 2 },
+      { "date": "2026-02-13", "downloads": 19, "activeUsers": 89, "sessions": 267, "crashes": 3 }
+    ],
+    "topScreens": [
+      { "screen": "Dashboard", "views": 1834, "avgTime": 35 },
+      { "screen": "Inspection Form", "views": 1245, "avgTime": 180 },
+      { "screen": "Photo Capture", "views": 987, "avgTime": 45 },
+      { "screen": "Report Preview", "views": 756, "avgTime": 120 },
+      { "screen": "Client List", "views": 623, "avgTime": 28 },
+      { "screen": "Settings", "views": 234, "avgTime": 40 }
+    ]
+  },
+  "campaigns": [
+    { "name": "Spring Inspection Special", "status": "active", "spent": 450, "leads": 34, "conversions": 12, "roi": 267 },
+    { "name": "Chimney Safety Week", "status": "active", "spent": 200, "leads": 18, "conversions": 7, "roi": 350 },
+    { "name": "New Homeowner Mailer", "status": "paused", "spent": 325, "leads": 22, "conversions": 8, "roi": 246 },
+    { "name": "Google Local Ads", "status": "active", "spent": 680, "leads": 56, "conversions": 19, "roi": 279 }
+  ]
+}

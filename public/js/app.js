@@ -17,6 +17,7 @@ const App = {
     this.registerView('subscribers', SubscribersView);
     this.registerView('revenue', RevenueView);
     this.registerView('commands', CommandsView);
+    this.registerView('marketing', MarketingView);
 
     // Route on hash change
     window.addEventListener('hashchange', () => this.route());
@@ -109,7 +110,7 @@ const App = {
     });
 
     // Update header
-    const titles = { dashboard: 'Dashboard', tickets: 'Support Tickets', subscribers: 'Subscribers', revenue: 'Revenue', commands: 'Commands' };
+    const titles = { dashboard: 'Dashboard', tickets: 'Support Tickets', subscribers: 'Subscribers', revenue: 'Revenue', commands: 'Commands', marketing: 'Marketing & Analytics' };
     document.getElementById('viewTitle').textContent = titles[viewName] || viewName;
 
     // Render view

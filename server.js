@@ -69,6 +69,7 @@ app.use('/api/commands', require('./routes/commands'));
 app.use('/api/clauser', require('./routes/clauser'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/webhooks', require('./routes/webhooks'));
+app.use('/api/marketing', require('./routes/marketing'));
 
 // ── Alert API ────────────────────────────────────────────
 app.get('/api/alerts', (req, res) => {
