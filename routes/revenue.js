@@ -55,6 +55,7 @@ router.delete('/:id', (req, res) => {
   let entries = s.read();
   entries = entries.filter(r => r.id !== req.params.id);
   s.write(entries);
+  broadcast(req, { type: 'revenue:deleted', data: { id: req.params.id } });
   res.json({ ok: true });
 });
 

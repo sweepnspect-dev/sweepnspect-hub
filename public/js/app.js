@@ -3,6 +3,9 @@ const App = {
   state: {
     stats: null,
     activities: [],
+    alerts: [],
+    alertCount: 0,
+    alertPanelOpen: false,
     currentView: 'dashboard'
   },
 
@@ -49,6 +52,26 @@ const App = {
     hubSocket.on('*', (type, data) => {
       const view = this.views[this.state.currentView];
       if (view?.onWsMessage) view.onWsMessage(type, data);
+    });
+
+    hubSocket.on('alert', (data) => {
+      this.state.alerts.unshift(data);
+      if (this.state.alerts.length > 50) this.state.alerts.length = 50;
+      this.state.alertCount++;
+      this.updateAlertBadge();
+
+      // Toast + desktop notify
+      HubNotify.alertToast(data);
+      HubNotify.alertDesktop(data);
+
+      // Forward to dashboard if active
+      if (this.views[this.state.currentView]?.onAlert) {
+        this.views[this.state.currentView].onAlert(data);
+      }
+    });
+
+    hubSocket.on('clauser:status', (data) => {
+      this.updateClauserStatusBar(data);
     });
 
     hubSocket.on('_connected', () => this.setOnline(true));
@@ -133,11 +156,78 @@ const App = {
     }
   },
 
+  updateClauserStatusBar(data) {
+    const dot = document.getElementById('clauserSbDot');
+    const label = document.getElementById('clauserSbLabel');
+    if (!dot) return;
+    const map = {
+      online: { cls: 'online', text: 'Clauser: Idle' },
+      working: { cls: 'working', text: 'Clauser: Working' },
+      paused: { cls: 'paused', text: 'Clauser: Paused' },
+      offline: { cls: 'offline', text: 'Clauser: Offline' }
+    };
+    const s = map[data.status] || map.offline;
+    dot.className = `clauser-dot ${s.cls}`;
+    if (label) label.textContent = s.text;
+  },
+
   setOnline(online) {
     const dot = document.getElementById('statusDot');
     const label = document.getElementById('statusLabel');
     if (dot) { dot.className = `status-dot ${online ? 'online' : 'offline'}`; }
     if (label) { label.textContent = online ? 'Online' : 'Offline'; }
+  },
+
+  updateAlertBadge() {
+    const badge = document.getElementById('alertBadge');
+    if (!badge) return;
+    if (this.state.alertCount > 0) {
+      badge.textContent = this.state.alertCount > 99 ? '99+' : this.state.alertCount;
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+  },
+
+  toggleAlertPanel() {
+    const panel = document.getElementById('alertPanel');
+    if (!panel) return;
+    this.state.alertPanelOpen = !this.state.alertPanelOpen;
+    panel.style.display = this.state.alertPanelOpen ? 'flex' : 'none';
+    if (this.state.alertPanelOpen) {
+      this.state.alertCount = 0;
+      this.updateAlertBadge();
+      this.renderAlertPanel();
+    }
+  },
+
+  async renderAlertPanel() {
+    const body = document.getElementById('alertPanelBody');
+    if (!body) return;
+
+    // Use cached alerts or fetch
+    let alerts = this.state.alerts;
+    if (alerts.length === 0) {
+      try {
+        alerts = await this.api('alerts?limit=20');
+        this.state.alerts = alerts;
+      } catch (e) { /* ignore */ }
+    }
+
+    if (!alerts || alerts.length === 0) {
+      body.innerHTML = '<div class="empty-state" style="padding:16px"><p>No alerts</p></div>';
+      return;
+    }
+
+    body.innerHTML = alerts.slice(0, 20).map(a => `
+      <div class="alert-item">
+        <div class="alert-severity-dot ${a.severity || 'medium'}"></div>
+        <div class="alert-content">
+          <div class="alert-message">${a.message}</div>
+          <div class="alert-time">${this.timeAgo(a.timestamp)}</div>
+        </div>
+      </div>
+    `).join('');
   },
 
   // API helper

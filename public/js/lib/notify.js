@@ -40,4 +40,41 @@ const HubNotify = {
   }
 };
 
+  // Alert toast — severity-colored with stacking
+  alertToast(alert) {
+    let container = document.getElementById('alertToastContainer');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'alertToastContainer';
+      container.className = 'alert-toast-container';
+      document.body.appendChild(container);
+    }
+
+    const el = document.createElement('div');
+    el.className = `alert-toast ${alert.severity || 'medium'}`;
+    el.textContent = alert.message;
+    container.appendChild(el);
+
+    setTimeout(() => {
+      el.style.opacity = '0';
+      el.style.transition = 'opacity 0.3s';
+      setTimeout(() => el.remove(), 300);
+    }, 5000);
+  },
+
+  // Desktop notification for critical alerts
+  alertDesktop(alert) {
+    if (!this.enabled) return;
+    if (!['critical', 'high'].includes(alert.severity)) return;
+    const n = new Notification(`SweepNspect Alert [${alert.severity.toUpperCase()}]`, {
+      body: alert.message,
+      icon: '/assets/icon.png',
+      badge: '/assets/icon.png',
+      tag: alert.id
+    });
+    n.onclick = () => { window.focus(); n.close(); };
+    setTimeout(() => n.close(), 10000);
+  }
+};
+
 window.HubNotify = HubNotify;

@@ -16,7 +16,7 @@ app.use(express.json());
 // CORS for localhost dev
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+  if (origin && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -50,17 +50,52 @@ function jsonStore(filename) {
   };
 }
 
-// Make store available to routes
+// ── Alert Infrastructure ─────────────────────────────────
+const SmsService = require('./lib/sms');
+const AlertRouter = require('./lib/alert-router');
+const smsService = new SmsService();
+const alertRouter = new AlertRouter(broadcast, smsService);
+
+// Make store + alert router available to routes
 app.locals.jsonStore = jsonStore;
 app.locals.broadcast = broadcast;
+app.locals.alertRouter = alertRouter;
 
 // ── Routes ───────────────────────────────────────────────
 app.use('/api/tickets', require('./routes/tickets'));
 app.use('/api/subscribers', require('./routes/subscribers'));
 app.use('/api/revenue', require('./routes/revenue'));
 app.use('/api/commands', require('./routes/commands'));
+app.use('/api/clauser', require('./routes/clauser'));
+app.use('/api/ai', require('./routes/ai'));
+app.use('/api/webhooks', require('./routes/webhooks'));
 
-// Webhook endpoint (separate from CRUD)
+// ── Alert API ────────────────────────────────────────────
+app.get('/api/alerts', (req, res) => {
+  const limit = parseInt(req.query.limit) || 50;
+  res.json(alertRouter.getAlerts(limit));
+});
+
+app.post('/api/alerts/:id/acknowledge', (req, res) => {
+  const alert = alertRouter.acknowledge(req.params.id);
+  if (!alert) return res.status(404).json({ error: 'Alert not found' });
+  res.json(alert);
+});
+
+app.get('/api/alerts/config', (req, res) => {
+  res.json(alertRouter.getConfig());
+});
+
+app.put('/api/alerts/config', (req, res) => {
+  const updated = alertRouter.updateConfig(req.body);
+  res.json(updated);
+});
+
+app.get('/api/sms/status', (req, res) => {
+  res.json(smsService.getStatus());
+});
+
+// Webhook endpoint (separate from CRUD) — with alert trigger
 app.post('/api/webhooks/ticket', (req, res) => {
   const store = jsonStore('tickets.json');
   const tickets = store.read();
@@ -80,6 +115,15 @@ app.post('/api/webhooks/ticket', (req, res) => {
   tickets.push(ticket);
   store.write(tickets);
   broadcast({ type: 'ticket:new', data: ticket });
+
+  // Alert for critical webhook tickets
+  if (['critical', 'high'].includes(ticket.priority)) {
+    alertRouter.send('ticket-webhook', ticket.priority,
+      `Webhook ticket (${ticket.priority}): ${ticket.subject}`,
+      { ticketId: ticket.id }
+    );
+  }
+
   res.json({ ok: true, ticket });
 });
 
@@ -166,6 +210,21 @@ const heartbeat = setInterval(() => {
 setInterval(() => {
   broadcast({ type: 'stats', data: getStats() });
 }, 5000);
+
+// ── Clauser Offline Detection ────────────────────────────
+const clauserRoute = require('./routes/clauser');
+let clauserWasOnline = false;
+
+setInterval(() => {
+  const online = clauserRoute.isOnline();
+  if (clauserWasOnline && !online) {
+    alertRouter.send('clauser-offline', 'high',
+      'Clauser AI agent went offline',
+      { lastStatus: clauserRoute.getStatus() }
+    );
+  }
+  clauserWasOnline = online;
+}, 30000);
 
 wss.on('close', () => clearInterval(heartbeat));
 

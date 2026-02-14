@@ -47,6 +47,7 @@ router.put('/tasks/:id', (req, res) => {
   if (req.body.text !== undefined) task.text = req.body.text;
   if (req.body.priority !== undefined) task.priority = req.body.priority;
   writeTasks(data);
+  req.app.locals.broadcast({ type: 'command:updated', data: task });
   res.json(task);
 });
 
@@ -55,6 +56,7 @@ router.delete('/tasks/:id', (req, res) => {
   const data = readTasks();
   data.tasks = data.tasks.filter(t => t.id !== req.params.id);
   writeTasks(data);
+  req.app.locals.broadcast({ type: 'command:deleted', data: { id: req.params.id } });
   res.json({ ok: true });
 });
 
@@ -71,6 +73,7 @@ router.post('/schedule', (req, res) => {
   };
   data.schedule.push(entry);
   writeTasks(data);
+  req.app.locals.broadcast({ type: 'schedule:new', data: entry });
   res.status(201).json(entry);
 });
 
@@ -79,6 +82,7 @@ router.delete('/schedule/:id', (req, res) => {
   const data = readTasks();
   data.schedule = data.schedule.filter(s => s.id !== req.params.id);
   writeTasks(data);
+  req.app.locals.broadcast({ type: 'schedule:deleted', data: { id: req.params.id } });
   res.json({ ok: true });
 });
 

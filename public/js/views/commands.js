@@ -179,6 +179,12 @@ const CommandsView = {
     });
   },
 
+  onWsMessage(type) {
+    if (type && (type.startsWith('command:') || type.startsWith('schedule:'))) {
+      this.loadData();
+    }
+  },
+
   esc(str) {
     if (!str) return '';
     const d = document.createElement('div');

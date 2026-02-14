@@ -55,6 +55,16 @@ router.put('/:id', (req, res) => {
   }
   s.write(subs);
   broadcast(req, { type: 'subscriber:updated', data: subs[idx] });
+
+  // Alert on churn
+  const alertRouter = req.app.locals.alertRouter;
+  if (alertRouter && req.body.status === 'churned') {
+    alertRouter.send('subscriber-churned', 'critical',
+      `Subscriber churned: ${subs[idx].name} ($${subs[idx].mrr || 0}/mo MRR impact)`,
+      { subscriberId: subs[idx].id, mrr: subs[idx].mrr }
+    );
+  }
+
   res.json(subs[idx]);
 });
 

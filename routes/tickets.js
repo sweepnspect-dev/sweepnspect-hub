@@ -43,6 +43,16 @@ router.post('/', (req, res) => {
   s.write(tickets);
   broadcast(req, { type: 'ticket:new', data: ticket });
   broadcast(req, { type: 'activity', data: { icon: 'ticket', text: `New ticket: ${ticket.subject}`, time: ticket.createdAt } });
+
+  // Alert for critical/high priority tickets
+  const alertRouter = req.app.locals.alertRouter;
+  if (alertRouter && ['critical', 'high'].includes(ticket.priority)) {
+    alertRouter.send('ticket-created', ticket.priority,
+      `New ${ticket.priority} ticket: ${ticket.subject}`,
+      { ticketId: ticket.id, customer: ticket.customer?.name }
+    );
+  }
+
   res.status(201).json(ticket);
 });
 
@@ -70,6 +80,15 @@ router.put('/:id', (req, res) => {
   if (req.body.status) {
     const labels = { 'ai-working': 'AI analyzing', review: 'Ready for review', resolved: 'Resolved', escalated: 'Escalated' };
     broadcast(req, { type: 'activity', data: { icon: 'status', text: `${tickets[idx].subject} — ${labels[req.body.status] || req.body.status}`, time: new Date().toISOString() } });
+  }
+
+  // Alert on escalation
+  const alertRouter = req.app.locals.alertRouter;
+  if (alertRouter && req.body.status === 'escalated') {
+    alertRouter.send('ticket-escalated', 'high',
+      `Ticket escalated: ${tickets[idx].subject}`,
+      { ticketId: tickets[idx].id, customer: tickets[idx].customer?.name }
+    );
   }
 
   res.json(tickets[idx]);

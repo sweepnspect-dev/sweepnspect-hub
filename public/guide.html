@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SweepNspect HQ — Guide</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --navy: #1a1a2e;
+      --navy-light: #22223a;
+      --navy-lighter: #2a2a45;
+      --brick: #c0392b;
+      --brick-dim: #a33225;
+      --brass: #d4a574;
+      --brass-dim: #b8905f;
+      --cream: #f5f0e8;
+      --cream-dim: #c8c3bb;
+      --soot: #2d2d2d;
+      --green: #27ae60;
+      --yellow: #f39c12;
+      --purple: #8e44ad;
+      --cyan: #00bcd4;
+      --text: #e0dcd4;
+      --text-dim: #8a8680;
+      --border: #333345;
+      --radius: 8px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--navy);
+      color: var(--text);
+      line-height: 1.6;
+      background-image: radial-gradient(ellipse at 20% 50%, rgba(212,165,116,0.03) 0%, transparent 60%),
+                        radial-gradient(ellipse at 80% 80%, rgba(192,57,43,0.02) 0%, transparent 50%);
+    }
+
+    /* ── Layout ── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+    /* ── Header ── */
+    .hero {
+      text-align: center;
+      padding: 3rem 0 2rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2rem;
+    }
+    .hero-logo {
+      width: 64px; height: 64px;
+      background: linear-gradient(135deg, var(--brick), var(--brass));
+      border-radius: 16px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 28px; font-weight: 800; color: #fff;
+      margin-bottom: 1rem;
+      box-shadow: 0 4px 20px rgba(192,57,43,0.3);
+    }
+    .hero h1 { font-size: 2.2rem; font-weight: 800; color: var(--cream); }
+    .hero .sub { color: var(--text-dim); font-size: 1rem; margin-top: 0.25rem; }
+    .hero-link {
+      display: inline-block; margin-top: 1rem;
+      padding: 0.5rem 1.25rem;
+      background: var(--brick);
+      color: #fff; border-radius: 6px;
+      text-decoration: none; font-weight: 600; font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+    .hero-link:hover { background: var(--brick-dim); }
+
+    /* ── Live Status Banner ── */
+    .status-banner {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+    }
+    .status-card {
+      background: var(--navy-light);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .status-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    }
+    .status-card.ok::before { background: var(--green); }
+    .status-card.warn::before { background: var(--yellow); }
+    .status-card.err::before { background: var(--brick); }
+    .status-card.info::before { background: var(--cyan); }
+    .status-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); }
+    .status-value { font-size: 1.4rem; font-weight: 700; margin-top: 0.25rem; font-family: 'JetBrains Mono', monospace; }
+    .status-sub { font-size: 0.8rem; color: var(--text-dim); margin-top: 0.15rem; }
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    .dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .dot.red { background: var(--brick); }
+    .dot.yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+
+    /* ── Nav tabs ── */
+    .tabs {
+      display: flex; gap: 0.5rem; margin-bottom: 0; flex-wrap: wrap;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 0;
+    }
+    .tab {
+      padding: 0.6rem 1.25rem;
+      background: transparent;
+      border: none; border-bottom: 2px solid transparent;
+      color: var(--text-dim);
+      cursor: pointer; font-size: 0.95rem; font-weight: 500;
+      font-family: inherit;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--brass); border-bottom-color: var(--brass); }
+
+    /* ── Panels ── */
+    .panel { display: none; padding: 2rem 0; }
+    .panel.active { display: block; }
+
+    /* ── Section styles ── */
+    h2 {
+      font-size: 1.5rem; font-weight: 700; color: var(--cream);
+      margin: 2rem 0 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    h2:first-child { margin-top: 0; }
+    h3 { font-size: 1.1rem; color: var(--brass); margin: 1.5rem 0 0.75rem; }
+    p { margin-bottom: 1rem; color: var(--text); }
+    ul, ol { margin: 0 0 1rem 1.5rem; }
+    li { margin-bottom: 0.4rem; }
+
+    /* ── Code blocks ── */
+    code {
+      background: #0d1117;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--brass);
+    }
+    pre {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      margin: 0.75rem 0 1.25rem;
+      overflow-x: auto;
+      position: relative;
+    }
+    pre code {
+      background: none; padding: 0;
+      color: var(--text); font-size: 0.85rem;
+      line-height: 1.5;
+    }
+    .copy-btn {
+      position: absolute; top: 8px; right: 8px;
+      background: #21262d; border: 1px solid #30363d;
+      color: var(--text-dim); padding: 4px 10px;
+      border-radius: 4px; cursor: pointer; font-size: 0.75rem;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .copy-btn:hover { background: #30363d; color: var(--text); }
+
+    /* ── Cards ── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+    .card {
+      background: var(--navy-light);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+    }
+    .card-title {
+      font-weight: 600; color: var(--cream);
+      margin-bottom: 0.5rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+
+    /* ── Table ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    th { color: var(--text-dim); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    td code { font-size: 0.8rem; }
+
+    /* ── AI Chat ── */
+    .ai-chat {
+      background: var(--navy-light);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-top: 1.5rem;
+      overflow: hidden;
+    }
+    .ai-chat-header {
+      background: linear-gradient(90deg, var(--navy-lighter), var(--navy-light));
+      padding: 0.75rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 0.5rem;
+      font-weight: 600; font-size: 0.9rem;
+    }
+    .ai-chat-header .ai-icon {
+      width: 24px; height: 24px;
+      background: linear-gradient(135deg, var(--purple), var(--cyan));
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; color: #fff;
+    }
+    .ai-messages {
+      padding: 1rem 1.25rem;
+      max-height: 400px;
+      overflow-y: auto;
+      display: flex; flex-direction: column; gap: 0.75rem;
+    }
+    .ai-msg {
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius);
+      font-size: 0.9rem;
+      line-height: 1.5;
+      max-width: 85%;
+    }
+    .ai-msg.system {
+      background: rgba(142,68,173,0.1);
+      border: 1px solid rgba(142,68,173,0.2);
+      color: var(--text);
+      align-self: flex-start;
+    }
+    .ai-msg.user {
+      background: var(--navy-lighter);
+      border: 1px solid var(--border);
+      align-self: flex-end;
+      color: var(--cream);
+    }
+    .ai-msg.thinking {
+      background: rgba(0,188,212,0.08);
+      border: 1px solid rgba(0,188,212,0.15);
+      align-self: flex-start;
+    }
+    .ai-input-row {
+      display: flex; gap: 0.5rem;
+      padding: 0.75rem 1.25rem;
+      border-top: 1px solid var(--border);
+      background: var(--navy-lighter);
+    }
+    .ai-input {
+      flex: 1;
+      background: var(--navy);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.6rem 1rem;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .ai-input:focus { border-color: var(--brass); }
+    .ai-input::placeholder { color: var(--text-dim); }
+    .ai-send {
+      background: var(--brass);
+      color: var(--navy);
+      border: none; border-radius: 6px;
+      padding: 0.6rem 1.25rem;
+      font-weight: 600; cursor: pointer;
+      font-family: inherit;
+      transition: background 0.2s;
+    }
+    .ai-send:hover { background: var(--brass-dim); }
+    .ai-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Diagram ── */
+    .arch-diagram {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin: 1rem 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      line-height: 1.4;
+      overflow-x: auto;
+      white-space: pre;
+      color: var(--text-dim);
+    }
+    .arch-diagram .hl { color: var(--brass); }
+    .arch-diagram .gr { color: var(--green); }
+    .arch-diagram .rd { color: var(--brick); }
+    .arch-diagram .cy { color: var(--cyan); }
+
+    /* ── Responsive ── */
+    @media (max-width: 700px) {
+      .container { padding: 1rem; }
+      .hero h1 { font-size: 1.6rem; }
+      .status-banner { grid-template-columns: 1fr 1fr; }
+      .card-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-logo">S</div>
+    <h1>SweepNspect HQ</h1>
+    <div class="sub">Operations Guide &mdash; Alpine VM + Hub Server</div>
+    <a href="/" class="hero-link">Open Dashboard</a>
+  </div>
+
+  <!-- Live Status -->
+  <div class="status-banner" id="statusBanner">
+    <div class="status-card info" id="sc-hub">
+      <div class="status-label">Hub Server</div>
+      <div class="status-value"><span class="dot green"></span>Checking...</div>
+      <div class="status-sub" id="hubSub">port 8888</div>
+    </div>
+    <div class="status-card info" id="sc-vm">
+      <div class="status-label">VM</div>
+      <div class="status-value" id="vmStatus">Checking...</div>
+      <div class="status-sub" id="vmSub">Alpine 3.21</div>
+    </div>
+    <div class="status-card info" id="sc-clauser">
+      <div class="status-label">Clauser AI</div>
+      <div class="status-value" id="clauserStatus"><span class="dot red"></span>Checking...</div>
+      <div class="status-sub" id="clauserSub"></div>
+    </div>
+    <div class="status-card info" id="sc-stats">
+      <div class="status-label">Tickets</div>
+      <div class="status-value" id="ticketCount">-</div>
+      <div class="status-sub" id="ticketSub">loading...</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-panel="overview">Overview</button>
+    <button class="tab" data-panel="quickstart">Quick Start</button>
+    <button class="tab" data-panel="architecture">Architecture</button>
+    <button class="tab" data-panel="api">API Reference</button>
+    <button class="tab" data-panel="ops">Operations</button>
+    <button class="tab" data-panel="assistant">AI Assistant</button>
+  </div>
+
+  <!-- ════════════════════ OVERVIEW ════════════════════ -->
+  <div class="panel active" id="panel-overview">
+    <h2>What Is This?</h2>
+    <p>SweepNspect HQ is a self-hosted operations hub for a chimney inspection business. It runs inside a lightweight <strong>Alpine Linux VM</strong> on your Windows PC via <strong>QEMU</strong>.</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-title">Hub Server</div>
+        <p>Express.js web app serving a dashboard, support ticket system, subscriber management, revenue tracking, and a command center. Real-time updates via WebSocket.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">Clauser AI Agent</div>
+        <p>An AI agent that monitors tickets, performs analysis, and posts activity to the Hub. Connects via the <code>/api/clauser</code> endpoints. Heartbeats every 15 seconds.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">Alpine VM</div>
+        <p>Minimal Linux VM (Alpine 3.21, ~550 MB disk). Runs Node.js v22, Git, SSH. Accessible via SSH on port 2222. Boots in under a minute.</p>
+      </div>
+    </div>
+
+    <h2>Key Details</h2>
+    <table>
+      <tr><th>Component</th><th>Details</th></tr>
+      <tr><td>OS</td><td>Alpine Linux 3.21 &mdash; Kernel 6.12.69-0-virt</td></tr>
+      <tr><td>VM Engine</td><td>QEMU 10.2.0 (TCG software emulation)</td></tr>
+      <tr><td>RAM</td><td>2 GB allocated</td></tr>
+      <tr><td>Disk</td><td>~550 MB used / 15.5 GB available</td></tr>
+      <tr><td>Node.js</td><td>v22.15.1 + npm 10.9.1</td></tr>
+      <tr><td>SSH</td><td>OpenSSH 9.9 &mdash; key auth, port 2222</td></tr>
+      <tr><td>User</td><td><code>hive</code> &mdash; sudo NOPASSWD</td></tr>
+      <tr><td>Dashboard</td><td><a href="/" style="color:var(--brass)">http://localhost:8888</a></td></tr>
+    </table>
+  </div>
+
+  <!-- ════════════════════ QUICK START ════════════════════ -->
+  <div class="panel" id="panel-quickstart">
+    <h2>Starting the VM</h2>
+    <p>Open PowerShell and navigate to <code>D:\HiveTerm\scripts\vm\</code>:</p>
+
+    <h3>Headless (background, no window)</h3>
+    <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>.\vm-start.ps1</code></pre>
+    <p>Boots the VM hidden, waits for SSH, prints connection info. If the VM is already running, it just confirms status.</p>
+
+    <h3>With Console Window</h3>
+    <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>.\vm-restart-visible.ps1</code></pre>
+    <p>Shows the QEMU window with the Alpine boot sequence. Also starts the Hub server.</p>
+
+    <h2>Stopping the VM</h2>
+    <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>.\vm-stop.ps1</code></pre>
+    <p>Graceful shutdown via SSH. Falls back to force-kill if SSH is unresponsive.</p>
+
+    <h2>SSH Access</h2>
+    <h3>Interactive Shell</h3>
+    <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>.\vm-ssh.ps1</code></pre>
+
+    <h3>Run a Command</h3>
+    <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>.\vm-ssh.ps1 "uname -a"</code></pre>
+
+    <h3>Manual SSH</h3>
+    <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>ssh -p 2222 -i D:\VMs\sweepnspect-hq\id_ed25519 hive@localhost</code></pre>
+
+    <h2>Starting the Hub Server</h2>
+    <p>If you used <code>vm-start.ps1</code> (headless), the Hub doesn't auto-start. SSH in and run:</p>
+    <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>cd ~/sweepnspect-hub && nohup node server.js > /tmp/hub.log 2>&1 &</code></pre>
+    <p>Then open <a href="/" style="color:var(--brass)">http://localhost:8888</a> in your browser.</p>
+
+    <h2>Updating Hub Code</h2>
+    <p>Edit files on Windows at <code>D:\SweepNspect-Hub\</code>, then re-deploy:</p>
+    <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code># From PowerShell on Windows:
+scp -r -P 2222 -i D:\VMs\sweepnspect-hq\id_ed25519 D:\SweepNspect-Hub\* hive@localhost:~/sweepnspect-hub/
+
+# Then SSH in and restart:
+.\vm-ssh.ps1 "pkill -f 'node server.js'; cd ~/sweepnspect-hub && nohup node server.js > /tmp/hub.log 2>&1 &"</code></pre>
+  </div>
+
+  <!-- ════════════════════ ARCHITECTURE ════════════════════ -->
+  <div class="panel" id="panel-architecture">
+    <h2>System Architecture</h2>
+    <div class="arch-diagram"><span class="hl">Browser</span>  <span class="cy">&rarr;</span>  <span class="hl">localhost:8888</span>  <span class="cy">&rarr;</span>  <span class="gr">QEMU port forward</span>  <span class="cy">&rarr;</span>  <span class="hl">VM:8888</span>  <span class="cy">&rarr;</span>  <span class="gr">Express.js</span>
+
+<span class="rd">Windows Host</span>
+  ├── QEMU 10.2.0 (qemu-system-x86_64)
+  │     ├── Port 2222 &rarr; VM:22  (SSH)
+  │     └── Port 8888 &rarr; VM:8888 (Hub)
+  ├── D:\VMs\sweepnspect-hq\
+  │     ├── disk.qcow2       (Alpine disk image)
+  │     ├── alpine-virt.iso  (installer, for recovery)
+  │     ├── id_ed25519       (SSH key)
+  │     └── vm.pid           (process tracking)
+  └── D:\HiveTerm\scripts\vm\
+        ├── vm-start.ps1     (headless boot)
+        ├── vm-stop.ps1      (graceful shutdown)
+        ├── vm-ssh.ps1       (SSH helper)
+        └── vm-restart-visible.ps1
+
+<span class="gr">Alpine VM</span> (sweepnspect-hq)
+  ├── /home/hive/sweepnspect-hub/
+  │     ├── server.js          <span class="cy">&larr; Express + WebSocket</span>
+  │     ├── clauser-agent.js   <span class="cy">&larr; AI agent</span>
+  │     ├── public/            <span class="cy">&larr; Dashboard frontend</span>
+  │     ├── routes/            <span class="cy">&larr; API endpoints</span>
+  │     └── data/              <span class="cy">&larr; JSON storage</span>
+  ├── Node.js v22.15.1
+  ├── OpenSSH 9.9
+  └── Git 2.47.3</div>
+
+    <h2>Data Flow</h2>
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-title">Dashboard (Browser)</div>
+        <p>Loads HTML/CSS/JS from Express static server. Connects to <code>ws://localhost:8888/ws</code> for real-time updates. Polls <code>/api/stats</code> every 5s for aggregate numbers.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">WebSocket</div>
+        <p>Server broadcasts events to all connected clients: ticket updates, Clauser status changes, activity feed items. Heartbeat ping/pong every 30s.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">Clauser Agent</div>
+        <p>Runs as a separate Node.js process. Posts heartbeats to <code>/api/clauser/heartbeat</code> every 15s. Reports task activity to <code>/api/clauser/activity</code>. Hub broadcasts to dashboard via WebSocket.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">Storage</div>
+        <p>JSON files in <code>data/</code> directory: tickets.json, subscribers.json, revenue.json, commands.json. Simple read/write via <code>jsonStore()</code> helper. No database needed.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════ API ════════════════════ -->
+  <div class="panel" id="panel-api">
+    <h2>REST API</h2>
+    <p>All endpoints serve JSON. Base URL: <code>http://localhost:8888</code></p>
+
+    <h3>Dashboard</h3>
+    <table>
+      <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+      <tr><td><code>GET</code></td><td><code>/api/stats</code></td><td>Aggregate stats (tickets, subs, revenue)</td></tr>
+    </table>
+
+    <h3>Tickets</h3>
+    <table>
+      <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+      <tr><td><code>GET</code></td><td><code>/api/tickets</code></td><td>List all tickets (filter: <code>?status=review</code>)</td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/tickets</code></td><td>Create a ticket</td></tr>
+      <tr><td><code>PUT</code></td><td><code>/api/tickets/:id</code></td><td>Update a ticket</td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/webhooks/ticket</code></td><td>External webhook: create ticket</td></tr>
+    </table>
+
+    <h3>Subscribers</h3>
+    <table>
+      <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+      <tr><td><code>GET</code></td><td><code>/api/subscribers</code></td><td>List all subscribers</td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/subscribers</code></td><td>Add subscriber</td></tr>
+    </table>
+
+    <h3>Revenue</h3>
+    <table>
+      <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+      <tr><td><code>GET</code></td><td><code>/api/revenue</code></td><td>List revenue entries</td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/revenue</code></td><td>Add revenue entry</td></tr>
+    </table>
+
+    <h3>Commands</h3>
+    <table>
+      <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+      <tr><td><code>GET</code></td><td><code>/api/commands</code></td><td>List commands</td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/commands</code></td><td>Post a command (e.g., <code>@clauser pause</code>)</td></tr>
+    </table>
+
+    <h3>Clauser AI Agent</h3>
+    <table>
+      <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+      <tr><td><code>GET</code></td><td><code>/api/clauser/status</code></td><td>Agent status, uptime, task count</td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/clauser/heartbeat</code></td><td>Agent heartbeat (every 15s)</td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/clauser/activity</code></td><td>Post activity feed item</td></tr>
+    </table>
+
+    <h3>WebSocket</h3>
+    <p>Connect to <code>ws://localhost:8888/ws</code>. Receives JSON messages:</p>
+    <pre><code>{ "type": "init",            "data": { stats } }      // on connect
+{ "type": "stats",           "data": { stats } }      // every 5s
+{ "type": "ticket:new",      "data": { ticket } }     // new ticket created
+{ "type": "clauser:status",  "data": { status } }     // clauser heartbeat
+{ "type": "activity",        "data": { text, icon } } // feed item</code></pre>
+
+    <h3>Try It</h3>
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-title">Live API Test</div>
+        <select id="apiEndpoint" style="background:var(--navy);color:var(--text);border:1px solid var(--border);padding:0.4rem;border-radius:4px;width:100%;margin:0.5rem 0;font-family:'JetBrains Mono',monospace;font-size:0.85rem;">
+          <option value="/api/stats">GET /api/stats</option>
+          <option value="/api/tickets">GET /api/tickets</option>
+          <option value="/api/subscribers">GET /api/subscribers</option>
+          <option value="/api/revenue">GET /api/revenue</option>
+          <option value="/api/clauser/status">GET /api/clauser/status</option>
+        </select>
+        <button onclick="testApi()" style="background:var(--brass);color:var(--navy);border:none;padding:0.4rem 1rem;border-radius:4px;cursor:pointer;font-weight:600;font-family:inherit;">Send</button>
+        <pre id="apiResult" style="margin-top:0.75rem;max-height:300px;overflow-y:auto;"><code>Click Send to test...</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════ OPS ════════════════════ -->
+  <div class="panel" id="panel-ops">
+    <h2>File Locations</h2>
+    <h3>Windows Host</h3>
+    <table>
+      <tr><th>Path</th><th>Purpose</th></tr>
+      <tr><td><code>D:\VMs\sweepnspect-hq\disk.qcow2</code></td><td>VM disk image (~550 MB)</td></tr>
+      <tr><td><code>D:\VMs\sweepnspect-hq\id_ed25519</code></td><td>SSH private key</td></tr>
+      <tr><td><code>D:\VMs\sweepnspect-hq\alpine-virt.iso</code></td><td>Alpine installer (recovery)</td></tr>
+      <tr><td><code>D:\HiveTerm\scripts\vm\</code></td><td>All VM management scripts</td></tr>
+      <tr><td><code>D:\SweepNspect-Hub\</code></td><td>Hub source code (Windows copy)</td></tr>
+    </table>
+
+    <h3>Inside the VM</h3>
+    <table>
+      <tr><th>Path</th><th>Purpose</th></tr>
+      <tr><td><code>/home/hive/sweepnspect-hub/</code></td><td>Running Hub server</td></tr>
+      <tr><td><code>/home/hive/sweepnspect-hub/data/</code></td><td>JSON data files</td></tr>
+      <tr><td><code>/tmp/hub.log</code></td><td>Hub server log</td></tr>
+    </table>
+
+    <h2>Troubleshooting</h2>
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-title">VM won't start</div>
+        <p>Check QEMU: <code>qemu-system-x86_64 --version</code></p>
+        <p>Check existing: <code>Get-Process qemu*</code></p>
+      </div>
+      <div class="card">
+        <div class="card-title">SSH not connecting</div>
+        <p>VM needs 30-60s to boot. Try: <code>.\vm-ssh.ps1 "echo OK"</code></p>
+        <p>Check port: <code>netstat -ano | findstr :2222</code></p>
+      </div>
+      <div class="card">
+        <div class="card-title">Hub not loading</div>
+        <p>SSH in: <code>ps aux | grep node</code></p>
+        <p>Restart: <code>cd ~/sweepnspect-hub && node server.js &</code></p>
+      </div>
+      <div class="card">
+        <div class="card-title">Port conflict</div>
+        <p>Check: <code>netstat -ano | findstr :8888</code></p>
+        <p>Kill: <code>taskkill /PID &lt;pid&gt; /F</code></p>
+      </div>
+    </div>
+
+    <h2>Recovery</h2>
+    <p>If the VM disk gets corrupted, you can rebuild from scratch:</p>
+    <pre><code># Rebuild everything (boots ISO, installs Alpine, fixes bootloader, installs packages)
+powershell -File D:\HiveTerm\scripts\vm\vm-fix-final.ps1
+
+# Then fix networking
+powershell -File D:\HiveTerm\scripts\vm\vm-fix-net.ps1
+
+# Then re-deploy Hub
+scp -r -P 2222 -i D:\VMs\sweepnspect-hq\id_ed25519 D:\SweepNspect-Hub\* hive@localhost:~/sweepnspect-hub/</code></pre>
+  </div>
+
+  <!-- ════════════════════ AI ASSISTANT ════════════════════ -->
+  <div class="panel" id="panel-assistant">
+    <h2>AI Assistant</h2>
+    <p>Powered by Claude. Asks are answered using live Hub data — tickets, subscribers, revenue, Clauser status.</p>
+    <div id="guideAiChat"></div>
+  </div>
+
+</div>
+
+<link rel="stylesheet" href="/css/hub.css">
+<style>
+  /* Override hub.css layout for guide page (not a sidebar app) */
+  #app, .sidebar, .statusbar, .main, .main-header, .main-content { all: unset; }
+</style>
+<script src="/js/lib/ai-chat.js"></script>
+<script>
+// ── Tab switching ──
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.panel).classList.add('active');
+  });
+});
+
+// ── Copy code ──
+function copyCode(btn) {
+  const code = btn.parentElement.querySelector('code').textContent;
+  navigator.clipboard.writeText(code);
+  btn.textContent = 'Copied!';
+  setTimeout(() => btn.textContent = 'Copy', 1500);
+}
+
+// ── Live status ──
+let liveStats = null;
+let clauserData = null;
+
+async function refreshStatus() {
+  const hubCard = document.getElementById('sc-hub');
+  try {
+    const res = await fetch('/api/stats');
+    liveStats = await res.json();
+    hubCard.querySelector('.status-value').innerHTML = '<span class="dot green"></span>Online';
+    hubCard.className = 'status-card ok';
+    document.getElementById('hubSub').textContent = `${liveStats.tickets.total} tickets, ${liveStats.subscribers.total} subscribers`;
+
+    document.getElementById('ticketCount').textContent = liveStats.tickets.open;
+    document.getElementById('sc-stats').className = liveStats.tickets.open > 0 ? 'status-card warn' : 'status-card ok';
+    document.getElementById('ticketSub').textContent =
+      `${liveStats.tickets.aiWorking} AI-working, $${liveStats.revenue.mrr} MRR`;
+
+    document.getElementById('vmStatus').innerHTML = '<span class="dot green"></span>Running';
+    document.getElementById('sc-vm').className = 'status-card ok';
+    document.getElementById('vmSub').textContent = 'Alpine 3.21 / QEMU';
+  } catch (e) {
+    hubCard.querySelector('.status-value').innerHTML = '<span class="dot red"></span>Offline';
+    hubCard.className = 'status-card err';
+    document.getElementById('vmStatus').innerHTML = '<span class="dot red"></span>Unknown';
+    document.getElementById('sc-vm').className = 'status-card err';
+  }
+
+  try {
+    const res = await fetch('/api/clauser/status');
+    clauserData = await res.json();
+    const cs = document.getElementById('clauserStatus');
+    const cc = document.getElementById('sc-clauser');
+    if (clauserData.status === 'offline') {
+      cs.innerHTML = '<span class="dot red"></span>Offline';
+      cc.className = 'status-card err';
+    } else if (clauserData.status === 'working') {
+      cs.innerHTML = '<span class="dot yellow"></span>Working';
+      cc.className = 'status-card warn';
+    } else {
+      cs.innerHTML = '<span class="dot green"></span>Online';
+      cc.className = 'status-card ok';
+    }
+    const up = clauserData.uptime || 0;
+    const m = Math.floor(up / 60);
+    document.getElementById('clauserSub').textContent =
+      clauserData.status !== 'offline'
+        ? `${clauserData.ticketsProcessed} processed, ${m}m uptime`
+        : 'Agent not running';
+  } catch (e) {
+    document.getElementById('clauserStatus').innerHTML = '<span class="dot red"></span>Unavailable';
+  }
+}
+
+refreshStatus();
+setInterval(refreshStatus, 10000);
+
+// ── API Tester ──
+async function testApi() {
+  const endpoint = document.getElementById('apiEndpoint').value;
+  const result = document.getElementById('apiResult').querySelector('code');
+  result.textContent = 'Loading...';
+  try {
+    const res = await fetch(endpoint);
+    const data = await res.json();
+    result.textContent = JSON.stringify(data, null, 2);
+  } catch (e) {
+    result.textContent = 'Error: ' + e.message;
+  }
+}
+
+// ── Live AI Assistant (powered by Claude API) ──
+AIChat.init('guideAiChat');
+
+// ── WebSocket for real-time ──
+let ws;
+function connectWs() {
+  try {
+    ws = new WebSocket('ws://' + location.host + '/ws');
+    ws.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'stats') liveStats = msg.data;
+    };
+    ws.onclose = () => setTimeout(connectWs, 5000);
+  } catch (e) {}
+}
+connectWs();
+</script>
+</body>
+</html>

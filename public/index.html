@@ -45,8 +45,26 @@
       <span id="sbTickets">0 open</span>
       <span id="sbSubs">0 subs</span>
       <span id="sbMrr">$0 MRR</span>
+      <span class="sb-divider"></span>
+      <span><span class="clauser-dot offline" id="clauserSbDot"></span> <span id="clauserSbLabel">Clauser: Offline</span></span>
+      <span class="sb-divider"></span>
+      <span class="alert-bell-wrap" onclick="App.toggleAlertPanel()">
+        <span class="alert-bell" id="alertBell">&#128276;</span>
+        <span class="alert-badge" id="alertBadge" style="display:none">0</span>
+      </span>
       <span class="spacer"></span>
       <span id="sbClock"></span>
+    </div>
+  </div>
+
+  <!-- Alert Panel -->
+  <div class="alert-panel" id="alertPanel" style="display:none">
+    <div class="alert-panel-header">
+      <h3>Alerts</h3>
+      <button class="alert-panel-close" onclick="App.toggleAlertPanel()">&times;</button>
+    </div>
+    <div class="alert-panel-body" id="alertPanelBody">
+      <div class="empty-state" style="padding:16px"><p>No alerts</p></div>
     </div>
   </div>
 
@@ -54,6 +72,7 @@
   <script src="/js/lib/ws.js"></script>
   <script src="/js/lib/db.js"></script>
   <script src="/js/lib/notify.js"></script>
+  <script src="/js/lib/ai-chat.js"></script>
 
   <!-- Views -->
   <script src="/js/views/dashboard.js"></script>
