@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SweepNspect Hub</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0e1a;
+  --bg-card: #111827;
+  --bg-card-hover: #1a2236;
+  --bg-surface: #0f1629;
+  --accent: #ea580c;
+  --accent-glow: rgba(234, 88, 12, 0.25);
+  --accent-dim: rgba(234, 88, 12, 0.08);
+  --green: #22c55e;
+  --green-dim: rgba(34, 197, 94, 0.12);
+  --yellow: #eab308;
+  --yellow-dim: rgba(234, 179, 8, 0.12);
+  --red: #ef4444;
+  --red-dim: rgba(239, 68, 68, 0.12);
+  --text: #e2e8f0;
+  --text-muted: #64748b;
+  --text-dim: #475569;
+  --border: rgba(255,255,255,0.06);
+  --border-accent: rgba(234, 88, 12, 0.2);
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(234, 88, 12, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 100%, rgba(34, 197, 94, 0.02) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── TOP BAR ─── */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(10, 14, 26, 0.92);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.logo {
+  font-family: var(--mono);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: -0.5px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-mark {
+  width: 28px;
+  height: 28px;
+  background: var(--accent);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+
+.topbar-center {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.readiness-ring {
+  position: relative;
+  width: 42px;
+  height: 42px;
+}
+
+.readiness-ring svg {
+  transform: rotate(-90deg);
+  width: 42px;
+  height: 42px;
+}
+
+.readiness-ring .bg-ring {
+  fill: none;
+  stroke: rgba(255,255,255,0.06);
+  stroke-width: 3;
+}
+
+.readiness-ring .fg-ring {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 0 6px var(--accent-glow));
+}
+
+.readiness-pct {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.readiness-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+
+.level-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.level-badge {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1px solid var(--border-accent);
+  padding: 4px 10px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.level-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.xp-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.xp-bar {
+  width: 120px;
+  height: 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.xp-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #f97316);
+  border-radius: 3px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.xp-text {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* ─── NOTIFICATIONS ─── */
+.notif-btn {
+  position: relative;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all 0.2s;
+}
+
+.notif-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.12); }
+
+.notif-btn svg { width: 18px; height: 18px; display: block; }
+
+.notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  background: var(--red);
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  border: 2px solid var(--bg);
+}
+
+.notif-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 320px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  display: none;
+  overflow: hidden;
+  z-index: 200;
+}
+
+.notif-dropdown.open { display: block; }
+
+.notif-header {
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.notif-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  transition: background 0.15s;
+}
+
+.notif-item:hover { background: rgba(255,255,255,0.02); }
+.notif-item:last-child { border-bottom: none; }
+
+.notif-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+.notif-content { flex: 1; }
+
+.notif-text {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.notif-time {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+  font-family: var(--mono);
+}
+
+/* ─── MAIN LAYOUT ─── */
+.main {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 0;
+  min-height: calc(100vh - 64px);
+  position: relative;
+  z-index: 1;
+}
+
+.content { padding: 24px; }
+
+.sidebar {
+  border-left: 1px solid var(--border);
+  background: var(--bg-surface);
+  padding: 24px;
+  position: sticky;
+  top: 64px;
+  height: calc(100vh - 64px);
+  overflow-y: auto;
+}
+
+/* ─── STATS ROW ─── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  transition: border-color 0.2s;
+}
+
+.stat-card:hover { border-color: rgba(255,255,255,0.1); }
+
+.stat-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.stat-value {
+  font-family: var(--mono);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+}
+
+.stat-value.accent { color: var(--accent); }
+.stat-value.green { color: var(--green); }
+
+.stat-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-family: var(--mono);
+}
+
+/* ─── CATEGORY CARDS ─── */
+.section-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.cat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: all 0.25s;
+  cursor: pointer;
+}
+
+.cat-card:hover {
+  border-color: rgba(255,255,255,0.1);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+}
+
+.cat-card.expanded {
+  border-color: var(--border-accent);
+  box-shadow: 0 0 0 1px var(--border-accent), 0 12px 40px rgba(0,0,0,0.4);
+}
+
+.cat-header {
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cat-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.cat-info { flex: 1; min-width: 0; }
+
+.cat-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.cat-progress-text {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.cat-pct {
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.cat-pct.high { color: var(--green); }
+.cat-pct.mid { color: var(--yellow); }
+.cat-pct.low { color: var(--red); }
+
+.cat-bar {
+  height: 3px;
+  background: rgba(255,255,255,0.04);
+  margin: 0 16px;
+}
+
+.cat-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cat-bar-fill.high { background: var(--green); box-shadow: 0 0 8px rgba(34, 197, 94, 0.3); }
+.cat-bar-fill.mid { background: var(--yellow); box-shadow: 0 0 8px rgba(234, 179, 8, 0.3); }
+.cat-bar-fill.low { background: var(--red); box-shadow: 0 0 8px rgba(239, 68, 68, 0.3); }
+
+.cat-items {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cat-card.expanded .cat-items { max-height: 600px; }
+
+.cat-items-inner { padding: 8px 16px 16px; }
+
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  transition: opacity 0.2s;
+}
+
+.check-item:last-child { border-bottom: none; }
+
+.check-box {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--text-dim);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.check-box:hover { border-color: var(--accent); }
+
+.check-box.checked {
+  background: var(--green);
+  border-color: var(--green);
+}
+
+.check-box.checked::after {
+  content: '';
+  width: 6px;
+  height: 10px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.check-label {
+  font-size: 13px;
+  color: var(--text);
+  flex: 1;
+}
+
+.check-item.done .check-label {
+  color: var(--text-dim);
+  text-decoration: line-through;
+}
+
+.check-xp {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  background: rgba(255,255,255,0.04);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+/* ─── SIDEBAR ─── */
+.sidebar-section {
+  margin-bottom: 28px;
+}
+
+.sidebar-title {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+.up-next-item {
+  padding: 12px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.up-next-item:hover {
+  background: rgba(255,255,255,0.04);
+  border-color: var(--border-accent);
+}
+
+.up-next-tag {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--accent);
+  background: var(--accent-dim);
+  padding: 2px 6px;
+  border-radius: 3px;
+  display: inline-block;
+  margin-bottom: 6px;
+}
+
+.up-next-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+  line-height: 1.3;
+}
+
+.up-next-btn {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1px solid var(--border-accent);
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.up-next-btn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ─── MILESTONE ─── */
+.milestone-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.milestone-item:last-child { border-bottom: none; }
+
+.milestone-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.milestone-dot.done { background: var(--green); box-shadow: 0 0 6px rgba(34, 197, 94, 0.4); }
+.milestone-dot.active { background: var(--accent); box-shadow: 0 0 6px var(--accent-glow); animation: pulse 2s infinite; }
+.milestone-dot.pending { background: var(--text-dim); }
+
+.milestone-text {
+  font-size: 12px;
+  color: var(--text);
+  flex: 1;
+}
+
+.milestone-text.done { color: var(--text-dim); }
+
+.milestone-date {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ─── XP POPUP ─── */
+.xp-popup {
+  position: fixed;
+  pointer-events: none;
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--accent);
+  text-shadow: 0 0 20px var(--accent-glow);
+  z-index: 9999;
+  opacity: 0;
+  transform: translateY(0);
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.xp-popup.show {
+  opacity: 1;
+  transform: translateY(-40px);
+}
+
+.xp-popup.fade {
+  opacity: 0;
+  transform: translateY(-60px);
+}
+
+/* ─── LEVEL UP FLASH ─── */
+.level-up-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(234, 88, 12, 0.08);
+  z-index: 9998;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.level-up-overlay.show { opacity: 1; }
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.12); }
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 900px) {
+  .main { grid-template-columns: 1fr; }
+  .sidebar {
+    position: static;
+    height: auto;
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .topbar-center { display: none; }
+}
+
+@media (max-width: 600px) {
+  .topbar {
+    padding: 0 12px;
+    height: 56px;
+  }
+
+  .logo { font-size: 13px; gap: 8px; }
+  .logo-mark { width: 24px; height: 24px; font-size: 12px; }
+
+  .content { padding: 12px; }
+  .sidebar { padding: 16px; }
+
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .stat-card { padding: 12px; }
+  .stat-value { font-size: 20px; }
+
+  .categories-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .cat-header { padding: 14px 12px; }
+  .cat-icon { width: 32px; height: 32px; font-size: 15px; }
+  .cat-name { font-size: 13px; }
+  .cat-pct { font-size: 18px; }
+  .cat-bar { margin: 0 12px; }
+  .cat-items-inner { padding: 6px 12px 14px; }
+
+  .check-item { padding: 10px 0; gap: 8px; }
+  .check-label { font-size: 13px; }
+  .check-xp { font-size: 9px; padding: 2px 5px; }
+
+  .up-next-item { padding: 10px; }
+
+  .notif-dropdown {
+    width: calc(100vw - 24px);
+    right: -8px;
+  }
+
+  .section-label { font-size: 10px; margin-bottom: 12px; }
+
+  .topbar-right { gap: 10px; }
+  #clock { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="level-up-overlay" id="levelUpOverlay"></div>
+
+<!-- TOP BAR -->
+<header class="topbar">
+  <div class="topbar-left">
+    <div class="logo">
+      <div class="logo-mark">S</div>
+      SweepNspect Hub
+    </div>
+  </div>
+
+  <div class="topbar-center">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="readiness-ring" id="readinessRing">
+        <svg viewBox="0 0 42 42">
+          <circle class="bg-ring" cx="21" cy="21" r="18" />
+          <circle class="fg-ring" id="readinessCircle" cx="21" cy="21" r="18"
+            stroke-dasharray="113.1" stroke-dashoffset="113.1" />
+        </svg>
+        <div class="readiness-pct" id="readinessPct">0%</div>
+      </div>
+      <span class="readiness-label">Launch Ready</span>
+    </div>
+
+    <div class="level-display">
+      <span class="level-badge" id="levelBadge">LVL 3</span>
+      <span class="level-name" id="levelName">Beta Recruiter</span>
+      <div class="xp-bar-container">
+        <div class="xp-bar">
+          <div class="xp-bar-fill" id="xpBarFill" style="width:0%"></div>
+        </div>
+        <span class="xp-text" id="xpText">0 / 0 XP</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="topbar-right">
+    <div style="position:relative;" id="notifContainer">
+      <button class="notif-btn" id="notifBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="notif-badge" id="notifBadge">3</span>
+      </button>
+      <div class="notif-dropdown" id="notifDropdown">
+        <div class="notif-header">Notifications</div>
+        <div class="notif-item">
+          <div class="notif-dot" style="background:var(--green)"></div>
+          <div class="notif-content">
+            <div class="notif-text">Founding 25 page pushed to production</div>
+            <div class="notif-time">today</div>
+          </div>
+        </div>
+        <div class="notif-item">
+          <div class="notif-dot" style="background:var(--green)"></div>
+          <div class="notif-content">
+            <div class="notif-text">Website updated with Founding 25 banner</div>
+            <div class="notif-time">today</div>
+          </div>
+        </div>
+        <div class="notif-item">
+          <div class="notif-dot"></div>
+          <div class="notif-content">
+            <div class="notif-text">Hub dashboard created</div>
+            <div class="notif-time">just now</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);" id="clock"></div>
+  </div>
+</header>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="content">
+    <!-- STATS ROW -->
+    <div class="stats-row" id="statsRow"></div>
+
+    <!-- CATEGORIES -->
+    <div class="section-label">Operations</div>
+    <div class="categories-grid" id="catGrid"></div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-title">Up Next</div>
+      <div id="upNext"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">Milestones</div>
+      <div id="milestones">
+        <div class="milestone-item"><div class="milestone-dot done"></div><div class="milestone-text done">App feature-complete</div><div class="milestone-date">Feb 17</div></div>
+        <div class="milestone-item"><div class="milestone-dot done"></div><div class="milestone-text done">Play Store closed testing</div><div class="milestone-date">Feb 17</div></div>
+        <div class="milestone-item"><div class="milestone-dot done"></div><div class="milestone-text done">Website live</div><div class="milestone-date">Feb 17</div></div>
+        <div class="milestone-item"><div class="milestone-dot done"></div><div class="milestone-text done">Founding 25 page launched</div><div class="milestone-date">Feb 23</div></div>
+        <div class="milestone-item"><div class="milestone-dot active"></div><div class="milestone-text">Facebook community outreach</div><div class="milestone-date">Feb</div></div>
+        <div class="milestone-item"><div class="milestone-dot pending"></div><div class="milestone-text">First 5 founding members selected</div><div class="milestone-date">Mar</div></div>
+        <div class="milestone-item"><div class="milestone-dot pending"></div><div class="milestone-text">All 25 founding members confirmed</div><div class="milestone-date">Q2</div></div>
+        <div class="milestone-item"><div class="milestone-dot pending"></div><div class="milestone-text">Public launch</div><div class="milestone-date">Q2</div></div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">Session</div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);line-height:1.8;">
+        <div>Items done: <span id="sessionDone" style="color:var(--green);">0</span></div>
+        <div>XP earned: <span id="sessionXP" style="color:var(--accent);">0</span></div>
+        <div>Streak: <span id="streak" style="color:var(--yellow);">0 days</span></div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<script>
+const CATEGORIES = [
+  {
+    id: 'legal', name: 'Legal & Compliance', icon: '\u2696',
+    color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)',
+    items: [
+      { id: 'privacy', name: 'Privacy Policy', xp: 30, done: true },
+      { id: 'tos', name: 'Terms of Service', xp: 30, done: true },
+      { id: 'f25-agreement', name: 'Founding 25 Agreement', xp: 20, done: true },
+      { id: 'appstore-compliance', name: 'App Store Compliance', xp: 20, done: true },
+      { id: 'refund-policy', name: 'Refund Policy', xp: 15, done: false, priority: 5 },
+    ]
+  },
+  {
+    id: 'financial', name: 'Financial & Revenue', icon: '\uD83D\uDCB0',
+    color: '#22c55e', bg: 'rgba(34,197,94,0.1)',
+    items: [
+      { id: 'pricing-locked', name: 'Pricing Model Locked', xp: 20, done: true },
+      { id: 'stripe-account', name: 'Stripe Account Setup', xp: 25, done: true },
+      { id: 'payment-live', name: 'Payment Processing Live', xp: 40, done: false, priority: 2 },
+      { id: 'tax-config', name: 'Tax Configuration', xp: 15, done: false, priority: 7 },
+      { id: 'bookkeeping', name: 'Bookkeeping Dashboard', xp: 20, done: true },
+      { id: 'invoice-templates', name: 'Invoice Templates', xp: 15, done: false, priority: 6 },
+      { id: 'bank-account', name: 'Business Bank Account', xp: 10, done: false, priority: 8 },
+    ]
+  },
+  {
+    id: 'marketing', name: 'Marketing & Outreach', icon: '\uD83D\uDCE3',
+    color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',
+    items: [
+      { id: 'brand-doc', name: 'Brand Positioning Doc', xp: 20, done: true },
+      { id: 'website-live', name: 'Website Live', xp: 30, done: true },
+      { id: 'f25-page', name: 'Founding 25 Page', xp: 25, done: true },
+      { id: 'facebook', name: 'Facebook Page', xp: 10, done: false, priority: 3 },
+      { id: 'instagram', name: 'Instagram Account', xp: 10, done: false, priority: 5 },
+      { id: 'analytics', name: 'Google Analytics', xp: 15, done: false, priority: 6 },
+      { id: 'email-templates', name: 'Email Templates', xp: 15, done: false, priority: 4 },
+      { id: 'share-links-qr', name: 'Referral Share Links + QR', xp: 20, done: false, priority: 2 },
+      { id: 'fb-groups', name: 'Facebook Groups \u2014 Chimney Communities', xp: 20, done: false, priority: 1 },
+    ]
+  },
+  {
+    id: 'distribution', name: 'Distribution & Deploy', icon: '\uD83D\uDE80',
+    color: '#3b82f6', bg: 'rgba(59,130,246,0.1)',
+    items: [
+      { id: 'dev-account', name: 'Developer Account', xp: 20, done: true },
+      { id: 'app-signing', name: 'App Signing', xp: 20, done: true },
+      { id: 'store-listing', name: 'Store Listing', xp: 25, done: true },
+      { id: 'screenshots', name: 'Screenshots', xp: 15, done: true },
+      { id: 'closed-testing', name: 'Closed Testing Published', xp: 30, done: true },
+      { id: 'privacy-url', name: 'Privacy Policy URL', xp: 10, done: true },
+      { id: 'prod-track', name: 'Production Track', xp: 30, done: false, priority: 3 },
+      { id: 'release-notes', name: 'Release Notes', xp: 10, done: false, priority: 4 },
+    ]
+  },
+  {
+    id: 'product', name: 'Product & Technical', icon: '\u2699',
+    color: '#06b6d4', bg: 'rgba(6,182,212,0.1)',
+    items: [
+      { id: 'inspection-wf', name: 'Inspection Workflow', xp: 50, done: true },
+      { id: 'pdf-reports', name: 'PDF Reports', xp: 40, done: true },
+      { id: 'invoicing', name: 'Invoicing', xp: 35, done: true },
+      { id: 'booking', name: 'Booking System', xp: 35, done: true },
+      { id: 'expenses', name: 'Expense Tracking', xp: 25, done: true },
+      { id: 'db-encrypted', name: 'Database Encrypted', xp: 30, done: true },
+      { id: 'security-audit', name: 'Security Audit', xp: 35, done: true },
+      { id: 'offline-first', name: 'Offline-First', xp: 30, done: true },
+      { id: 'string-resources', name: 'String Resources', xp: 20, done: false, priority: 7 },
+      { id: 'demo-polish', name: 'Convention Demo Polish', xp: 15, done: false, priority: 2 },
+    ]
+  },
+  {
+    id: 'support', name: 'Customer Support', icon: '\uD83C\uDFE5',
+    color: '#ec4899', bg: 'rgba(236,72,153,0.1)',
+    items: [
+      { id: 'support-email', name: 'Support Email Setup', xp: 10, done: true },
+      { id: 'ticket-system', name: 'Ticket System', xp: 25, done: false, priority: 5 },
+      { id: 'onboarding-guide', name: 'Onboarding Guide', xp: 25, done: false, priority: 2 },
+      { id: 'faq', name: 'FAQ / Knowledge Base', xp: 20, done: false, priority: 6 },
+      { id: 'response-templates', name: 'Response Templates', xp: 15, done: false, priority: 7 },
+      { id: 'video-tutorials', name: 'Video Tutorials', xp: 20, done: false, priority: 9 },
+    ]
+  },
+  {
+    id: 'founding', name: 'Founding 25 Program', icon: '\uD83C\uDFC6',
+    color: '#ea580c', bg: 'rgba(234,88,12,0.1)',
+    items: [
+      { id: 'charter', name: 'Charter Written', xp: 20, done: true },
+      { id: 'f25-website', name: 'Website Page Live', xp: 25, done: true },
+      { id: 'selection-criteria', name: 'Selection Criteria Defined', xp: 15, done: true },
+      { id: 'review-process', name: 'Application Review Process', xp: 20, done: false, priority: 1 },
+      { id: 'onboarding-materials', name: 'Onboarding Materials', xp: 25, done: false, priority: 2 },
+      { id: 'agreement-signed', name: 'Agreement Sent/Signed', xp: 30, done: false, priority: 3 },
+    ]
+  },
+  {
+    id: 'partnerships', name: 'Partnerships', icon: '\uD83E\uDD1D',
+    color: '#14b8a6', bg: 'rgba(20,184,166,0.1)',
+    items: [
+      { id: 'stoner-outreach', name: 'Mark Stoner \u2014 Direct Outreach', xp: 20, done: true },
+      { id: 'surefire-referral', name: 'SureFire \u2014 Referral Program', xp: 25, done: false, priority: 4 },
+      { id: 'surefire-ceu', name: 'SureFire \u2014 CEU Training Content', xp: 30, done: false, priority: 5 },
+      { id: 'fb-chimney', name: 'Facebook Chimney Communities', xp: 20, done: false, priority: 2 },
+    ]
+  },
+  {
+    id: 'hiring', name: 'Hiring & Growth', icon: '\uD83D\uDCC8',
+    color: '#a78bfa', bg: 'rgba(167,139,250,0.1)',
+    items: [
+      { id: 'support-hire', name: 'Support Hire Plan', xp: 15, done: false, priority: 9 },
+      { id: 'dev-hire', name: 'Developer Hire Plan', xp: 15, done: false, priority: 10 },
+      { id: 'contractor-budget', name: 'Contractor Budget', xp: 10, done: false, priority: 10 },
+      { id: 'role-descriptions', name: 'Role Descriptions', xp: 10, done: false, priority: 10 },
+    ]
+  },
+];
+
+const LEVELS = [
+  { threshold: 0, name: 'Paper Pusher' },
+  { threshold: 100, name: 'App Builder' },
+  { threshold: 300, name: 'Beta Recruiter' },
+  { threshold: 600, name: 'Convention Ready' },
+  { threshold: 1000, name: 'Launch Captain' },
+  { threshold: 1500, name: 'Growth Engine' },
+];
+
+let state = loadState();
+let sessionDone = 0;
+let sessionXP = 0;
+
+function loadState() {
+  try {
+    const s = JSON.parse(localStorage.getItem('hub-state'));
+    if (s && s.items) return s;
+  } catch(e) {}
+  // Default state from category definitions
+  const items = {};
+  CATEGORIES.forEach(cat => {
+    cat.items.forEach(item => {
+      items[item.id] = { done: item.done };
+    });
+  });
+  return { items, xp: calcXP(items) };
+}
+
+function saveState() {
+  localStorage.setItem('hub-state', JSON.stringify(state));
+}
+
+function calcXP(items) {
+  let xp = 0;
+  CATEGORIES.forEach(cat => {
+    cat.items.forEach(item => {
+      if (items[item.id] && items[item.id].done) xp += item.xp;
+    });
+  });
+  return xp;
+}
+
+function getLevel(xp) {
+  let lvl = 0;
+  for (let i = LEVELS.length - 1; i >= 0; i--) {
+    if (xp >= LEVELS[i].threshold) { lvl = i; break; }
+  }
+  return lvl;
+}
+
+function getCatStats(cat) {
+  let done = 0, total = cat.items.length;
+  cat.items.forEach(item => {
+    if (state.items[item.id] && state.items[item.id].done) done++;
+  });
+  return { done, total, pct: Math.round((done / total) * 100) };
+}
+
+function getAllStats() {
+  let done = 0, total = 0;
+  CATEGORIES.forEach(cat => {
+    const s = getCatStats(cat);
+    done += s.done;
+    total += s.total;
+  });
+  return { done, total, pct: Math.round((done / total) * 100) };
+}
+
+function pctClass(pct) {
+  if (pct >= 75) return 'high';
+  if (pct >= 25) return 'mid';
+  return 'low';
+}
+
+// ─── RENDER ───
+function renderStats() {
+  const all = getAllStats();
+  const catsDone = CATEGORIES.filter(c => getCatStats(c).pct === 100).length;
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Tasks Complete</div>
+      <div class="stat-value accent">${all.done}<span style="font-size:14px;color:var(--text-dim);">/${all.total}</span></div>
+      <div class="stat-sub">${all.pct}% overall</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Categories Clear</div>
+      <div class="stat-value green">${catsDone}<span style="font-size:14px;color:var(--text-dim);">/${CATEGORIES.length}</span></div>
+      <div class="stat-sub">${CATEGORIES.length - catsDone} remaining</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total XP</div>
+      <div class="stat-value accent">${state.xp}</div>
+      <div class="stat-sub">Level ${getLevel(state.xp) + 1}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Next Milestone</div>
+      <div class="stat-value" style="color:var(--yellow);">FB</div>
+      <div class="stat-sub">Community outreach</div>
+    </div>
+  `;
+}
+
+function renderCategories() {
+  const grid = document.getElementById('catGrid');
+  grid.innerHTML = '';
+  CATEGORIES.forEach(cat => {
+    const stats = getCatStats(cat);
+    const cls = pctClass(stats.pct);
+    const card = document.createElement('div');
+    card.className = 'cat-card';
+    card.dataset.catId = cat.id;
+    card.innerHTML = `
+      <div class="cat-header">
+        <div class="cat-icon" style="background:${cat.bg};font-size:18px;">${cat.icon}</div>
+        <div class="cat-info">
+          <div class="cat-name">${cat.name}</div>
+          <div class="cat-progress-text">${stats.done} of ${stats.total} complete</div>
+        </div>
+        <div class="cat-pct ${cls}">${stats.pct}%</div>
+      </div>
+      <div class="cat-bar"><div class="cat-bar-fill ${cls}" style="width:${stats.pct}%"></div></div>
+      <div class="cat-items">
+        <div class="cat-items-inner">
+          ${cat.items.map(item => {
+            const done = state.items[item.id] && state.items[item.id].done;
+            return `<div class="check-item ${done ? 'done' : ''}" data-item-id="${item.id}">
+              <div class="check-box ${done ? 'checked' : ''}" data-item-id="${item.id}"></div>
+              <span class="check-label">${item.name}</span>
+              <span class="check-xp">+${item.xp} XP</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    `;
+    card.querySelector('.cat-header').addEventListener('click', () => {
+      card.classList.toggle('expanded');
+    });
+    card.querySelectorAll('.check-box').forEach(cb => {
+      cb.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleItem(cb.dataset.itemId, cb);
+      });
+    });
+    grid.appendChild(card);
+  });
+}
+
+function renderUpNext() {
+  const unchecked = [];
+  CATEGORIES.forEach(cat => {
+    cat.items.forEach(item => {
+      if (!(state.items[item.id] && state.items[item.id].done) && item.priority) {
+        unchecked.push({ ...item, catName: cat.name, catColor: cat.color });
+      }
+    });
+  });
+  unchecked.sort((a, b) => (a.priority || 99) - (b.priority || 99));
+  const top5 = unchecked.slice(0, 5);
+  document.getElementById('upNext').innerHTML = top5.map(item => `
+    <div class="up-next-item" data-item-id="${item.id}">
+      <div class="up-next-tag" style="color:${item.catColor};background:${item.catColor}15;border:1px solid ${item.catColor}30;">${item.catName}</div>
+      <div class="up-next-name">${item.name}</div>
+      <button class="up-next-btn" onclick="focusItem('${item.id}')">Focus</button>
+    </div>
+  `).join('');
+}
+
+function renderTopBar() {
+  const all = getAllStats();
+  const circumference = 2 * Math.PI * 18;
+  const offset = circumference - (all.pct / 100) * circumference;
+  document.getElementById('readinessCircle').style.strokeDashoffset = offset;
+  document.getElementById('readinessPct').textContent = all.pct + '%';
+
+  const lvl = getLevel(state.xp);
+  const nextLvl = lvl < LEVELS.length - 1 ? LEVELS[lvl + 1].threshold : LEVELS[lvl].threshold;
+  const currThreshold = LEVELS[lvl].threshold;
+  const progress = nextLvl > currThreshold ? ((state.xp - currThreshold) / (nextLvl - currThreshold)) * 100 : 100;
+
+  document.getElementById('levelBadge').textContent = 'LVL ' + (lvl + 1);
+  document.getElementById('levelName').textContent = LEVELS[lvl].name;
+  document.getElementById('xpBarFill').style.width = progress + '%';
+  document.getElementById('xpText').textContent = state.xp + ' / ' + nextLvl + ' XP';
+}
+
+function renderSession() {
+  document.getElementById('sessionDone').textContent = sessionDone;
+  document.getElementById('sessionXP').textContent = sessionXP;
+}
+
+// ─── INTERACTIONS ───
+function toggleItem(itemId, checkboxEl) {
+  const wasDone = state.items[itemId] && state.items[itemId].done;
+  state.items[itemId] = { done: !wasDone };
+  state.xp = calcXP(state.items);
+
+  if (!wasDone) {
+    // Find XP value
+    let xpVal = 0;
+    CATEGORIES.forEach(cat => cat.items.forEach(item => {
+      if (item.id === itemId) xpVal = item.xp;
+    }));
+    sessionDone++;
+    sessionXP += xpVal;
+    showXPPopup(checkboxEl, xpVal);
+
+    // Check for level up
+    const oldLvl = getLevel(state.xp - xpVal);
+    const newLvl = getLevel(state.xp);
+    if (newLvl > oldLvl) showLevelUp();
+  } else {
+    let xpVal = 0;
+    CATEGORIES.forEach(cat => cat.items.forEach(item => {
+      if (item.id === itemId) xpVal = item.xp;
+    }));
+    sessionDone = Math.max(0, sessionDone - 1);
+    sessionXP = Math.max(0, sessionXP - xpVal);
+  }
+
+  saveState();
+  renderAll();
+}
+
+function showXPPopup(el, xp) {
+  const rect = el.getBoundingClientRect();
+  const popup = document.createElement('div');
+  popup.className = 'xp-popup';
+  popup.textContent = '+' + xp + ' XP';
+  popup.style.left = (rect.left + rect.width / 2) + 'px';
+  popup.style.top = (rect.top) + 'px';
+  document.body.appendChild(popup);
+  requestAnimationFrame(() => {
+    popup.classList.add('show');
+    setTimeout(() => {
+      popup.classList.add('fade');
+      setTimeout(() => popup.remove(), 400);
+    }, 600);
+  });
+}
+
+function showLevelUp() {
+  const overlay = document.getElementById('levelUpOverlay');
+  overlay.classList.add('show');
+  setTimeout(() => overlay.classList.remove('show'), 800);
+}
+
+function focusItem(itemId) {
+  // Find the category and expand it
+  CATEGORIES.forEach(cat => {
+    cat.items.forEach(item => {
+      if (item.id === itemId) {
+        const card = document.querySelector(`.cat-card[data-cat-id="${cat.id}"]`);
+        if (card) {
+          card.classList.add('expanded');
+          const checkItem = card.querySelector(`.check-item[data-item-id="${itemId}"]`);
+          if (checkItem) {
+            setTimeout(() => {
+              checkItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              checkItem.style.background = 'var(--accent-dim)';
+              setTimeout(() => checkItem.style.background = '', 1500);
+            }, 350);
+          }
+        }
+      }
+    });
+  });
+}
+
+function renderAll() {
+  renderStats();
+  renderCategories();
+  renderUpNext();
+  renderTopBar();
+  renderSession();
+}
+
+// ─── CLOCK ───
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
+    now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+// ─── NOTIFICATIONS ───
+document.getElementById('notifBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  document.getElementById('notifDropdown').classList.toggle('open');
+});
+
+document.addEventListener('click', () => {
+  document.getElementById('notifDropdown').classList.remove('open');
+});
+
+// ─── INIT ───
+renderAll();
+updateClock();
+setInterval(updateClock, 30000);
+
+// Streak tracking
+const today = new Date().toDateString();
+const lastVisit = localStorage.getItem('hub-last-visit');
+let streak = parseInt(localStorage.getItem('hub-streak') || '0');
+if (lastVisit !== today) {
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  streak = lastVisit === yesterday ? streak + 1 : 1;
+  localStorage.setItem('hub-streak', streak);
+  localStorage.setItem('hub-last-visit', today);
+}
+document.getElementById('streak').textContent = streak + ' day' + (streak !== 1 ? 's' : '');
+</script>
+</body>
+</html>
