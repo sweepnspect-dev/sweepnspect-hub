@@ -278,25 +278,17 @@ body {
 
 /* ═══ LAYOUT ═══ */
 .app-body {
-  display: grid;
-  grid-template-columns: 1fr 300px;
   min-height: calc(100vh - 56px);
+  padding-bottom: calc(56px + var(--safe-bottom));
 }
 
 .content {
   padding: 20px;
   max-width: 960px;
+  margin: 0 auto;
 }
 
-.sidebar {
-  background: var(--surface);
-  border-left: 1px solid var(--border);
-  padding: 20px;
-  position: sticky;
-  top: 56px;
-  height: calc(100vh - 56px);
-  overflow-y: auto;
-}
+.sidebar { display: none; }
 
 /* ═══ STATS ROW ═══ */
 .stats-row {
@@ -703,7 +695,6 @@ body {
 
 /* ═══ BOTTOM NAV (mobile) ═══ */
 .bottom-nav {
-  display: none;
   position: fixed;
   bottom: 0;
   left: 0;
@@ -740,8 +731,14 @@ body {
 .bottom-nav-item svg { width: 22px; height: 22px; }
 .bottom-nav-item span { font-size: 10px; font-weight: 600; letter-spacing: 0.2px; }
 
-/* ═══ MOBILE VIEWS ═══ */
-.mobile-view { display: none; }
+/* ═══ TAB VIEWS ═══ */
+.tab-view {
+  display: none;
+  padding: 20px;
+  padding-bottom: calc(72px + var(--safe-bottom));
+  max-width: 960px;
+  margin: 0 auto;
+}
 
 /* ═══ SCROLLBAR ═══ */
 ::-webkit-scrollbar { width: 6px; }
@@ -749,15 +746,11 @@ body {
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
 
+/* ═══ TAB VIEW ACTIVE ═══ */
+.tab-view.active { display: block; }
+
 /* ═══ RESPONSIVE: TABLET ═══ */
 @media (max-width: 960px) {
-  .app-body { grid-template-columns: 1fr; }
-  .sidebar {
-    position: static;
-    height: auto;
-    border-left: none;
-    border-top: 1px solid var(--border);
-  }
   .topbar-center { display: none; }
 }
 
@@ -767,37 +760,20 @@ body {
   .logo { font-size: 15px; }
   .logo-mark { width: 28px; height: 28px; font-size: 13px; }
 
-  .app-body { grid-template-columns: 1fr; padding-bottom: calc(56px + var(--safe-bottom)); }
-
   .content { padding: 16px; }
-  .content.desktop-only { display: block; }
-
-  .sidebar { display: none; }
+  .tab-view { padding: 16px; }
 
   .stats-row { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
   .stat-card { padding: 12px; }
   .stat-value { font-size: 22px; }
 
   .cat-grid { grid-template-columns: 1fr; gap: 8px; }
-
   .cat-header { padding: 14px; }
   .cat-items-inner { padding: 4px 14px 14px; }
-
   .check-item { min-height: 48px; }
   .check-box { width: 22px; height: 22px; }
 
-  .bottom-nav { display: block; }
-
-  .mobile-view {
-    display: none;
-    padding: 16px;
-    padding-bottom: calc(72px + var(--safe-bottom));
-  }
-
-  .mobile-view.active { display: block; }
-
   .notif-dropdown { width: calc(100vw - 32px); right: -12px; }
-
   #clock { display: none; }
 }
 </style>
@@ -906,7 +882,7 @@ body {
 </div>
 
 <!-- MOBILE: UP NEXT VIEW -->
-<div class="mobile-view" id="mobileUpNext">
+<div class="tab-view" id="mobileUpNext">
   <div class="sidebar-title">Up Next</div>
   <div id="upNextMobile"></div>
   <div style="margin-top:24px;">
@@ -916,7 +892,7 @@ body {
 </div>
 
 <!-- MOBILE: TIMELINE VIEW -->
-<div class="mobile-view" id="mobileTimeline">
+<div class="tab-view" id="mobileTimeline">
   <div class="sidebar-title">Milestones</div>
   <div id="milestonesMobile"></div>
   <div style="margin-top:24px;">
@@ -926,7 +902,7 @@ body {
 </div>
 
 <!-- MOBILE: STATS VIEW -->
-<div class="mobile-view" id="mobileStats">
+<div class="tab-view" id="mobileStats">
   <div class="sidebar-title">Level &amp; XP</div>
   <div id="mobileXPCard"></div>
   <div style="margin-top:24px;">
@@ -1381,8 +1357,7 @@ function showLevelUp(newLvl) {
 }
 
 function focusItem(itemId) {
-  // Switch to dashboard on mobile
-  if (window.innerWidth <= 640) switchTab('dashboard');
+  switchTab('dashboard');
 
   setTimeout(() => {
     CATEGORIES.forEach(cat => {
@@ -1425,15 +1400,12 @@ function switchTab(tab) {
   const mainContent = document.getElementById('mainContent');
   const views = { tasks: 'mobileUpNext', timeline: 'mobileTimeline', stats: 'mobileStats' };
 
-  if (tab === 'dashboard') {
-    mainContent.style.display = '';
-    Object.values(views).forEach(id => document.getElementById(id).classList.remove('active'));
-  } else {
-    mainContent.style.display = 'none';
-    Object.entries(views).forEach(([key, id]) => {
-      document.getElementById(id).classList.toggle('active', key === tab);
-    });
-  }
+  mainContent.style.display = tab === 'dashboard' ? '' : 'none';
+  Object.entries(views).forEach(([key, id]) => {
+    document.getElementById(id).classList.toggle('active', key === tab);
+  });
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 document.querySelectorAll('.bottom-nav-item').forEach(btn => {
