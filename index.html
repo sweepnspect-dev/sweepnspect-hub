@@ -1186,8 +1186,8 @@ const PHASES = [
     description: 'Get it in their hands', color: '#3b82f6', icon: '\uD83D\uDE80',
     parallel: 'phase1',
     items: [
-      { id: 'p2-bug-unknown-customer', name: 'Fix invoice list \u201cUnknown Customer\u201d display bug', xp: 30, note: 'SHIP-STOPPER per evaluator: every invoice in the list shows "Unknown Customer" instead of the actual name. Customer name renders correctly inside the invoice. Data-binding bug in list view. Fix this before any marketing push.' },
-      { id: 'p2-bug-back-nav', name: 'Fix back-nav job status bug (premature Done)', xp: 20, note: 'Navigating back from Zone 10 without tapping "Complete Inspection" incorrectly changes job status from Scheduled to Done. Medium severity but misleads sweeps.' },
+      { id: 'p2-bug-unknown-customer', name: 'Fix invoice list \u201cUnknown Customer\u201d display bug', xp: 30, note: '✓ FIXED — Root cause: customer cache was loaded once before the invoice Flow collector, so it went stale when demo/real data loaded afterward. Fix: refresh cache on every Flow emission inside the collector. BUILD SUCCESSFUL.' },
+      { id: 'p2-bug-back-nav', name: 'Fix back-nav job status bug (premature Done)', xp: 20, note: '✓ FIXED — Root cause: ReportRepository.generate*Report() was calling serviceVisitDao.updateCompletionStatus(COMPLETED) on every report generation, not just on explicit completion. Fix: removed status update from report generation; moved it to CompletionViewModel.completeInspection() where it belongs. BUILD SUCCESSFUL.' },
       { id: 'p2-prod-apk', name: 'Production APK signed and built', xp: 25, note: 'Release keystore, R8 enabled' },
       { id: 'p2-release-notes', name: 'Release notes v1.0 written', xp: 10, note: 'What\'s in the first release' },
       { id: 'p2-prod-track', name: 'Play Store production track submitted', xp: 35, note: 'Upload signed APK' },
