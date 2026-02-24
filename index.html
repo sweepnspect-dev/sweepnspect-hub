@@ -2,126 +2,125 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-<meta name="theme-color" content="#0F2440">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="mobile-web-app-capable" content="yes">
-<title>SweepNspect Hub</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23EA580C'/><text x='16' y='22' font-size='18' font-weight='bold' fill='white' text-anchor='middle' font-family='system-ui'>S</text></svg>">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SweepNspect Hub — Launch Playbook</title>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --navy: #0F172A;
-  --navy-light: #1E293B;
-  --bg: #0F172A;
-  --surface: #1E293B;
-  --surface-hover: #253347;
-  --accent: #EA580C;
-  --accent-light: rgba(234,88,12,0.15);
-  --accent-container: rgba(234,88,12,0.08);
-  --text: #FFFFFF;
-  --text-secondary: #94A3B8;
-  --text-hint: #64748B;
-  --border: #334155;
-  --border-light: rgba(255,255,255,0.06);
-  --green: #22C55E;
-  --green-bg: rgba(34,197,94,0.12);
-  --green-text: #86EFAC;
-  --yellow: #F59E0B;
-  --yellow-bg: rgba(245,158,11,0.12);
-  --yellow-text: #FCD34D;
-  --red: #EF4444;
-  --red-bg: rgba(239,68,68,0.12);
-  --red-text: #FCA5A5;
-  --radius: 12px;
-  --radius-sm: 8px;
-  --radius-xs: 4px;
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
-  --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
-  --shadow-md: 0 4px 6px rgba(0,0,0,0.25), 0 2px 4px rgba(0,0,0,0.2);
-  --shadow-lg: 0 10px 15px rgba(0,0,0,0.3), 0 4px 6px rgba(0,0,0,0.2);
-  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --bg: #0a0e1a;
+  --bg-card: #111827;
+  --bg-card-hover: #1a2236;
+  --bg-surface: #0f1629;
+  --accent: #ea580c;
+  --accent-glow: rgba(234, 88, 12, 0.25);
+  --accent-dim: rgba(234, 88, 12, 0.08);
+  --green: #22c55e;
+  --green-dim: rgba(34, 197, 94, 0.12);
+  --yellow: #eab308;
+  --yellow-dim: rgba(234, 179, 8, 0.12);
+  --red: #ef4444;
+  --red-dim: rgba(239, 68, 68, 0.12);
+  --text: #e2e8f0;
+  --text-muted: #64748b;
+  --text-dim: #475569;
+  --border: rgba(255,255,255,0.06);
+  --border-accent: rgba(234, 88, 12, 0.2);
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
 }
 
-html { scroll-behavior: smooth; -webkit-tap-highlight-color: transparent; }
+html { scroll-behavior: smooth; }
 
 body {
-  font-family: var(--font);
+  font-family: var(--sans);
   background: var(--bg);
   color: var(--text);
   line-height: 1.5;
   min-height: 100vh;
-  min-height: 100dvh;
   overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
 }
 
-/* ═══ TOPBAR ═══ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(234, 88, 12, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 100%, rgba(34, 197, 94, 0.02) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── TOP BAR ─── */
 .topbar {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: var(--navy-light);
-  color: #fff;
-  padding: 0 20px;
-  height: 56px;
+  background: rgba(10, 14, 26, 0.92);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--border);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 
-.topbar-left { display: flex; align-items: center; gap: 12px; }
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
 
 .logo {
-  font-weight: 700;
-  font-size: 16px;
-  color: #fff;
+  font-family: var(--mono);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: -0.5px;
+  color: var(--text);
   display: flex;
   align-items: center;
   gap: 10px;
-  letter-spacing: -0.3px;
 }
 
 .logo-mark {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   background: var(--accent);
-  border-radius: 8px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
   color: #fff;
+  box-shadow: 0 0 20px var(--accent-glow);
 }
 
 .topbar-center {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 32px;
 }
 
 .readiness-ring {
   position: relative;
-  width: 38px;
-  height: 38px;
+  width: 42px;
+  height: 42px;
 }
 
 .readiness-ring svg {
   transform: rotate(-90deg);
-  width: 38px;
-  height: 38px;
+  width: 42px;
+  height: 42px;
 }
 
 .readiness-ring .bg-ring {
   fill: none;
-  stroke: rgba(255,255,255,0.15);
+  stroke: rgba(255,255,255,0.06);
   stroke-width: 3;
 }
 
@@ -131,6 +130,7 @@ body {
   stroke-width: 3;
   stroke-linecap: round;
   transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 0 6px var(--accent-glow));
 }
 
 .readiness-pct {
@@ -139,97 +139,121 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-family: var(--mono);
+  font-size: 11px;
   font-weight: 700;
-  color: #fff;
+  color: var(--accent);
 }
 
 .readiness-label {
   font-size: 11px;
-  color: rgba(255,255,255,0.6);
-  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
 }
 
-.level-display { display: flex; align-items: center; gap: 10px; }
+.level-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
 .level-badge {
+  font-family: var(--mono);
   font-size: 11px;
   font-weight: 700;
   color: var(--accent);
-  background: rgba(234,88,12,0.15);
-  padding: 3px 8px;
-  border-radius: var(--radius-xs);
-  letter-spacing: 0.3px;
+  background: var(--accent-dim);
+  border: 1px solid var(--border-accent);
+  padding: 4px 10px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
 }
 
 .level-name {
   font-size: 13px;
   font-weight: 600;
-  color: rgba(255,255,255,0.9);
+  color: var(--text);
 }
 
-.xp-bar-wrap { display: flex; align-items: center; gap: 8px; }
+.xp-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
 .xp-bar {
-  width: 100px;
-  height: 4px;
-  background: rgba(255,255,255,0.12);
-  border-radius: 2px;
+  width: 120px;
+  height: 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 3px;
   overflow: hidden;
 }
 
 .xp-bar-fill {
   height: 100%;
-  background: var(--accent);
-  border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), #f97316);
+  border-radius: 3px;
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 8px var(--accent-glow);
 }
 
 .xp-text {
+  font-family: var(--mono);
   font-size: 10px;
-  color: rgba(255,255,255,0.5);
+  color: var(--text-muted);
   white-space: nowrap;
-  font-variant-numeric: tabular-nums;
 }
 
-.topbar-right { display: flex; align-items: center; gap: 12px; }
-
-/* ═══ NOTIFICATIONS ═══ */
-.notif-wrap { position: relative; }
-
-.notif-btn {
-  position: relative;
-  background: rgba(255,255,255,0.08);
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 8px;
-  cursor: pointer;
-  color: rgba(255,255,255,0.7);
-  transition: var(--transition);
+.topbar-right {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 16px;
 }
 
-.notif-btn:hover { background: rgba(255,255,255,0.14); color: #fff; }
+.today-date {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1px solid var(--border-accent);
+  padding: 4px 10px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+/* ─── NOTIFICATIONS ─── */
+.notif-btn {
+  position: relative;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all 0.2s;
+}
+
+.notif-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.12); }
 .notif-btn svg { width: 18px; height: 18px; display: block; }
 
 .notif-badge {
   position: absolute;
-  top: -3px;
-  right: -3px;
-  min-width: 16px;
+  top: -4px;
+  right: -4px;
+  width: 16px;
   height: 16px;
   background: var(--red);
-  border-radius: 8px;
+  border-radius: 50%;
   font-size: 9px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  padding: 0 4px;
-  border: 2px solid var(--surface);
+  border: 2px solid var(--bg);
 }
 
 .notif-dropdown {
@@ -237,10 +261,10 @@ body {
   top: calc(100% + 8px);
   right: 0;
   width: 320px;
-  background: var(--surface);
+  background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-lg);
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
   display: none;
   overflow: hidden;
   z-index: 200;
@@ -249,223 +273,482 @@ body {
 .notif-dropdown.open { display: block; }
 
 .notif-header {
-  padding: 14px 16px;
-  font-size: 14px;
+  padding: 12px 16px;
+  font-size: 12px;
   font-weight: 700;
-  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
   border-bottom: 1px solid var(--border);
 }
 
 .notif-item {
   padding: 12px 16px;
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border);
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  transition: background var(--transition);
+  transition: background 0.15s;
 }
 
-.notif-item:hover { background: var(--surface-hover); }
+.notif-item:hover { background: rgba(255,255,255,0.02); }
 .notif-item:last-child { border-bottom: none; }
 
-.notif-dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
-.notif-dot.orange { background: var(--accent); }
-.notif-dot.green { background: var(--green); }
+.notif-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-top: 6px;
+  flex-shrink: 0;
+}
 
 .notif-content { flex: 1; }
-.notif-text { font-size: 13px; color: var(--text); line-height: 1.4; }
-.notif-time { font-size: 11px; color: var(--text-hint); margin-top: 2px; }
 
-/* ═══ LAYOUT ═══ */
-.app-body {
-  padding-bottom: calc(56px + var(--safe-bottom));
+.notif-text {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.4;
 }
 
-.content {
-  padding: 20px;
-  max-width: 960px;
-  margin: 0 auto;
+.notif-time {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+  font-family: var(--mono);
 }
 
-.sidebar { display: none; }
+/* ─── MAIN LAYOUT ─── */
+.main {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 0;
+  min-height: calc(100vh - 64px);
+  position: relative;
+  z-index: 1;
+}
 
-/* ═══ STATS ROW ═══ */
+.content { padding: 24px; }
+
+.sidebar {
+  border-left: 1px solid var(--border);
+  background: var(--bg-surface);
+  padding: 24px;
+  position: sticky;
+  top: 64px;
+  height: calc(100vh - 64px);
+  overflow-y: auto;
+}
+
+/* ─── STATS ROW ─── */
 .stats-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .stat-card {
-  background: var(--surface);
+  background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 10px;
   padding: 16px;
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow var(--transition);
+  transition: border-color 0.2s;
 }
 
-.stat-card:hover { box-shadow: var(--shadow); }
+.stat-card:hover { border-color: rgba(255,255,255,0.1); }
 
 .stat-label {
   font-size: 11px;
-  color: var(--text-hint);
+  color: var(--text-dim);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
   font-weight: 600;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .stat-value {
+  font-family: var(--mono);
   font-size: 24px;
   font-weight: 800;
   color: var(--text);
-  line-height: 1.1;
-  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
-.stat-value .dim { font-size: 14px; color: var(--text-hint); font-weight: 600; }
 .stat-value.accent { color: var(--accent); }
 .stat-value.green { color: var(--green); }
-.stat-sub { font-size: 11px; color: var(--text-secondary); margin-top: 3px; }
 
-/* ═══ SECTION ═══ */
+.stat-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-family: var(--mono);
+}
+
+/* ─── SECTION LABELS ─── */
 .section-label {
-  font-size: 12px;
-  color: var(--text-secondary);
+  font-size: 11px;
+  color: var(--text-dim);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   font-weight: 700;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-/* ═══ CATEGORY CARDS ═══ */
-.cat-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 12px;
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
 }
 
-.cat-card {
-  background: var(--surface);
+/* ─── FOUNDATION SECTION ─── */
+.foundation-section {
+  background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 10px;
+  margin-bottom: 24px;
   overflow: hidden;
-  transition: all var(--transition);
-  cursor: pointer;
-  box-shadow: var(--shadow-sm);
 }
 
-.cat-card:hover {
-  box-shadow: var(--shadow-md);
-  border-color: #CBD5E1;
-}
-
-.cat-card.expanded {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent), var(--shadow-md);
-}
-
-.cat-header {
+.foundation-header {
   padding: 14px 16px;
   display: flex;
   align-items: center;
   gap: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
-.cat-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+.foundation-header:hover { background: rgba(255,255,255,0.02); }
+
+.foundation-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: var(--green-dim);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 15px;
   flex-shrink: 0;
 }
 
-.cat-info { flex: 1; min-width: 0; }
+.foundation-title {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--green);
+}
 
-.cat-name {
+.foundation-stats {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.foundation-chevron {
+  font-size: 14px;
+  color: var(--text-dim);
+  transition: transform 0.3s;
+}
+
+.foundation-section.expanded .foundation-chevron { transform: rotate(180deg); }
+
+.foundation-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.foundation-section.expanded .foundation-body { max-height: 800px; }
+
+.foundation-body-inner {
+  padding: 0 16px 16px;
+}
+
+.foundation-group {
+  margin-bottom: 12px;
+}
+
+.foundation-group:last-child { margin-bottom: 0; }
+
+.foundation-group-name {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+
+.foundation-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.foundation-check {
+  width: 14px;
+  height: 14px;
+  background: var(--green);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.foundation-check::after {
+  content: '';
+  width: 5px;
+  height: 8px;
+  border: solid #fff;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg) translate(-0.5px, -0.5px);
+}
+
+/* ─── PHASE CARDS ─── */
+.phases-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  padding-left: 32px;
+}
+
+/* Timeline connector */
+.phases-container::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 12px;
+  bottom: 12px;
+  width: 2px;
+  background: linear-gradient(
+    to bottom,
+    #f59e0b 0%, #f59e0b 5%,
+    #ea580c 10%, #ea580c 20%,
+    #3b82f6 25%, #3b82f6 35%,
+    #8b5cf6 40%, #8b5cf6 50%,
+    #22c55e 55%, #22c55e 65%,
+    #06b6d4 70%, #06b6d4 80%,
+    #a78bfa 85%, #a78bfa 100%
+  );
+  opacity: 0.3;
+  border-radius: 1px;
+}
+
+.phase-card {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: all 0.25s;
+  margin-bottom: 12px;
+}
+
+.phase-card:last-child { margin-bottom: 0; }
+
+.phase-card:hover {
+  border-color: rgba(255,255,255,0.1);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+}
+
+.phase-card.expanded {
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+}
+
+.phase-card.current {
+  border-color: rgba(255,255,255,0.12);
+}
+
+/* Timeline dot */
+.phase-dot {
+  position: absolute;
+  left: -27px;
+  top: 22px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+  z-index: 2;
+}
+
+.phase-dot.current {
+  box-shadow: 0 0 8px currentColor;
+  animation: pulseDot 2s infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% { box-shadow: 0 0 6px currentColor; }
+  50% { box-shadow: 0 0 14px currentColor; }
+}
+
+.phase-color-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 10px 0 0 10px;
+}
+
+.phase-header {
+  padding: 16px 16px 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.phase-number {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 800;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: -0.5px;
+}
+
+.phase-info { flex: 1; min-width: 0; }
+
+.phase-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.phase-name {
   font-size: 14px;
   font-weight: 700;
   color: var(--text);
-  margin-bottom: 1px;
 }
 
-.cat-progress-text {
-  font-size: 12px;
-  color: var(--text-secondary);
+.phase-badge-live {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  animation: livePulse 2s infinite;
 }
 
-.cat-pct {
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.phase-badge-parallel {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: rgba(255,255,255,0.04);
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.3px;
+}
+
+.phase-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 3px;
+}
+
+.phase-timeframe {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.phase-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.phase-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.phase-pct {
+  font-family: var(--mono);
   font-size: 20px;
   font-weight: 800;
   line-height: 1;
-  font-variant-numeric: tabular-nums;
 }
 
-.cat-pct.high { color: var(--green); }
-.cat-pct.mid { color: var(--yellow); }
-.cat-pct.low { color: var(--red); }
+.phase-pct.high { color: var(--green); }
+.phase-pct.mid { color: var(--yellow); }
+.phase-pct.low { color: var(--text-dim); }
+.phase-pct.zero { color: var(--text-dim); opacity: 0.5; }
 
-.cat-bar {
+.phase-bar {
   height: 3px;
-  background: var(--border-light);
-  margin: 0 16px;
+  background: rgba(255,255,255,0.04);
+  margin: 0 20px 0 20px;
 }
 
-.cat-bar-fill {
+.phase-bar-fill {
   height: 100%;
   border-radius: 2px;
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.cat-bar-fill.high { background: var(--green); }
-.cat-bar-fill.mid { background: var(--yellow); }
-.cat-bar-fill.low { background: var(--red); }
-
-.cat-items {
+.phase-items {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.cat-card.expanded .cat-items { max-height: 600px; }
+.phase-card.expanded .phase-items { max-height: 800px; }
 
-.cat-items-inner {
-  padding: 4px 16px 16px;
-  border-top: 1px solid var(--border-light);
-}
+.phase-items-inner { padding: 8px 20px 16px; }
 
-/* ═══ CHECKLIST ITEMS ═══ */
+/* ─── CHECK ITEMS (shared) ─── */
 .check-item {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border-light);
-  min-height: 44px;
-  transition: background var(--transition);
-  border-radius: var(--radius-xs);
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  transition: all 0.2s;
 }
 
 .check-item:last-child { border-bottom: none; }
 
 .check-box {
-  width: 20px;
-  height: 20px;
-  border: 2px solid #475569;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--text-dim);
   border-radius: 4px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  margin-top: 1px;
 }
 
 .check-box:hover { border-color: var(--accent); }
@@ -480,71 +763,77 @@ body {
   width: 6px;
   height: 10px;
   border: solid #fff;
-  border-width: 0 2.5px 2.5px 0;
+  border-width: 0 2px 2px 0;
   transform: rotate(45deg) translate(-1px, -1px);
 }
 
+.check-content { flex: 1; min-width: 0; }
+
 .check-label {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text);
-  flex: 1;
-  line-height: 1.3;
+}
+
+.check-note {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
 }
 
 .check-item.done .check-label {
-  color: var(--text-hint);
+  color: var(--text-dim);
   text-decoration: line-through;
 }
 
+.check-item.done .check-note { opacity: 0.5; }
+
 .check-xp {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--accent);
-  background: var(--accent-light);
-  padding: 2px 8px;
-  border-radius: 10px;
-  white-space: nowrap;
-}
-
-.check-item.done .check-xp {
-  color: var(--text-hint);
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
   background: rgba(255,255,255,0.04);
+  padding: 2px 6px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
-/* ═══ SIDEBAR ═══ */
-.sidebar-section { margin-bottom: 24px; }
+/* ─── SIDEBAR ─── */
+.sidebar-section {
+  margin-bottom: 28px;
+}
 
 .sidebar-title {
-  font-size: 12px;
-  color: var(--text-secondary);
+  font-size: 11px;
+  color: var(--text-dim);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   font-weight: 700;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .up-next-item {
   padding: 12px;
-  background: var(--surface-hover);
+  background: rgba(255,255,255,0.02);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: 8px;
   margin-bottom: 8px;
-  transition: all var(--transition);
+  transition: all 0.2s;
   cursor: pointer;
 }
 
 .up-next-item:hover {
-  border-color: var(--accent);
-  box-shadow: var(--shadow-sm);
+  background: rgba(255,255,255,0.04);
+  border-color: var(--border-accent);
 }
 
 .up-next-tag {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 2px 8px;
-  border-radius: 10px;
+  letter-spacing: 0.8px;
+  padding: 2px 6px;
+  border-radius: 3px;
   display: inline-block;
   margin-bottom: 6px;
 }
@@ -558,15 +847,18 @@ body {
 }
 
 .up-next-btn {
-  font-size: 12px;
-  font-weight: 600;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
   color: var(--accent);
-  background: var(--accent-light);
-  border: none;
-  padding: 5px 14px;
-  border-radius: 6px;
+  background: var(--accent-dim);
+  border: 1px solid var(--border-accent);
+  padding: 4px 12px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .up-next-btn:hover {
@@ -574,235 +866,178 @@ body {
   color: #fff;
 }
 
-/* ═══ MILESTONES ═══ */
+/* ─── MILESTONE ─── */
 .milestone-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding: 10px 0;
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border);
 }
 
 .milestone-item:last-child { border-bottom: none; }
 
 .milestone-dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
-  border: 2px solid transparent;
 }
 
-.milestone-dot.done { background: var(--green); border-color: var(--green); }
-.milestone-dot.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(234,88,12,0.15);
-  animation: pulse-dot 2s infinite;
-}
-.milestone-dot.pending { background: var(--border); border-color: var(--border); }
+.milestone-dot.done { background: var(--green); box-shadow: 0 0 6px rgba(34, 197, 94, 0.4); }
+.milestone-dot.active { background: var(--accent); box-shadow: 0 0 6px var(--accent-glow); animation: pulse 2s infinite; }
+.milestone-dot.pending { background: var(--text-dim); }
 
-.milestone-text { font-size: 13px; color: var(--text); flex: 1; }
-.milestone-text.done { color: var(--text-hint); text-decoration: line-through; }
-.milestone-date { font-size: 11px; color: var(--text-hint); font-variant-numeric: tabular-nums; }
-
-@keyframes pulse-dot {
-  0%, 100% { box-shadow: 0 0 0 3px rgba(234,88,12,0.15); }
-  50% { box-shadow: 0 0 0 6px rgba(234,88,12,0.08); }
+.milestone-text {
+  font-size: 12px;
+  color: var(--text);
+  flex: 1;
 }
 
-/* ═══ SESSION STATS ═══ */
-.session-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
+.milestone-text.done { color: var(--text-dim); }
 
-.session-stat {
-  text-align: center;
-  padding: 12px 8px;
-  background: var(--surface-hover);
-  border-radius: var(--radius-sm);
-}
-
-.session-stat-value {
-  font-size: 20px;
-  font-weight: 800;
-  line-height: 1;
-  margin-bottom: 2px;
-}
-
-.session-stat-label {
+.milestone-date {
+  font-family: var(--mono);
   font-size: 10px;
-  color: var(--text-hint);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: var(--text-dim);
 }
 
-/* ═══ XP POPUP ═══ */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ─── XP POPUP ─── */
 .xp-popup {
   position: fixed;
   pointer-events: none;
-  font-size: 15px;
+  font-family: var(--mono);
+  font-size: 16px;
   font-weight: 800;
   color: var(--accent);
+  text-shadow: 0 0 20px var(--accent-glow);
   z-index: 9999;
   opacity: 0;
   transform: translateY(0);
-  transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
-  background: var(--accent-light);
-  padding: 4px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(234,88,12,0.2);
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.xp-popup.show { opacity: 1; transform: translateY(-30px); }
-.xp-popup.fade { opacity: 0; transform: translateY(-50px); }
+.xp-popup.show {
+  opacity: 1;
+  transform: translateY(-40px);
+}
 
-/* ═══ LEVEL UP ═══ */
+.xp-popup.fade {
+  opacity: 0;
+  transform: translateY(-60px);
+}
+
+/* ─── LEVEL UP FLASH ─── */
 .level-up-overlay {
   position: fixed;
   inset: 0;
+  background: rgba(234, 88, 12, 0.08);
   z-index: 9998;
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.3s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(234,88,12,0.06);
 }
 
 .level-up-overlay.show { opacity: 1; }
 
-.level-up-toast {
-  background: var(--surface);
-  border: 2px solid var(--accent);
-  border-radius: 16px;
-  padding: 20px 32px;
-  text-align: center;
-  box-shadow: 0 20px 60px rgba(15,36,64,0.15);
-  transform: scale(0.8);
-  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.level-up-overlay.show .level-up-toast { transform: scale(1); }
-
-.level-up-icon { font-size: 32px; margin-bottom: 4px; }
-.level-up-title { font-size: 18px; font-weight: 800; color: var(--accent); }
-.level-up-sub { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
-
-/* ═══ BOTTOM NAV (mobile) ═══ */
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: var(--navy-light);
-  border-top: 1px solid var(--border);
-  z-index: 100;
-  padding-bottom: var(--safe-bottom);
-  box-shadow: 0 -2px 12px rgba(0,0,0,0.3);
-}
-
-.bottom-nav-inner {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  height: 56px;
-}
-
-.bottom-nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--text-hint);
-  transition: color var(--transition);
-  -webkit-tap-highlight-color: transparent;
-  padding: 0;
-}
-
-.bottom-nav-item.active { color: var(--accent); }
-.bottom-nav-item svg { width: 22px; height: 22px; }
-.bottom-nav-item span { font-size: 10px; font-weight: 600; letter-spacing: 0.2px; }
-
-/* ═══ TAB VIEWS ═══ */
-.tab-view {
-  display: none;
-  padding: 20px;
-  padding-bottom: calc(72px + var(--safe-bottom));
-  max-width: 960px;
-  margin: 0 auto;
-}
-
-/* ═══ SCROLLBAR ═══ */
+/* ─── SCROLLBAR ─── */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.12); }
 
-/* ═══ TAB VIEW ACTIVE ═══ */
-.tab-view.active { display: block; }
-
-/* ═══ RESPONSIVE: TABLET ═══ */
-@media (max-width: 960px) {
+/* ─── RESPONSIVE ─── */
+@media (max-width: 900px) {
+  .main { grid-template-columns: 1fr; }
+  .sidebar {
+    position: static;
+    height: auto;
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
   .topbar-center { display: none; }
 }
 
-/* ═══ RESPONSIVE: MOBILE ═══ */
-@media (max-width: 640px) {
-  .topbar { padding: 0 16px; height: 52px; }
-  .logo { font-size: 15px; }
-  .logo-mark { width: 28px; height: 28px; font-size: 13px; }
+@media (max-width: 600px) {
+  .topbar {
+    padding: 0 12px;
+    height: 56px;
+  }
 
-  .content { padding: 16px; }
-  .tab-view { padding: 16px; }
+  .logo { font-size: 13px; gap: 8px; }
+  .logo-mark { width: 24px; height: 24px; font-size: 12px; }
 
-  .stats-row { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
+  .content { padding: 12px; }
+  .sidebar { padding: 16px; }
+
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
   .stat-card { padding: 12px; }
-  .stat-value { font-size: 22px; }
+  .stat-value { font-size: 20px; }
 
-  .cat-grid { grid-template-columns: 1fr; gap: 8px; }
-  .cat-header { padding: 14px; }
-  .cat-items-inner { padding: 4px 14px 14px; }
-  .check-item { min-height: 48px; }
-  .check-box { width: 22px; height: 22px; }
+  .phases-container { padding-left: 0; }
+  .phases-container::before { display: none; }
+  .phase-dot { display: none; }
+  .phase-color-bar { width: 3px; }
 
-  .notif-dropdown { width: calc(100vw - 32px); right: -12px; }
+  .phase-header { padding: 14px 12px 14px 14px; }
+  .phase-number { width: 26px; height: 26px; font-size: 10px; }
+  .phase-name { font-size: 13px; }
+  .phase-pct { font-size: 18px; }
+  .phase-bar { margin: 0 14px; }
+  .phase-items-inner { padding: 6px 14px 14px; }
+
+  .check-item { padding: 10px 0; gap: 8px; }
+  .check-label { font-size: 13px; }
+  .check-xp { font-size: 9px; padding: 2px 5px; }
+
+  .up-next-item { padding: 10px; }
+
+  .notif-dropdown {
+    width: calc(100vw - 24px);
+    right: -8px;
+  }
+
+  .section-label { font-size: 10px; margin-bottom: 12px; }
+
+  .topbar-right { gap: 10px; }
+  .today-date { display: none; }
   #clock { display: none; }
+
+  .foundation-header { padding: 12px; }
 }
 </style>
 </head>
 <body>
 
-<div class="level-up-overlay" id="levelUpOverlay">
-  <div class="level-up-toast">
-    <div class="level-up-icon">&#127942;</div>
-    <div class="level-up-title" id="levelUpTitle">Level Up!</div>
-    <div class="level-up-sub" id="levelUpSub"></div>
-  </div>
-</div>
+<div class="level-up-overlay" id="levelUpOverlay"></div>
 
-<!-- TOPBAR -->
+<!-- TOP BAR -->
 <header class="topbar">
   <div class="topbar-left">
     <div class="logo">
       <div class="logo-mark">S</div>
-      <span>SweepNspect Hub</span>
+      SweepNspect Hub
     </div>
   </div>
 
   <div class="topbar-center">
     <div style="display:flex;align-items:center;gap:10px;">
       <div class="readiness-ring" id="readinessRing">
-        <svg viewBox="0 0 38 38">
-          <circle class="bg-ring" cx="19" cy="19" r="16" />
-          <circle class="fg-ring" id="readinessCircle" cx="19" cy="19" r="16"
-            stroke-dasharray="100.53" stroke-dashoffset="100.53" />
+        <svg viewBox="0 0 42 42">
+          <circle class="bg-ring" cx="21" cy="21" r="18" />
+          <circle class="fg-ring" id="readinessCircle" cx="21" cy="21" r="18"
+            stroke-dasharray="113.1" stroke-dashoffset="113.1" />
         </svg>
         <div class="readiness-pct" id="readinessPct">0%</div>
       </div>
@@ -810,9 +1045,9 @@ body {
     </div>
 
     <div class="level-display">
-      <span class="level-badge" id="levelBadge">LVL 3</span>
-      <span class="level-name" id="levelName">Beta Recruiter</span>
-      <div class="xp-bar-wrap">
+      <span class="level-badge" id="levelBadge">LVL 1</span>
+      <span class="level-name" id="levelName">Getting Started</span>
+      <div class="xp-bar-container">
         <div class="xp-bar">
           <div class="xp-bar-fill" id="xpBarFill" style="width:0%"></div>
         </div>
@@ -822,252 +1057,230 @@ body {
   </div>
 
   <div class="topbar-right">
-    <div class="notif-wrap" id="notifContainer">
-      <button class="notif-btn" id="notifBtn" aria-label="Notifications">
+    <div class="today-date" id="todayDate"></div>
+    <div style="position:relative;" id="notifContainer">
+      <button class="notif-btn" id="notifBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         <span class="notif-badge" id="notifBadge">3</span>
       </button>
       <div class="notif-dropdown" id="notifDropdown">
         <div class="notif-header">Notifications</div>
         <div class="notif-item">
-          <div class="notif-dot green"></div>
+          <div class="notif-dot" style="background:var(--accent)"></div>
           <div class="notif-content">
-            <div class="notif-text">Founding 25 page pushed to production</div>
+            <div class="notif-text">NCSG Convention starts TODAY</div>
+            <div class="notif-time">Feb 24</div>
+          </div>
+        </div>
+        <div class="notif-item">
+          <div class="notif-dot" style="background:var(--green)"></div>
+          <div class="notif-content">
+            <div class="notif-text">Founding 25 page live &mdash; accepting applications</div>
             <div class="notif-time">today</div>
           </div>
         </div>
         <div class="notif-item">
-          <div class="notif-dot green"></div>
+          <div class="notif-dot"></div>
           <div class="notif-content">
-            <div class="notif-text">Website updated with Founding 25 banner</div>
-            <div class="notif-time">today</div>
-          </div>
-        </div>
-        <div class="notif-item">
-          <div class="notif-dot orange"></div>
-          <div class="notif-content">
-            <div class="notif-text">Hub dashboard created</div>
+            <div class="notif-text">Hub redesigned for convention launch</div>
             <div class="notif-time">just now</div>
           </div>
         </div>
       </div>
     </div>
-    <div style="font-size:12px;color:rgba(255,255,255,0.4);font-variant-numeric:tabular-nums;" id="clock"></div>
+    <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);" id="clock"></div>
   </div>
 </header>
 
-<!-- MAIN CONTENT -->
-<div class="app-body">
-  <div class="content" id="mainContent">
+<!-- MAIN -->
+<div class="main">
+  <div class="content">
+    <!-- STATS ROW -->
     <div class="stats-row" id="statsRow"></div>
-    <div class="section-label">Operations</div>
-    <div class="cat-grid" id="catGrid"></div>
+
+    <!-- FOUNDATION -->
+    <div id="foundationContainer"></div>
+
+    <!-- PHASES -->
+    <div class="section-label">Launch Playbook</div>
+    <div class="phases-container" id="phasesContainer"></div>
   </div>
 
-  <aside class="sidebar" id="sidebarDesktop">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
     <div class="sidebar-section">
       <div class="sidebar-title">Up Next</div>
       <div id="upNext"></div>
     </div>
+
     <div class="sidebar-section">
       <div class="sidebar-title">Milestones</div>
       <div id="milestones"></div>
     </div>
+
     <div class="sidebar-section">
-      <div class="sidebar-title">This Session</div>
-      <div class="session-grid" id="sessionGrid"></div>
+      <div class="sidebar-title">Session</div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);line-height:1.8;">
+        <div>Items done: <span id="sessionDone" style="color:var(--green);">0</span></div>
+        <div>XP earned: <span id="sessionXP" style="color:var(--accent);">0</span></div>
+        <div>Streak: <span id="streak" style="color:var(--yellow);">0 days</span></div>
+      </div>
     </div>
   </aside>
-
-  <!-- TAB: UP NEXT VIEW -->
-  <div class="tab-view" id="mobileUpNext">
-    <div class="sidebar-title">Up Next</div>
-    <div id="upNextMobile"></div>
-    <div style="margin-top:24px;">
-      <div class="sidebar-title">This Session</div>
-      <div class="session-grid" id="sessionGridMobile"></div>
-    </div>
-  </div>
-
-  <!-- TAB: TIMELINE VIEW -->
-  <div class="tab-view" id="mobileTimeline">
-    <div class="sidebar-title">Milestones</div>
-    <div id="milestonesMobile"></div>
-    <div style="margin-top:24px;">
-      <div class="sidebar-title">Overall Progress</div>
-      <div id="mobileProgress"></div>
-    </div>
-  </div>
-
-  <!-- TAB: STATS VIEW -->
-  <div class="tab-view" id="mobileStats">
-    <div class="sidebar-title">Level &amp; XP</div>
-    <div id="mobileXPCard"></div>
-    <div style="margin-top:24px;">
-      <div class="sidebar-title">Category Breakdown</div>
-      <div id="mobileCatBreakdown"></div>
-    </div>
-  </div>
 </div>
 
-<!-- BOTTOM NAV -->
-<nav class="bottom-nav">
-  <div class="bottom-nav-inner">
-    <button class="bottom-nav-item active" data-tab="dashboard" aria-label="Dashboard">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-      <span>Dashboard</span>
-    </button>
-    <button class="bottom-nav-item" data-tab="tasks" aria-label="Tasks">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-      <span>Up Next</span>
-    </button>
-    <button class="bottom-nav-item" data-tab="timeline" aria-label="Timeline">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      <span>Timeline</span>
-    </button>
-    <button class="bottom-nav-item" data-tab="stats" aria-label="Stats">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-      <span>Stats</span>
-    </button>
-  </div>
-</nav>
-
 <script>
-const CATEGORIES = [
+// ═══════════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════════
+
+const FOUNDATION = [
+  { group: 'Legal', items: ['Privacy Policy', 'Terms of Service', 'Founding 25 Agreement', 'App Store Compliance'] },
+  { group: 'Financial', items: ['Pricing Model Locked', 'Stripe Account', 'Bookkeeping Dashboard'] },
+  { group: 'Marketing', items: ['Brand Positioning Doc', 'Website Live', 'Founding 25 Page'] },
+  { group: 'Distribution', items: ['Developer Account', 'App Signing', 'Store Listing', 'Screenshots', 'Closed Testing', 'Privacy Policy URL'] },
+  { group: 'Product', items: ['Inspection Workflow', 'PDF Reports', 'Invoicing', 'Booking', 'Expenses', 'DB Encrypted', 'Security Audit', 'Offline-First'] },
+  { group: 'Support', items: ['Support Email Setup'] },
+  { group: 'Founding 25', items: ['Charter Written', 'Website Page Live', 'Selection Criteria Defined'] },
+  { group: 'Partnerships', items: ['Mark Stoner Outreach'] },
+];
+
+const FOUNDATION_COUNT = FOUNDATION.reduce((sum, g) => sum + g.items.length, 0); // 29
+const FOUNDATION_XP = 730;
+
+const PHASES = [
   {
-    id: 'legal', name: 'Legal & Compliance', icon: '\u2696\uFE0F',
-    color: '#8b5cf6', bg: 'rgba(139,92,246,0.08)',
+    id: 'phase0', name: 'Pre-Game', timeframe: 'Today \u2014 Before Convention Floor',
+    description: 'The next 2 hours', color: '#f59e0b', icon: '\u26A1',
     items: [
-      { id: 'privacy', name: 'Privacy Policy', xp: 30, done: true },
-      { id: 'tos', name: 'Terms of Service', xp: 30, done: true },
-      { id: 'f25-agreement', name: 'Founding 25 Agreement', xp: 20, done: true },
-      { id: 'appstore-compliance', name: 'App Store Compliance', xp: 20, done: true },
-      { id: 'refund-policy', name: 'Refund Policy', xp: 15, done: false, priority: 5 },
+      { id: 'p0-demo-device', name: 'Demo device charged, brightness max, sound off', xp: 5, note: 'Pre-demo checklist' },
+      { id: 'p0-demo-property', name: 'Demo property pre-loaded (Boston Triple-Flue)', xp: 5, note: 'SC-NE-01' },
+      { id: 'p0-practice-demo', name: 'Practice full demo walkthrough (1 run)', xp: 15, note: '5-min NCSG script' },
+      { id: 'p0-qr-code', name: 'QR code saved to phone for founding page', xp: 15, note: 'sweepnspect.com/founding' },
+      { id: 'p0-contact-capture', name: 'Contact capture ready (notes app, form, or cards)', xp: 10, note: 'How you\'ll collect leads' },
+      { id: 'p0-elevator-pitch', name: '30-second elevator pitch rehearsed', xp: 10, note: 'Hook + 3 differentiators + CTA' },
+      { id: 'p0-founding-verify', name: 'Founding 25 page verified working on mobile', xp: 10, note: 'Test the form submission flow' },
     ]
   },
   {
-    id: 'financial', name: 'Financial & Revenue', icon: '\uD83D\uDCB0',
-    color: '#22c55e', bg: 'rgba(34,197,94,0.08)',
+    id: 'phase1', name: 'Convention Blitz', timeframe: 'Feb 24\u201328',
+    description: 'The spreading ground', color: '#ea580c', icon: '\uD83D\uDD25',
     items: [
-      { id: 'pricing-locked', name: 'Pricing Model Locked', xp: 20, done: true },
-      { id: 'stripe-account', name: 'Stripe Account Setup', xp: 25, done: true },
-      { id: 'payment-live', name: 'Payment Processing Live', xp: 40, done: false, priority: 2 },
-      { id: 'tax-config', name: 'Tax Configuration', xp: 15, done: false, priority: 7 },
-      { id: 'bookkeeping', name: 'Bookkeeping Dashboard', xp: 20, done: true },
-      { id: 'invoice-templates', name: 'Invoice Templates', xp: 15, done: false, priority: 6 },
-      { id: 'bank-account', name: 'Business Bank Account', xp: 10, done: false, priority: 8 },
+      { id: 'p1-demo-20', name: 'Demo SweepNspect to 20+ people', xp: 40, note: 'Quality over quantity \u2014 let them touch it' },
+      { id: 'p1-collect-50', name: 'Collect 50+ contact emails/numbers', xp: 30, note: 'Every person who shows interest' },
+      { id: 'p1-direct-25', name: 'Direct 25+ people to Founding 25 application', xp: 25, note: 'Show QR code, walk them to the page' },
+      { id: 'p1-submit-5', name: 'Get 5+ people to submit application on the spot', xp: 30, note: 'While they\'re excited' },
+      { id: 'p1-facebook-page', name: 'Create Facebook Page (basic placeholder)', xp: 10, note: 'Name + logo + link to website' },
+      { id: 'p1-ncsg-post', name: 'Post "We\'re at NCSG" content', xp: 10, note: 'Day 1 post \u2014 photo + founding link' },
+      { id: 'p1-daily-content', name: 'Post daily convention content (3+ posts)', xp: 20, note: 'Stories, booth pics, demos' },
+      { id: 'p1-identify-10', name: 'Identify 10 potential Founding 25 candidates', xp: 25, note: 'People you\'d hand-pick' },
+      { id: 'p1-stoner-connect', name: 'Connect with Mark Stoner (if opportunity)', xp: 15, note: 'Don\'t force it \u2014 let the work speak' },
+      { id: 'p1-business-cards', name: 'Collect cards from every meaningful conversation', xp: 15, note: 'Physical or photo of their card' },
     ]
   },
   {
-    id: 'marketing', name: 'Marketing & Outreach', icon: '\uD83D\uDCE3',
-    color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',
+    id: 'phase2', name: 'Ship the App', timeframe: 'Feb 24\u201326 \u2014 Parallel',
+    description: 'Get it in their hands', color: '#3b82f6', icon: '\uD83D\uDE80',
+    parallel: 'phase1',
     items: [
-      { id: 'brand-doc', name: 'Brand Positioning Doc', xp: 20, done: true },
-      { id: 'website-live', name: 'Website Live', xp: 30, done: true },
-      { id: 'f25-page', name: 'Founding 25 Page', xp: 25, done: true },
-      { id: 'facebook', name: 'Facebook Page', xp: 10, done: false, priority: 3 },
-      { id: 'instagram', name: 'Instagram Account', xp: 10, done: false, priority: 5 },
-      { id: 'analytics', name: 'Google Analytics', xp: 15, done: false, priority: 6 },
-      { id: 'email-templates', name: 'Email Templates', xp: 15, done: false, priority: 4 },
-      { id: 'share-links-qr', name: 'Referral Share Links + QR', xp: 20, done: false, priority: 2 },
-      { id: 'fb-groups', name: 'Facebook Groups \u2014 Chimney Communities', xp: 20, done: false, priority: 1 },
+      { id: 'p2-bug-fixes', name: 'Final bug fixes complete', xp: 30, note: 'Whatever\'s blocking release' },
+      { id: 'p2-prod-apk', name: 'Production APK signed and built', xp: 25, note: 'Release keystore, R8 enabled' },
+      { id: 'p2-release-notes', name: 'Release notes v1.0 written', xp: 10, note: 'What\'s in the first release' },
+      { id: 'p2-prod-track', name: 'Play Store production track submitted', xp: 35, note: 'Upload signed APK' },
+      { id: 'p2-app-approved', name: 'App approved on Play Store', xp: 35, note: 'Google review (24\u201372 hours)' },
+      { id: 'p2-update-download', name: 'Update download.html with Play Store link', xp: 15, note: 'Replace notify form with real link' },
+      { id: 'p2-share-link', name: 'Share install link with convention contacts', xp: 15, note: '"It\'s live \u2014 here\'s the link"' },
     ]
   },
   {
-    id: 'distribution', name: 'Distribution & Deploy', icon: '\uD83D\uDE80',
-    color: '#3b82f6', bg: 'rgba(59,130,246,0.08)',
+    id: 'phase3', name: 'Post-Convention Strike', timeframe: 'Mar 1\u20137',
+    description: 'Strike while the iron is hot', color: '#8b5cf6', icon: '\uD83D\uDCEC',
     items: [
-      { id: 'dev-account', name: 'Developer Account', xp: 20, done: true },
-      { id: 'app-signing', name: 'App Signing', xp: 20, done: true },
-      { id: 'store-listing', name: 'Store Listing', xp: 25, done: true },
-      { id: 'screenshots', name: 'Screenshots', xp: 15, done: true },
-      { id: 'closed-testing', name: 'Closed Testing Published', xp: 30, done: true },
-      { id: 'privacy-url', name: 'Privacy Policy URL', xp: 10, done: true },
-      { id: 'prod-track', name: 'Production Track', xp: 30, done: false, priority: 3 },
-      { id: 'release-notes', name: 'Release Notes', xp: 10, done: false, priority: 4 },
+      { id: 'p3-followup-email', name: 'Follow-up email to every convention contact', xp: 30, note: 'Personal, not templated blast' },
+      { id: 'p3-convention-recap', name: 'Post convention recap (photos, highlights)', xp: 15, note: 'Facebook, Instagram, wherever' },
+      { id: 'p3-review-apps', name: 'Review all Founding 25 applications received', xp: 20, note: 'Score against selection criteria' },
+      { id: 'p3-select-first5', name: 'Select first 5 founding members', xp: 35, note: 'Geographic diversity, experience mix' },
+      { id: 'p3-send-agreements', name: 'Send agreements to first 5', xp: 25, note: 'Founding 25 agreement doc' },
+      { id: 'p3-referral-links', name: 'Create referral share links + QR codes', xp: 20, note: 'Easy sharing for founding members' },
+      { id: 'p3-email-templates', name: 'Write email templates (welcome, onboarding)', xp: 15, note: 'Repeatable communication' },
+      { id: 'p3-fb-groups', name: 'Join 3+ Facebook chimney community groups', xp: 15, note: 'Listen first, then contribute' },
     ]
   },
   {
-    id: 'product', name: 'Product & Technical', icon: '\u2699\uFE0F',
-    color: '#06b6d4', bg: 'rgba(6,182,212,0.08)',
+    id: 'phase4', name: 'Founding 25 Activation', timeframe: 'March',
+    description: 'They have to love this', color: '#22c55e', icon: '\uD83C\uDFC6',
     items: [
-      { id: 'inspection-wf', name: 'Inspection Workflow', xp: 50, done: true },
-      { id: 'pdf-reports', name: 'PDF Reports', xp: 40, done: true },
-      { id: 'invoicing', name: 'Invoicing', xp: 35, done: true },
-      { id: 'booking', name: 'Booking System', xp: 35, done: true },
-      { id: 'expenses', name: 'Expense Tracking', xp: 25, done: true },
-      { id: 'db-encrypted', name: 'Database Encrypted', xp: 30, done: true },
-      { id: 'security-audit', name: 'Security Audit', xp: 35, done: true },
-      { id: 'offline-first', name: 'Offline-First', xp: 30, done: true },
-      { id: 'string-resources', name: 'String Resources', xp: 20, done: false, priority: 7 },
-      { id: 'demo-polish', name: 'Convention Demo Polish', xp: 15, done: false, priority: 2 },
+      { id: 'p4-all-25-selected', name: 'All 25 founding members selected', xp: 40, note: 'Curated, not first-come' },
+      { id: 'p4-all-25-signed', name: 'All 25 agreements signed', xp: 30, note: 'Legal foundation' },
+      { id: 'p4-onboarding-guide', name: 'Onboarding guide created', xp: 25, note: 'Step-by-step "your first inspection"' },
+      { id: 'p4-onboarding-sent', name: 'Onboarding materials sent to all 25', xp: 20, note: 'Guide + app link + direct contact' },
+      { id: 'p4-feedback-channel', name: 'Direct feedback channel established', xp: 20, note: 'Signal/Discord \u2014 where they talk to you' },
+      { id: 'p4-first-feedback', name: 'First round of feedback collected', xp: 30, note: 'What works, what doesn\'t, what\'s missing' },
+      { id: 'p4-bug-fixes', name: 'Bug fixes from founding member feedback shipped', xp: 25, note: 'Show them you listen' },
+      { id: 'p4-10-active', name: '10+ founding members actively using app', xp: 35, note: 'Not installed \u2014 actually using' },
+      { id: 'p4-first-testimonial', name: 'First founding member testimonial or quote', xp: 25, note: 'Social proof for launch' },
+      { id: 'p4-analytics', name: 'Google Analytics on website', xp: 15, note: 'Track traffic and conversions' },
     ]
   },
   {
-    id: 'support', name: 'Customer Support', icon: '\uD83D\uDEE0\uFE0F',
-    color: '#ec4899', bg: 'rgba(236,72,153,0.08)',
+    id: 'phase5', name: 'Public Launch', timeframe: 'April',
+    description: 'Open the gates', color: '#06b6d4', icon: '\uD83C\uDF10',
     items: [
-      { id: 'support-email', name: 'Support Email Setup', xp: 10, done: true },
-      { id: 'ticket-system', name: 'Ticket System', xp: 25, done: false, priority: 5 },
-      { id: 'onboarding-guide', name: 'Onboarding Guide', xp: 25, done: false, priority: 2 },
-      { id: 'faq', name: 'FAQ / Knowledge Base', xp: 20, done: false, priority: 6 },
-      { id: 'response-templates', name: 'Response Templates', xp: 15, done: false, priority: 7 },
-      { id: 'video-tutorials', name: 'Video Tutorials', xp: 20, done: false, priority: 9 },
+      { id: 'p5-play-store', name: 'App publicly available on Play Store', xp: 45, note: 'Open production track' },
+      { id: 'p5-launch-announcement', name: 'Launch announcement across all channels', xp: 25, note: 'Facebook, Instagram, groups, email list' },
+      { id: 'p5-fb-outreach', name: 'Facebook chimney community outreach (5+ groups)', xp: 25, note: 'Genuine contribution, not spam' },
+      { id: 'p5-instagram', name: 'Instagram account created + first 10 posts', xp: 15, note: 'Brand presence' },
+      { id: 'p5-faq', name: 'FAQ / Knowledge Base published', xp: 20, note: 'Common questions answered' },
+      { id: 'p5-payment-live', name: 'Payment processing live (Stripe)', xp: 40, note: 'Trial \u2192 paid conversion path' },
+      { id: 'p5-video-tutorial', name: 'First video tutorial: "Your First Inspection"', xp: 25, note: 'Screen recording walkthrough' },
+      { id: 'p5-refund-policy', name: 'Refund policy published', xp: 15, note: 'Standard 30-day policy' },
+      { id: 'p5-invoice-templates', name: 'Invoice templates finalized', xp: 15, note: 'Professional billing' },
+      { id: 'p5-tax-config', name: 'Tax configuration for billing', xp: 15, note: 'Stripe tax settings' },
     ]
   },
   {
-    id: 'founding', name: 'Founding 25 Program', icon: '\uD83C\uDFC6',
-    color: '#ea580c', bg: 'rgba(234,88,12,0.08)',
+    id: 'phase6', name: 'Growth Engine', timeframe: 'Q2 2026+',
+    description: 'Keep the ball rolling', color: '#a78bfa', icon: '\uD83D\uDCC8',
     items: [
-      { id: 'charter', name: 'Charter Written', xp: 20, done: true },
-      { id: 'f25-website', name: 'Website Page Live', xp: 25, done: true },
-      { id: 'selection-criteria', name: 'Selection Criteria Defined', xp: 15, done: true },
-      { id: 'review-process', name: 'Application Review Process', xp: 20, done: false, priority: 1 },
-      { id: 'onboarding-materials', name: 'Onboarding Materials', xp: 25, done: false, priority: 2 },
-      { id: 'agreement-signed', name: 'Agreement Sent/Signed', xp: 30, done: false, priority: 3 },
-    ]
-  },
-  {
-    id: 'partnerships', name: 'Partnerships', icon: '\uD83E\uDD1D',
-    color: '#14b8a6', bg: 'rgba(20,184,166,0.08)',
-    items: [
-      { id: 'stoner-outreach', name: 'Mark Stoner \u2014 Direct Outreach', xp: 20, done: true },
-      { id: 'surefire-referral', name: 'SureFire \u2014 Referral Program', xp: 25, done: false, priority: 4 },
-      { id: 'surefire-ceu', name: 'SureFire \u2014 CEU Training Content', xp: 30, done: false, priority: 5 },
-      { id: 'fb-chimney', name: 'Facebook Chimney Communities', xp: 20, done: false, priority: 2 },
-    ]
-  },
-  {
-    id: 'hiring', name: 'Hiring & Growth', icon: '\uD83D\uDCC8',
-    color: '#a78bfa', bg: 'rgba(167,139,250,0.08)',
-    items: [
-      { id: 'support-hire', name: 'Support Hire Plan', xp: 15, done: false, priority: 9 },
-      { id: 'dev-hire', name: 'Developer Hire Plan', xp: 15, done: false, priority: 10 },
-      { id: 'contractor-budget', name: 'Contractor Budget', xp: 10, done: false, priority: 10 },
-      { id: 'role-descriptions', name: 'Role Descriptions', xp: 10, done: false, priority: 10 },
+      { id: 'p6-black-collar', name: 'Black Collar ad campaign launched', xp: 40, note: 'The "60M chimneys, 5000 sweeps" ads' },
+      { id: 'p6-surefire-referral', name: 'SureFire referral program partnership', xp: 25, note: 'Training \u2192 app pipeline' },
+      { id: 'p6-surefire-ceu', name: 'SureFire CEU training content partnership', xp: 30, note: 'Education content collaboration' },
+      { id: 'p6-hub-server', name: 'Hub operations server deployed', xp: 25, note: 'Ticket system, subscriber tracking, revenue' },
+      { id: 'p6-ticket-system', name: 'Customer support ticket system live', xp: 25, note: 'Beyond email \u2014 structured support' },
+      { id: 'p6-response-templates', name: 'Response templates for common questions', xp: 15, note: 'Efficient support at scale' },
+      { id: 'p6-video-tutorials', name: '3+ video tutorials recorded', xp: 20, note: 'Inspection, invoicing, scheduling' },
+      { id: 'p6-100-subs', name: '100 active subscribers milestone', xp: 50, note: '$4,900/month MRR' },
+      { id: 'p6-support-hire', name: 'Support hire plan documented', xp: 15, note: 'When and who to hire' },
+      { id: 'p6-dev-hire', name: 'Developer hire plan documented', xp: 15, note: 'Scaling the team' },
+      { id: 'p6-bank-account', name: 'Business bank account set up', xp: 10, note: 'Separate business finances' },
+      { id: 'p6-500-subs', name: '500 subscribers milestone', xp: 75, note: '$24,500/month MRR' },
     ]
   },
 ];
 
 const LEVELS = [
-  { threshold: 0, name: 'Paper Pusher' },
-  { threshold: 100, name: 'App Builder' },
-  { threshold: 300, name: 'Beta Recruiter' },
-  { threshold: 600, name: 'Convention Ready' },
-  { threshold: 1000, name: 'Launch Captain' },
-  { threshold: 1500, name: 'Growth Engine' },
+  { threshold: 0, name: 'Getting Started' },
+  { threshold: 150, name: 'Convention Warrior' },
+  { threshold: 400, name: 'App Shipper' },
+  { threshold: 700, name: 'Community Builder' },
+  { threshold: 1100, name: 'Launch Captain' },
+  { threshold: 1600, name: 'Growth Engine' },
 ];
 
-const MILESTONES_DATA = [
-  { text: 'App feature-complete', date: 'Feb 17', status: 'done' },
-  { text: 'Play Store closed testing', date: 'Feb 17', status: 'done' },
-  { text: 'Website live', date: 'Feb 17', status: 'done' },
-  { text: 'Founding 25 page launched', date: 'Feb 23', status: 'done' },
-  { text: 'Facebook community outreach', date: 'Feb', status: 'active' },
-  { text: 'First 5 founding members selected', date: 'Mar', status: 'pending' },
-  { text: 'All 25 founding members confirmed', date: 'Q2', status: 'pending' },
-  { text: 'Public launch', date: 'Q2', status: 'pending' },
+const MILESTONES = [
+  { text: 'NCSG Convention Day 1', date: 'Feb 24', status: 'active' },
+  { text: 'App on Play Store', date: 'Feb 26', status: 'pending' },
+  { text: 'Post-convention follow-up complete', date: 'Mar 7', status: 'pending' },
+  { text: 'First 5 Founding Members confirmed', date: 'Mar 7', status: 'pending' },
+  { text: 'All 25 Founding Members active', date: 'Mar 31', status: 'pending' },
+  { text: 'Public launch', date: 'April', status: 'pending' },
+  { text: '100 subscribers', date: 'Q2', status: 'pending' },
+  { text: 'Black Collar campaign live', date: 'Q2', status: 'pending' },
 ];
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
 
 let state = loadState();
 let sessionDone = 0;
@@ -1076,56 +1289,126 @@ let sessionXP = 0;
 function loadState() {
   try {
     const s = JSON.parse(localStorage.getItem('hub-state'));
-    if (s && s.items) return s;
+    if (s && s.version === 2 && s.items) return s;
   } catch(e) {}
+  // Fresh state for v2 — all phase items start unchecked
   const items = {};
-  CATEGORIES.forEach(cat => cat.items.forEach(item => { items[item.id] = { done: item.done }; }));
-  return { items, xp: calcXP(items) };
+  PHASES.forEach(phase => {
+    phase.items.forEach(item => {
+      items[item.id] = { done: false };
+    });
+  });
+  return { version: 2, items, xp: calcXPFromItems(items) };
 }
 
-function saveState() { localStorage.setItem('hub-state', JSON.stringify(state)); }
+function saveState() {
+  localStorage.setItem('hub-state', JSON.stringify(state));
+}
 
-function calcXP(items) {
-  let xp = 0;
-  CATEGORIES.forEach(cat => cat.items.forEach(item => {
-    if (items[item.id] && items[item.id].done) xp += item.xp;
-  }));
+function calcXPFromItems(items) {
+  let xp = FOUNDATION_XP;
+  PHASES.forEach(phase => {
+    phase.items.forEach(item => {
+      if (items[item.id] && items[item.id].done) xp += item.xp;
+    });
+  });
   return xp;
 }
 
-function getLevel(xp) {
-  for (let i = LEVELS.length - 1; i >= 0; i--) { if (xp >= LEVELS[i].threshold) return i; }
-  return 0;
+function calcXP() {
+  return calcXPFromItems(state.items);
 }
 
-function getCatStats(cat) {
-  let done = 0;
-  cat.items.forEach(item => { if (state.items[item.id] && state.items[item.id].done) done++; });
-  return { done, total: cat.items.length, pct: Math.round((done / cat.items.length) * 100) };
+function getLevel(xp) {
+  let lvl = 0;
+  for (let i = LEVELS.length - 1; i >= 0; i--) {
+    if (xp >= LEVELS[i].threshold) { lvl = i; break; }
+  }
+  return lvl;
+}
+
+function getPhaseStats(phase) {
+  let done = 0, total = phase.items.length;
+  phase.items.forEach(item => {
+    if (state.items[item.id] && state.items[item.id].done) done++;
+  });
+  return { done, total, pct: total > 0 ? Math.round((done / total) * 100) : 0 };
 }
 
 function getAllStats() {
   let done = 0, total = 0;
-  CATEGORIES.forEach(cat => { const s = getCatStats(cat); done += s.done; total += s.total; });
+  PHASES.forEach(phase => {
+    const s = getPhaseStats(phase);
+    done += s.done;
+    total += s.total;
+  });
   return { done, total, pct: Math.round((done / total) * 100) };
 }
 
-function pctClass(pct) { return pct >= 75 ? 'high' : pct >= 25 ? 'mid' : 'low'; }
+function pctClass(pct) {
+  if (pct >= 75) return 'high';
+  if (pct >= 25) return 'mid';
+  if (pct === 0) return 'zero';
+  return 'low';
+}
 
-// ─── RENDER ───
+// ═══════════════════════════════════════════════════════════
+// PHASE DETECTION
+// ═══════════════════════════════════════════════════════════
+
+function getCurrentPhaseIndices() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth() + 1;
+  const d = now.getDate();
+
+  if (y === 2026 && m === 2 && d === 24) {
+    // Feb 24 — Pre-Game first, then Convention + Ship
+    const p0 = getPhaseStats(PHASES[0]);
+    if (p0.done < p0.total) return [0, 1, 2]; // Show all active
+    return [1, 2];
+  }
+  if (y === 2026 && m === 2 && d >= 25 && d <= 28) return [1, 2];
+  if (y === 2026 && m === 3 && d <= 7) return [3];
+  if (y === 2026 && m === 3 && d >= 8) return [4];
+  if (y === 2026 && m === 4) return [5];
+  if (y >= 2026 && (m >= 5 || y > 2026)) return [6];
+
+  // Before convention or fallback — show Phase 0
+  return [0];
+}
+
+function isCurrentPhase(phaseIdx) {
+  return getCurrentPhaseIndices().includes(phaseIdx);
+}
+
+function isPrimaryCurrentPhase(phaseIdx) {
+  const current = getCurrentPhaseIndices();
+  return current.length > 0 && current[0] === phaseIdx;
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════
+
 function renderStats() {
   const all = getAllStats();
-  const catsDone = CATEGORIES.filter(c => getCatStats(c).pct === 100).length;
+  const totalWithFoundation = all.done + FOUNDATION_COUNT;
+  const totalAll = all.total + FOUNDATION_COUNT;
+  const overallPct = Math.round((totalWithFoundation / totalAll) * 100);
+  const phasesDone = PHASES.filter(p => getPhaseStats(p).pct === 100).length;
+  const currentNames = getCurrentPhaseIndices().map(i => PHASES[i].name);
+
   document.getElementById('statsRow').innerHTML = `
     <div class="stat-card">
       <div class="stat-label">Tasks Complete</div>
-      <div class="stat-value accent">${all.done}<span class="dim">/${all.total}</span></div>
-      <div class="stat-sub">${all.pct}% overall</div>
+      <div class="stat-value accent">${totalWithFoundation}<span style="font-size:14px;color:var(--text-dim);">/${totalAll}</span></div>
+      <div class="stat-sub">${overallPct}% overall</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Categories Clear</div>
-      <div class="stat-value green">${catsDone}<span class="dim">/${CATEGORIES.length}</span></div>
-      <div class="stat-sub">${CATEGORIES.length - catsDone} remaining</div>
+      <div class="stat-label">Current Phase</div>
+      <div class="stat-value" style="color:${PHASES[getCurrentPhaseIndices()[0]].color};font-size:16px;">${currentNames[0]}</div>
+      <div class="stat-sub">${phasesDone} of ${PHASES.length} phases clear</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Total XP</div>
@@ -1133,95 +1416,184 @@ function renderStats() {
       <div class="stat-sub">Level ${getLevel(state.xp) + 1}</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Next Milestone</div>
-      <div class="stat-value" style="color:var(--yellow);">FB</div>
-      <div class="stat-sub">Community outreach</div>
+      <div class="stat-label">Foundation</div>
+      <div class="stat-value green">${FOUNDATION_COUNT}</div>
+      <div class="stat-sub">${FOUNDATION_XP} XP banked</div>
     </div>
   `;
 }
 
-function renderCategories() {
-  const grid = document.getElementById('catGrid');
-  grid.innerHTML = '';
-  CATEGORIES.forEach(cat => {
-    const stats = getCatStats(cat);
-    const cls = pctClass(stats.pct);
-    const card = document.createElement('div');
-    card.className = 'cat-card';
-    card.dataset.catId = cat.id;
-    card.innerHTML = `
-      <div class="cat-header">
-        <div class="cat-icon" style="background:${cat.bg}">${cat.icon}</div>
-        <div class="cat-info">
-          <div class="cat-name">${cat.name}</div>
-          <div class="cat-progress-text">${stats.done} of ${stats.total} complete</div>
-        </div>
-        <div class="cat-pct ${cls}">${stats.pct}%</div>
+function renderFoundation() {
+  const container = document.getElementById('foundationContainer');
+  container.innerHTML = `
+    <div class="foundation-section" id="foundationSection">
+      <div class="foundation-header" id="foundationHeader">
+        <div class="foundation-icon">\u2705</div>
+        <div class="foundation-title">Foundation Complete</div>
+        <div class="foundation-stats">${FOUNDATION_COUNT} items \u00B7 ${FOUNDATION_XP} XP</div>
+        <div class="foundation-chevron">\u25BE</div>
       </div>
-      <div class="cat-bar"><div class="cat-bar-fill ${cls}" style="width:${stats.pct}%"></div></div>
-      <div class="cat-items">
-        <div class="cat-items-inner">
-          ${cat.items.map(item => {
+      <div class="foundation-body">
+        <div class="foundation-body-inner">
+          ${FOUNDATION.map(g => `
+            <div class="foundation-group">
+              <div class="foundation-group-name">${g.group}</div>
+              ${g.items.map(item => `
+                <div class="foundation-item">
+                  <div class="foundation-check"></div>
+                  <span>${item}</span>
+                </div>
+              `).join('')}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('foundationHeader').addEventListener('click', () => {
+    document.getElementById('foundationSection').classList.toggle('expanded');
+  });
+}
+
+function renderPhases() {
+  const container = document.getElementById('phasesContainer');
+  container.innerHTML = '';
+  const currentIndices = getCurrentPhaseIndices();
+
+  PHASES.forEach((phase, idx) => {
+    const stats = getPhaseStats(phase);
+    const cls = pctClass(stats.pct);
+    const isCurrent = currentIndices.includes(idx);
+    const isPrimary = currentIndices[0] === idx;
+
+    const card = document.createElement('div');
+    card.className = 'phase-card' + (isCurrent ? ' current' : '');
+    card.dataset.phaseId = phase.id;
+
+    // Auto-expand current phase
+    if (isPrimary) card.classList.add('expanded');
+
+    const colorBg = phase.color + '18';
+    const liveBadge = isCurrent
+      ? `<span class="phase-badge-live" style="color:${phase.color};background:${phase.color}20;border:1px solid ${phase.color}40;">${isPrimary ? 'LIVE' : 'ACTIVE'}</span>`
+      : '';
+    const parallelBadge = phase.parallel
+      ? `<span class="phase-badge-parallel">\u21C4 Parallel with ${PHASES.find(p => p.id === phase.parallel)?.name || ''}</span>`
+      : '';
+
+    card.innerHTML = `
+      <div class="phase-dot${isCurrent ? ' current' : ''}" style="background:${phase.color};color:${phase.color};"></div>
+      <div class="phase-color-bar" style="background:${phase.color};"></div>
+      <div class="phase-header">
+        <div class="phase-number" style="background:${colorBg};color:${phase.color};">${idx}</div>
+        <div class="phase-info">
+          <div class="phase-name-row">
+            <span class="phase-name">${phase.name}</span>
+            ${liveBadge}
+            ${parallelBadge}
+          </div>
+          <div class="phase-meta">
+            <span class="phase-timeframe">${phase.timeframe}</span>
+            <span class="phase-desc">${phase.description}</span>
+          </div>
+        </div>
+        <div class="phase-progress">
+          <span class="phase-pct ${cls}">${stats.pct}%</span>
+        </div>
+      </div>
+      <div class="phase-bar"><div class="phase-bar-fill" style="width:${stats.pct}%;background:${phase.color};box-shadow:0 0 8px ${phase.color}40;"></div></div>
+      <div class="phase-items">
+        <div class="phase-items-inner">
+          ${phase.items.map(item => {
             const done = state.items[item.id] && state.items[item.id].done;
             return `<div class="check-item ${done ? 'done' : ''}" data-item-id="${item.id}">
               <div class="check-box ${done ? 'checked' : ''}" data-item-id="${item.id}"></div>
-              <span class="check-label">${item.name}</span>
+              <div class="check-content">
+                <div class="check-label">${item.name}</div>
+                ${item.note ? `<div class="check-note">${item.note}</div>` : ''}
+              </div>
               <span class="check-xp">+${item.xp} XP</span>
             </div>`;
           }).join('')}
         </div>
       </div>
     `;
-    card.querySelector('.cat-header').addEventListener('click', () => card.classList.toggle('expanded'));
-    card.querySelectorAll('.check-box').forEach(cb => {
-      cb.addEventListener('click', e => { e.stopPropagation(); toggleItem(cb.dataset.itemId, cb); });
+
+    card.querySelector('.phase-header').addEventListener('click', () => {
+      card.classList.toggle('expanded');
     });
-    grid.appendChild(card);
+
+    card.querySelectorAll('.check-box').forEach(cb => {
+      cb.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleItem(cb.dataset.itemId, cb);
+      });
+    });
+
+    container.appendChild(card);
   });
 }
 
+function renderUpNext() {
+  const currentIndices = getCurrentPhaseIndices();
+  let upNextItems = [];
+
+  // Gather from current phases first
+  for (const phaseIdx of currentIndices) {
+    const phase = PHASES[phaseIdx];
+    phase.items.forEach(item => {
+      if (!(state.items[item.id] && state.items[item.id].done)) {
+        upNextItems.push({ ...item, phaseName: phase.name, phaseColor: phase.color, phaseId: phase.id });
+      }
+    });
+  }
+
+  // If current phases all done, look ahead
+  if (upNextItems.length === 0) {
+    const maxCurrent = Math.max(...currentIndices);
+    for (let i = maxCurrent + 1; i < PHASES.length; i++) {
+      const phase = PHASES[i];
+      phase.items.forEach(item => {
+        if (!(state.items[item.id] && state.items[item.id].done)) {
+          upNextItems.push({ ...item, phaseName: phase.name, phaseColor: phase.color, phaseId: phase.id });
+        }
+      });
+      if (upNextItems.length > 0) break;
+    }
+  }
+
+  const top5 = upNextItems.slice(0, 5);
+  document.getElementById('upNext').innerHTML = top5.length > 0
+    ? top5.map(item => `
+      <div class="up-next-item" data-item-id="${item.id}">
+        <div class="up-next-tag" style="color:${item.phaseColor};background:${item.phaseColor}15;border:1px solid ${item.phaseColor}30;">${item.phaseName}</div>
+        <div class="up-next-name">${item.name}</div>
+        <button class="up-next-btn" onclick="focusItem('${item.id}')">Focus</button>
+      </div>
+    `).join('')
+    : '<div style="font-size:12px;color:var(--text-dim);text-align:center;padding:20px 0;">All done! You\'re a Growth Engine.</div>';
+}
+
 function renderMilestones() {
-  const html = MILESTONES_DATA.map(m => `
+  document.getElementById('milestones').innerHTML = MILESTONES.map(m => `
     <div class="milestone-item">
       <div class="milestone-dot ${m.status}"></div>
       <div class="milestone-text ${m.status === 'done' ? 'done' : ''}">${m.text}</div>
       <div class="milestone-date">${m.date}</div>
     </div>
   `).join('');
-  document.getElementById('milestones').innerHTML = html;
-  const mob = document.getElementById('milestonesMobile');
-  if (mob) mob.innerHTML = html;
-}
-
-function renderUpNext() {
-  const unchecked = [];
-  CATEGORIES.forEach(cat => {
-    cat.items.forEach(item => {
-      if (!(state.items[item.id] && state.items[item.id].done) && item.priority) {
-        unchecked.push({ ...item, catName: cat.name, catColor: cat.color });
-      }
-    });
-  });
-  unchecked.sort((a, b) => (a.priority || 99) - (b.priority || 99));
-  const top5 = unchecked.slice(0, 5);
-  const html = top5.map(item => `
-    <div class="up-next-item" data-item-id="${item.id}">
-      <div class="up-next-tag" style="color:${item.catColor};background:${item.catColor}12;">${item.catName}</div>
-      <div class="up-next-name">${item.name}</div>
-      <button class="up-next-btn" onclick="focusItem('${item.id}')">Focus</button>
-    </div>
-  `).join('');
-  document.getElementById('upNext').innerHTML = html;
-  const mob = document.getElementById('upNextMobile');
-  if (mob) mob.innerHTML = html;
 }
 
 function renderTopBar() {
   const all = getAllStats();
-  const circumference = 2 * Math.PI * 16;
-  const offset = circumference - (all.pct / 100) * circumference;
+  const totalWithFoundation = all.done + FOUNDATION_COUNT;
+  const totalAll = all.total + FOUNDATION_COUNT;
+  const overallPct = Math.round((totalWithFoundation / totalAll) * 100);
+
+  const circumference = 2 * Math.PI * 18;
+  const offset = circumference - (overallPct / 100) * circumference;
   document.getElementById('readinessCircle').style.strokeDashoffset = offset;
-  document.getElementById('readinessPct').textContent = all.pct + '%';
+  document.getElementById('readinessPct').textContent = overallPct + '%';
 
   const lvl = getLevel(state.xp);
   const nextLvl = lvl < LEVELS.length - 1 ? LEVELS[lvl + 1].threshold : LEVELS[lvl].threshold;
@@ -1232,99 +1604,44 @@ function renderTopBar() {
   document.getElementById('levelName').textContent = LEVELS[lvl].name;
   document.getElementById('xpBarFill').style.width = progress + '%';
   document.getElementById('xpText').textContent = state.xp + ' / ' + nextLvl + ' XP';
+
+  // Today's date
+  const now = new Date();
+  document.getElementById('todayDate').textContent =
+    now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
 function renderSession() {
-  const html = `
-    <div class="session-stat">
-      <div class="session-stat-value" style="color:var(--green);">${sessionDone}</div>
-      <div class="session-stat-label">Done</div>
-    </div>
-    <div class="session-stat">
-      <div class="session-stat-value" style="color:var(--accent);">${sessionXP}</div>
-      <div class="session-stat-label">XP</div>
-    </div>
-    <div class="session-stat">
-      <div class="session-stat-value" style="color:var(--yellow);">${streak}</div>
-      <div class="session-stat-label">Streak</div>
-    </div>
-  `;
-  document.getElementById('sessionGrid').innerHTML = html;
-  const mob = document.getElementById('sessionGridMobile');
-  if (mob) mob.innerHTML = html;
+  document.getElementById('sessionDone').textContent = sessionDone;
+  document.getElementById('sessionXP').textContent = sessionXP;
 }
 
-function renderMobileStats() {
-  const lvl = getLevel(state.xp);
-  const nextLvl = lvl < LEVELS.length - 1 ? LEVELS[lvl + 1].threshold : LEVELS[lvl].threshold;
-  const currThreshold = LEVELS[lvl].threshold;
-  const progress = nextLvl > currThreshold ? ((state.xp - currThreshold) / (nextLvl - currThreshold)) * 100 : 100;
+// ═══════════════════════════════════════════════════════════
+// INTERACTIONS
+// ═══════════════════════════════════════════════════════════
 
-  document.getElementById('mobileXPCard').innerHTML = `
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-        <div>
-          <div style="font-size:12px;color:var(--text-hint);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Level ${lvl + 1}</div>
-          <div style="font-size:22px;font-weight:800;color:var(--accent);">${LEVELS[lvl].name}</div>
-        </div>
-        <div style="font-size:28px;font-weight:800;color:var(--text);">${state.xp} <span style="font-size:14px;color:var(--text-hint);">XP</span></div>
-      </div>
-      <div style="height:8px;background:var(--border-light);border-radius:4px;overflow:hidden;">
-        <div style="height:100%;background:var(--accent);border-radius:4px;width:${progress}%;transition:width 0.6s;"></div>
-      </div>
-      <div style="font-size:11px;color:var(--text-hint);margin-top:6px;text-align:right;">${state.xp} / ${nextLvl} XP to ${lvl < LEVELS.length - 1 ? LEVELS[lvl + 1].name : 'max'}</div>
-    </div>
-  `;
-
-  document.getElementById('mobileCatBreakdown').innerHTML = CATEGORIES.map(cat => {
-    const s = getCatStats(cat);
-    const cls = pctClass(s.pct);
-    const barColor = cls === 'high' ? 'var(--green)' : cls === 'mid' ? 'var(--yellow)' : 'var(--red)';
-    return `
-      <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border-light);">
-        <div style="width:32px;height:32px;border-radius:8px;background:${cat.bg};display:flex;align-items:center;justify-content:center;font-size:15px;">${cat.icon}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;">${cat.name}</div>
-          <div style="height:4px;background:var(--border-light);border-radius:2px;overflow:hidden;">
-            <div style="height:100%;background:${barColor};width:${s.pct}%;border-radius:2px;"></div>
-          </div>
-        </div>
-        <div style="font-size:13px;font-weight:700;color:${barColor};min-width:36px;text-align:right;">${s.pct}%</div>
-      </div>
-    `;
-  }).join('');
-
-  const mp = document.getElementById('mobileProgress');
-  if (mp) {
-    const all = getAllStats();
-    mp.innerHTML = `
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center;box-shadow:var(--shadow-sm);">
-        <div style="font-size:48px;font-weight:800;color:var(--accent);">${all.pct}%</div>
-        <div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">Launch Ready</div>
-        <div style="font-size:12px;color:var(--text-hint);margin-top:2px;">${all.done} of ${all.total} tasks complete</div>
-      </div>
-    `;
-  }
-}
-
-// ─── INTERACTIONS ───
 function toggleItem(itemId, checkboxEl) {
   const wasDone = state.items[itemId] && state.items[itemId].done;
   state.items[itemId] = { done: !wasDone };
-  state.xp = calcXP(state.items);
+  state.xp = calcXP();
 
   if (!wasDone) {
     let xpVal = 0;
-    CATEGORIES.forEach(cat => cat.items.forEach(item => { if (item.id === itemId) xpVal = item.xp; }));
+    PHASES.forEach(phase => phase.items.forEach(item => {
+      if (item.id === itemId) xpVal = item.xp;
+    }));
     sessionDone++;
     sessionXP += xpVal;
     showXPPopup(checkboxEl, xpVal);
+
     const oldLvl = getLevel(state.xp - xpVal);
     const newLvl = getLevel(state.xp);
-    if (newLvl > oldLvl) showLevelUp(newLvl);
+    if (newLvl > oldLvl) showLevelUp();
   } else {
     let xpVal = 0;
-    CATEGORIES.forEach(cat => cat.items.forEach(item => { if (item.id === itemId) xpVal = item.xp; }));
+    PHASES.forEach(phase => phase.items.forEach(item => {
+      if (item.id === itemId) xpVal = item.xp;
+    }));
     sessionDone = Math.max(0, sessionDone - 1);
     sessionXP = Math.max(0, sessionXP - xpVal);
   }
@@ -1338,96 +1655,82 @@ function showXPPopup(el, xp) {
   const popup = document.createElement('div');
   popup.className = 'xp-popup';
   popup.textContent = '+' + xp + ' XP';
-  popup.style.left = (rect.left + rect.width / 2 - 20) + 'px';
-  popup.style.top = rect.top + 'px';
+  popup.style.left = (rect.left + rect.width / 2) + 'px';
+  popup.style.top = (rect.top) + 'px';
   document.body.appendChild(popup);
   requestAnimationFrame(() => {
     popup.classList.add('show');
-    setTimeout(() => { popup.classList.add('fade'); setTimeout(() => popup.remove(), 400); }, 600);
+    setTimeout(() => {
+      popup.classList.add('fade');
+      setTimeout(() => popup.remove(), 400);
+    }, 600);
   });
 }
 
-function showLevelUp(newLvl) {
+function showLevelUp() {
   const overlay = document.getElementById('levelUpOverlay');
-  document.getElementById('levelUpTitle').textContent = 'Level ' + (newLvl + 1) + '!';
-  document.getElementById('levelUpSub').textContent = LEVELS[newLvl].name;
   overlay.classList.add('show');
-  setTimeout(() => overlay.classList.remove('show'), 2000);
+  setTimeout(() => overlay.classList.remove('show'), 800);
 }
 
 function focusItem(itemId) {
-  switchTab('dashboard');
-
-  setTimeout(() => {
-    CATEGORIES.forEach(cat => {
-      cat.items.forEach(item => {
-        if (item.id === itemId) {
-          const card = document.querySelector(`.cat-card[data-cat-id="${cat.id}"]`);
-          if (card) {
-            card.classList.add('expanded');
-            const checkItem = card.querySelector(`.check-item[data-item-id="${itemId}"]`);
-            if (checkItem) {
-              setTimeout(() => {
-                checkItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                checkItem.style.background = 'var(--accent-container)';
-                checkItem.style.borderRadius = '6px';
-                checkItem.style.transition = 'background 0.3s';
-                setTimeout(() => { checkItem.style.background = ''; }, 2000);
-              }, 350);
-            }
+  PHASES.forEach(phase => {
+    phase.items.forEach(item => {
+      if (item.id === itemId) {
+        const card = document.querySelector(`.phase-card[data-phase-id="${phase.id}"]`);
+        if (card) {
+          card.classList.add('expanded');
+          const checkItem = card.querySelector(`.check-item[data-item-id="${itemId}"]`);
+          if (checkItem) {
+            setTimeout(() => {
+              checkItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              checkItem.style.background = 'var(--accent-dim)';
+              setTimeout(() => checkItem.style.background = '', 1500);
+            }, 350);
           }
         }
-      });
+      }
     });
-  }, 100);
+  });
 }
 
 function renderAll() {
   renderStats();
-  renderCategories();
+  renderFoundation();
+  renderPhases();
   renderUpNext();
+  renderMilestones();
   renderTopBar();
   renderSession();
-  renderMilestones();
-  renderMobileStats();
 }
 
-// ─── BOTTOM NAV ───
-function switchTab(tab) {
-  document.querySelectorAll('.bottom-nav-item').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+// ═══════════════════════════════════════════════════════════
+// CLOCK & INIT
+// ═══════════════════════════════════════════════════════════
 
-  const mainContent = document.getElementById('mainContent');
-  const views = { tasks: 'mobileUpNext', timeline: 'mobileTimeline', stats: 'mobileStats' };
-
-  mainContent.style.display = tab === 'dashboard' ? '' : 'none';
-  Object.entries(views).forEach(([key, id]) => {
-    document.getElementById(id).classList.toggle('active', key === tab);
-  });
-
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-document.querySelectorAll('.bottom-nav-item').forEach(btn => {
-  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
-});
-
-// ─── CLOCK ───
 function updateClock() {
-  const el = document.getElementById('clock');
-  if (!el) return;
   const now = new Date();
-  el.textContent = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
+  document.getElementById('clock').textContent =
+    now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
     now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
-// ─── NOTIFICATIONS ───
-document.getElementById('notifBtn').addEventListener('click', e => {
+// Notifications
+document.getElementById('notifBtn').addEventListener('click', (e) => {
   e.stopPropagation();
   document.getElementById('notifDropdown').classList.toggle('open');
 });
-document.addEventListener('click', () => document.getElementById('notifDropdown').classList.remove('open'));
 
-// ─── STREAK ───
+document.addEventListener('click', () => {
+  document.getElementById('notifDropdown').classList.remove('open');
+});
+
+// Init
+renderAll();
+updateClock();
+setInterval(updateClock, 30000);
+
+// Streak tracking
 const today = new Date().toDateString();
 const lastVisit = localStorage.getItem('hub-last-visit');
 let streak = parseInt(localStorage.getItem('hub-streak') || '0');
@@ -1437,11 +1740,7 @@ if (lastVisit !== today) {
   localStorage.setItem('hub-streak', streak);
   localStorage.setItem('hub-last-visit', today);
 }
-
-// ─── INIT ───
-renderAll();
-updateClock();
-setInterval(updateClock, 30000);
+document.getElementById('streak').textContent = streak + ' day' + (streak !== 1 ? 's' : '');
 </script>
 </body>
 </html>
