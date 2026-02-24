@@ -1066,13 +1066,6 @@ body::before {
       <div class="notif-dropdown" id="notifDropdown">
         <div class="notif-header">Notifications</div>
         <div class="notif-item">
-          <div class="notif-dot" style="background:var(--accent)"></div>
-          <div class="notif-content">
-            <div class="notif-text">NCSG Convention starts TODAY</div>
-            <div class="notif-time">Feb 24</div>
-          </div>
-        </div>
-        <div class="notif-item">
           <div class="notif-dot" style="background:var(--green)"></div>
           <div class="notif-content">
             <div class="notif-text">Founding 25 page live &mdash; accepting applications</div>
@@ -1080,9 +1073,16 @@ body::before {
           </div>
         </div>
         <div class="notif-item">
+          <div class="notif-dot" style="background:var(--accent)"></div>
+          <div class="notif-content">
+            <div class="notif-text">NCSG week &mdash; chimney pros are online and buzzing</div>
+            <div class="notif-time">Feb 24&ndash;28</div>
+          </div>
+        </div>
+        <div class="notif-item">
           <div class="notif-dot"></div>
           <div class="notif-content">
-            <div class="notif-text">Hub redesigned for convention launch</div>
+            <div class="notif-text">Launch playbook activated &mdash; remote founding drive</div>
             <div class="notif-time">just now</div>
           </div>
         </div>
@@ -1150,36 +1150,36 @@ const FOUNDATION_XP = 730;
 
 const PHASES = [
   {
-    id: 'phase0', name: 'Pre-Game', timeframe: 'Today \u2014 Before Convention Floor',
-    description: 'The next 2 hours', color: '#f59e0b', icon: '\u26A1',
+    id: 'phase0', name: 'Launch Prep', timeframe: 'Today',
+    description: 'Get your weapons ready', color: '#f59e0b', icon: '\u26A1',
     items: [
-      { id: 'p0-demo-device', name: 'Demo device charged, brightness max, sound off', xp: 5, note: 'Pre-demo checklist' },
-      { id: 'p0-demo-property', name: 'Demo property pre-loaded (Boston Triple-Flue)', xp: 5, note: 'SC-NE-01' },
-      { id: 'p0-practice-demo', name: 'Practice full demo walkthrough (1 run)', xp: 15, note: '5-min NCSG script' },
-      { id: 'p0-qr-code', name: 'QR code saved to phone for founding page', xp: 15, note: 'sweepnspect.com/founding' },
-      { id: 'p0-contact-capture', name: 'Contact capture ready (notes app, form, or cards)', xp: 10, note: 'How you\'ll collect leads' },
-      { id: 'p0-elevator-pitch', name: '30-second elevator pitch rehearsed', xp: 10, note: 'Hook + 3 differentiators + CTA' },
-      { id: 'p0-founding-verify', name: 'Founding 25 page verified working on mobile', xp: 10, note: 'Test the form submission flow' },
+      { id: 'p0-founding-verify', name: 'Founding 25 page verified working on mobile', xp: 10, note: 'Test form submission end-to-end' },
+      { id: 'p0-facebook-page', name: 'Create Facebook Page (basic placeholder)', xp: 10, note: 'Name + logo + link to sweepnspect.com' },
+      { id: 'p0-share-link', name: 'Founding page share link + screenshot ready', xp: 10, note: 'sweepnspect.com/founding \u2014 easy to paste' },
+      { id: 'p0-pitch-text', name: 'Write DM/message pitch template', xp: 15, note: 'Adapt 30-sec elevator pitch for text/DM' },
+      { id: 'p0-target-list', name: 'List 20 target sweeps to reach out to', xp: 15, note: 'People you know, know of, or can find online' },
+      { id: 'p0-demo-record', name: 'Record 2-minute screen recording demo', xp: 20, note: 'Walk through an inspection \u2014 the finalization ceremony sells it' },
+      { id: 'p0-join-groups', name: 'Join 3\u20135 Facebook chimney community groups', xp: 10, note: 'Where sweeps actually hang out online' },
     ]
   },
   {
-    id: 'phase1', name: 'Convention Blitz', timeframe: 'Feb 24\u201328',
-    description: 'The spreading ground', color: '#ea580c', icon: '\uD83D\uDD25',
+    id: 'phase1', name: 'Founding 25 Drive', timeframe: 'Feb 24 \u2014 Mar 7',
+    description: 'Fill the application pool', color: '#ea580c', icon: '\uD83D\uDD25',
     items: [
-      { id: 'p1-demo-20', name: 'Demo SweepNspect to 20+ people', xp: 40, note: 'Quality over quantity \u2014 let them touch it' },
-      { id: 'p1-collect-50', name: 'Collect 50+ contact emails/numbers', xp: 30, note: 'Every person who shows interest' },
-      { id: 'p1-direct-25', name: 'Direct 25+ people to Founding 25 application', xp: 25, note: 'Show QR code, walk them to the page' },
-      { id: 'p1-submit-5', name: 'Get 5+ people to submit application on the spot', xp: 30, note: 'While they\'re excited' },
-      { id: 'p1-facebook-page', name: 'Create Facebook Page (basic placeholder)', xp: 10, note: 'Name + logo + link to website' },
-      { id: 'p1-ncsg-post', name: 'Post "We\'re at NCSG" content', xp: 10, note: 'Day 1 post \u2014 photo + founding link' },
-      { id: 'p1-daily-content', name: 'Post daily convention content (3+ posts)', xp: 20, note: 'Stories, booth pics, demos' },
-      { id: 'p1-identify-10', name: 'Identify 10 potential Founding 25 candidates', xp: 25, note: 'People you\'d hand-pick' },
-      { id: 'p1-stoner-connect', name: 'Connect with Mark Stoner (if opportunity)', xp: 15, note: 'Don\'t force it \u2014 let the work speak' },
-      { id: 'p1-business-cards', name: 'Collect cards from every meaningful conversation', xp: 15, note: 'Physical or photo of their card' },
+      { id: 'p1-group-intros', name: 'Post introduction in each FB chimney group', xp: 15, note: 'Value first \u2014 "built by a sweep, here\'s what it does"' },
+      { id: 'p1-dm-20', name: 'Direct message 20+ sweeps with personal pitch', xp: 25, note: 'Not copy-paste \u2014 personal, mention something specific' },
+      { id: 'p1-ncsg-buzz', name: 'Post leveraging NCSG week buzz', xp: 15, note: '"While chimney pros gather this week..." \u2014 ride the wave remotely' },
+      { id: 'p1-demo-video', name: 'Post demo video in FB groups', xp: 15, note: 'The 2-min screen recording \u2014 let the app speak' },
+      { id: 'p1-fb-page-content', name: 'Post founding opportunity on Facebook Page', xp: 10, note: 'The curated pitch: "25 sweeps, hand-picked, lifetime free"' },
+      { id: 'p1-daily-content', name: 'Post 5+ pieces of content across NCSG week', xp: 20, note: 'Screenshots, features, "built by a sweep" story, founding CTA' },
+      { id: 'p1-30-apps', name: 'Get 30+ Founding 25 applications submitted', xp: 40, note: 'The pool you\'ll select from \u2014 more apps = better selection' },
+      { id: 'p1-respond-all', name: 'Respond to every application within 24 hours', xp: 20, note: 'Personal acknowledgment \u2014 "Got your app, reviewing this week"' },
+      { id: 'p1-ask-referrals', name: 'Ask early applicants who else they\'d recommend', xp: 15, note: 'The referral field captures it, but ask directly too' },
+      { id: 'p1-stoner-reach', name: 'Reach out to Mark Stoner online', xp: 15, note: 'He\'s at NCSG this week \u2014 message after, not during' },
     ]
   },
   {
-    id: 'phase2', name: 'Ship the App', timeframe: 'Feb 24\u201326 \u2014 Parallel',
+    id: 'phase2', name: 'Ship the App', timeframe: 'Feb 24\u201328 \u2014 Parallel',
     description: 'Get it in their hands', color: '#3b82f6', icon: '\uD83D\uDE80',
     parallel: 'phase1',
     items: [
@@ -1189,37 +1189,37 @@ const PHASES = [
       { id: 'p2-prod-track', name: 'Play Store production track submitted', xp: 35, note: 'Upload signed APK' },
       { id: 'p2-app-approved', name: 'App approved on Play Store', xp: 35, note: 'Google review (24\u201372 hours)' },
       { id: 'p2-update-download', name: 'Update download.html with Play Store link', xp: 15, note: 'Replace notify form with real link' },
-      { id: 'p2-share-link', name: 'Share install link with convention contacts', xp: 15, note: '"It\'s live \u2014 here\'s the link"' },
+      { id: 'p2-announce-live', name: 'Announce "it\'s live" in FB groups + page', xp: 15, note: 'Share the Play Store link everywhere' },
     ]
   },
   {
-    id: 'phase3', name: 'Post-Convention Strike', timeframe: 'Mar 1\u20137',
-    description: 'Strike while the iron is hot', color: '#8b5cf6', icon: '\uD83D\uDCEC',
+    id: 'phase3', name: 'Select & Onboard', timeframe: 'Mar 1\u201315',
+    description: 'Turn applicants into founding members', color: '#8b5cf6', icon: '\uD83C\uDFAF',
     items: [
-      { id: 'p3-followup-email', name: 'Follow-up email to every convention contact', xp: 30, note: 'Personal, not templated blast' },
-      { id: 'p3-convention-recap', name: 'Post convention recap (photos, highlights)', xp: 15, note: 'Facebook, Instagram, wherever' },
-      { id: 'p3-review-apps', name: 'Review all Founding 25 applications received', xp: 20, note: 'Score against selection criteria' },
-      { id: 'p3-select-first5', name: 'Select first 5 founding members', xp: 35, note: 'Geographic diversity, experience mix' },
-      { id: 'p3-send-agreements', name: 'Send agreements to first 5', xp: 25, note: 'Founding 25 agreement doc' },
-      { id: 'p3-referral-links', name: 'Create referral share links + QR codes', xp: 20, note: 'Easy sharing for founding members' },
-      { id: 'p3-email-templates', name: 'Write email templates (welcome, onboarding)', xp: 15, note: 'Repeatable communication' },
-      { id: 'p3-fb-groups', name: 'Join 3+ Facebook chimney community groups', xp: 15, note: 'Listen first, then contribute' },
+      { id: 'p3-review-apps', name: 'Review all applications against selection criteria', xp: 20, note: 'Active inspections, geographic diversity, experience mix' },
+      { id: 'p3-select-first5', name: 'Select first 5 founding members', xp: 35, note: 'Best applicants first \u2014 they set the tone' },
+      { id: 'p3-send-agreements', name: 'Send founding 25 agreements to first 5', xp: 25, note: 'Solo free for life, 50% off Pro, non-transferable' },
+      { id: 'p3-onboarding-guide', name: 'Create onboarding guide ("Your First Inspection")', xp: 25, note: 'Step-by-step from install to finalized report' },
+      { id: 'p3-personal-onboard', name: 'Personally onboard first 5 (video call or walkthrough email)', xp: 25, note: 'White-glove \u2014 these are your ambassadors' },
+      { id: 'p3-feedback-channel', name: 'Set up direct feedback channel (group text/Signal/Discord)', xp: 20, note: 'Where they talk to you and each other' },
+      { id: 'p3-first-feedback', name: 'Collect first round of feedback', xp: 25, note: 'What works, what doesn\'t, what\'s missing' },
+      { id: 'p3-ship-fixes', name: 'Ship bug fixes from founding member feedback', xp: 25, note: 'Show them you listen \u2014 fast turnaround matters' },
+      { id: 'p3-select-next10', name: 'Select next 10 founding members', xp: 30, note: 'Second wave \u2014 expand geographic coverage' },
+      { id: 'p3-email-templates', name: 'Write email templates (welcome, onboarding, follow-up)', xp: 15, note: 'Repeatable communication for remaining waves' },
     ]
   },
   {
-    id: 'phase4', name: 'Founding 25 Activation', timeframe: 'March',
+    id: 'phase4', name: 'Full Activation', timeframe: 'Mar 15\u201331',
     description: 'They have to love this', color: '#22c55e', icon: '\uD83C\uDFC6',
     items: [
-      { id: 'p4-all-25-selected', name: 'All 25 founding members selected', xp: 40, note: 'Curated, not first-come' },
-      { id: 'p4-all-25-signed', name: 'All 25 agreements signed', xp: 30, note: 'Legal foundation' },
-      { id: 'p4-onboarding-guide', name: 'Onboarding guide created', xp: 25, note: 'Step-by-step "your first inspection"' },
-      { id: 'p4-onboarding-sent', name: 'Onboarding materials sent to all 25', xp: 20, note: 'Guide + app link + direct contact' },
-      { id: 'p4-feedback-channel', name: 'Direct feedback channel established', xp: 20, note: 'Signal/Discord \u2014 where they talk to you' },
-      { id: 'p4-first-feedback', name: 'First round of feedback collected', xp: 30, note: 'What works, what doesn\'t, what\'s missing' },
-      { id: 'p4-bug-fixes', name: 'Bug fixes from founding member feedback shipped', xp: 25, note: 'Show them you listen' },
-      { id: 'p4-10-active', name: '10+ founding members actively using app', xp: 35, note: 'Not installed \u2014 actually using' },
-      { id: 'p4-first-testimonial', name: 'First founding member testimonial or quote', xp: 25, note: 'Social proof for launch' },
+      { id: 'p4-all-25-selected', name: 'All 25 founding members selected and signed', xp: 40, note: 'Curated, not first-come \u2014 final wave complete' },
+      { id: 'p4-all-onboarded', name: 'All 25 onboarded with materials', xp: 20, note: 'Guide + app link + direct contact info' },
+      { id: 'p4-10-active', name: '10+ founding members actively using app on real jobs', xp: 35, note: 'Not installed \u2014 actually using on inspections' },
+      { id: 'p4-first-testimonial', name: 'First founding member testimonial or quote', xp: 25, note: 'Social proof for public launch' },
+      { id: 'p4-referral-links', name: 'Create referral share links for founding members', xp: 20, note: 'Easy way for them to spread the word' },
+      { id: 'p4-post-milestones', name: 'Post founding member milestones on Facebook', xp: 15, note: '"Our founding sweeps are using SweepNspect on real jobs"' },
       { id: 'p4-analytics', name: 'Google Analytics on website', xp: 15, note: 'Track traffic and conversions' },
+      { id: 'p4-second-feedback', name: 'Second feedback round \u2014 polish from real usage', xp: 25, note: 'Iterate based on field experience' },
     ]
   },
   {
@@ -1227,8 +1227,8 @@ const PHASES = [
     description: 'Open the gates', color: '#06b6d4', icon: '\uD83C\uDF10',
     items: [
       { id: 'p5-play-store', name: 'App publicly available on Play Store', xp: 45, note: 'Open production track' },
-      { id: 'p5-launch-announcement', name: 'Launch announcement across all channels', xp: 25, note: 'Facebook, Instagram, groups, email list' },
-      { id: 'p5-fb-outreach', name: 'Facebook chimney community outreach (5+ groups)', xp: 25, note: 'Genuine contribution, not spam' },
+      { id: 'p5-launch-announcement', name: 'Launch announcement across all channels', xp: 25, note: 'Facebook Page, groups, email list, founding members share' },
+      { id: 'p5-fb-outreach', name: 'Facebook chimney community outreach (5+ groups)', xp: 25, note: 'Genuine contribution, not spam \u2014 you\'re already known by now' },
       { id: 'p5-instagram', name: 'Instagram account created + first 10 posts', xp: 15, note: 'Brand presence' },
       { id: 'p5-faq', name: 'FAQ / Knowledge Base published', xp: 20, note: 'Common questions answered' },
       { id: 'p5-payment-live', name: 'Payment processing live (Stripe)', xp: 40, note: 'Trial \u2192 paid conversion path' },
@@ -1242,10 +1242,10 @@ const PHASES = [
     id: 'phase6', name: 'Growth Engine', timeframe: 'Q2 2026+',
     description: 'Keep the ball rolling', color: '#a78bfa', icon: '\uD83D\uDCC8',
     items: [
-      { id: 'p6-black-collar', name: 'Black Collar ad campaign launched', xp: 40, note: 'The "60M chimneys, 5000 sweeps" ads' },
+      { id: 'p6-black-collar', name: 'Black Collar ad campaign launched', xp: 40, note: 'The "60M chimneys, 5000 sweeps" ads \u2014 7 variants ready' },
       { id: 'p6-surefire-referral', name: 'SureFire referral program partnership', xp: 25, note: 'Training \u2192 app pipeline' },
       { id: 'p6-surefire-ceu', name: 'SureFire CEU training content partnership', xp: 30, note: 'Education content collaboration' },
-      { id: 'p6-hub-server', name: 'Hub operations server deployed', xp: 25, note: 'Ticket system, subscriber tracking, revenue' },
+      { id: 'p6-hub-server', name: 'Hub operations server deployed', xp: 25, note: 'Ticket system, subscriber tracking, revenue dashboard' },
       { id: 'p6-ticket-system', name: 'Customer support ticket system live', xp: 25, note: 'Beyond email \u2014 structured support' },
       { id: 'p6-response-templates', name: 'Response templates for common questions', xp: 15, note: 'Efficient support at scale' },
       { id: 'p6-video-tutorials', name: '3+ video tutorials recorded', xp: 20, note: 'Inspection, invoicing, scheduling' },
@@ -1260,7 +1260,7 @@ const PHASES = [
 
 const LEVELS = [
   { threshold: 0, name: 'Getting Started' },
-  { threshold: 150, name: 'Convention Warrior' },
+  { threshold: 150, name: 'Founding Pioneer' },
   { threshold: 400, name: 'App Shipper' },
   { threshold: 700, name: 'Community Builder' },
   { threshold: 1100, name: 'Launch Captain' },
@@ -1268,9 +1268,9 @@ const LEVELS = [
 ];
 
 const MILESTONES = [
-  { text: 'NCSG Convention Day 1', date: 'Feb 24', status: 'active' },
+  { text: 'Founding 25 page live', date: 'Feb 23', status: 'done' },
+  { text: 'Facebook Page created', date: 'Feb 24', status: 'active' },
   { text: 'App on Play Store', date: 'Feb 26', status: 'pending' },
-  { text: 'Post-convention follow-up complete', date: 'Mar 7', status: 'pending' },
   { text: 'First 5 Founding Members confirmed', date: 'Mar 7', status: 'pending' },
   { text: 'All 25 Founding Members active', date: 'Mar 31', status: 'pending' },
   { text: 'Public launch', date: 'April', status: 'pending' },
@@ -1289,7 +1289,7 @@ let sessionXP = 0;
 function loadState() {
   try {
     const s = JSON.parse(localStorage.getItem('hub-state'));
-    if (s && s.version === 2 && s.items) return s;
+    if (s && s.version === 3 && s.items) return s;
   } catch(e) {}
   // Fresh state for v2 — all phase items start unchecked
   const items = {};
@@ -1298,7 +1298,7 @@ function loadState() {
       items[item.id] = { done: false };
     });
   });
-  return { version: 2, items, xp: calcXPFromItems(items) };
+  return { version: 3, items, xp: calcXPFromItems(items) };
 }
 
 function saveState() {
@@ -1362,19 +1362,25 @@ function getCurrentPhaseIndices() {
   const m = now.getMonth() + 1;
   const d = now.getDate();
 
-  if (y === 2026 && m === 2 && d === 24) {
-    // Feb 24 — Pre-Game first, then Convention + Ship
+  // Phase 0: Launch Prep (today — Feb 24, or until complete)
+  if (y === 2026 && m === 2 && d <= 24) {
     const p0 = getPhaseStats(PHASES[0]);
-    if (p0.done < p0.total) return [0, 1, 2]; // Show all active
+    if (p0.done < p0.total) return [0, 1, 2];
     return [1, 2];
   }
-  if (y === 2026 && m === 2 && d >= 25 && d <= 28) return [1, 2];
-  if (y === 2026 && m === 3 && d <= 7) return [3];
-  if (y === 2026 && m === 3 && d >= 8) return [4];
+  // Phase 1 + 2: Founding Drive + Ship App (Feb 24 — Mar 7)
+  if (y === 2026 && m === 2 && d >= 24) return [1, 2];
+  if (y === 2026 && m === 3 && d <= 7) return [1, 2];
+  // Phase 3: Select & Onboard (Mar 8-15)
+  if (y === 2026 && m === 3 && d >= 8 && d <= 15) return [3];
+  // Phase 4: Full Activation (Mar 16-31)
+  if (y === 2026 && m === 3 && d >= 16) return [4];
+  // Phase 5: Public Launch (April)
   if (y === 2026 && m === 4) return [5];
+  // Phase 6: Growth Engine (May+)
   if (y >= 2026 && (m >= 5 || y > 2026)) return [6];
 
-  // Before convention or fallback — show Phase 0
+  // Fallback — show Phase 0
   return [0];
 }
 
