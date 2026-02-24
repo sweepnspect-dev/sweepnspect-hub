@@ -1082,7 +1082,7 @@ body::before {
         <div class="notif-item">
           <div class="notif-dot"></div>
           <div class="notif-content">
-            <div class="notif-text">Launch playbook activated &mdash; remote founding drive</div>
+            <div class="notif-text">Evaluator report received &mdash; Mike Brennan, Brennan&rsquo;s Chimney Services, Raleigh NC &mdash; 7.8/10, &ldquo;I&rsquo;d sign up. Fix the Unknown Customer bug first.&rdquo;</div>
             <div class="notif-time">just now</div>
           </div>
         </div>
@@ -1158,7 +1158,7 @@ const PHASES = [
       { id: 'p0-share-link', name: 'Founding page share link + screenshot ready', xp: 10, note: 'sweepnspect.com/founding \u2014 easy to paste' },
       { id: 'p0-pitch-text', name: 'Write DM/message pitch template', xp: 15, note: 'Adapt 30-sec elevator pitch for text/DM' },
       { id: 'p0-target-list', name: 'List 20 target sweeps to reach out to', xp: 15, note: 'People you know, know of, or can find online' },
-      { id: 'p0-demo-record', name: 'Record 2-minute screen recording demo', xp: 20, note: 'Walk through an inspection \u2014 the finalization ceremony sells it' },
+      { id: 'p0-demo-record', name: 'Record 2-minute screen recording demo', xp: 20, note: 'CRITICAL per evaluator: "No video = most prospects bounce without understanding what they\'d be buying." Show: inspection flow \u2192 PDF generation \u2192 share to homeowner email. That finalization moment is the sell.' },
       { id: 'p0-join-groups', name: 'Join 3\u20135 Facebook chimney community groups', xp: 10, note: 'Where sweeps actually hang out online' },
     ]
   },
@@ -1176,6 +1176,9 @@ const PHASES = [
       { id: 'p1-respond-all', name: 'Respond to every application within 24 hours', xp: 20, note: 'Personal acknowledgment \u2014 "Got your app, reviewing this week"' },
       { id: 'p1-ask-referrals', name: 'Ask early applicants who else they\'d recommend', xp: 15, note: 'The referral field captures it, but ask directly too' },
       { id: 'p1-stoner-reach', name: 'Reach out to Mark Stoner online', xp: 15, note: 'He\'s at NCSG this week \u2014 message after, not during' },
+      { id: 'p1-founding-reframe', name: 'Reframe \u201cFounding 25\u201d copy as charter member language', xp: 10, note: 'Evaluator concern: "Only 25 people? Is this company going to be around?" Fix: "We\u2019re hand-selecting our first 25 charter members." Prestigious, exclusive \u2014 not small.' },
+      { id: 'p1-android-above-fold', name: 'Add Android availability callout above fold on website', xp: 10, note: 'Evaluator: "Is there an Android version? iOS only?" Sweeps use Android as often as iPhones. Make platform availability obvious before they scroll.' },
+      { id: 'p1-data-export-copy', name: 'Add trial-end / data export statement to pricing page', xp: 10, note: 'Evaluator: "How do I get my data out if I cancel?" Website mentions no vendor lock-in but it\u2019s buried. Put full export promise right in the pricing section \u2014 critical for business owners trusting you with client data.' },
     ]
   },
   {
@@ -1183,7 +1186,8 @@ const PHASES = [
     description: 'Get it in their hands', color: '#3b82f6', icon: '\uD83D\uDE80',
     parallel: 'phase1',
     items: [
-      { id: 'p2-bug-fixes', name: 'Final bug fixes complete', xp: 30, note: 'Whatever\'s blocking release' },
+      { id: 'p2-bug-unknown-customer', name: 'Fix invoice list \u201cUnknown Customer\u201d display bug', xp: 30, note: 'SHIP-STOPPER per evaluator: every invoice in the list shows "Unknown Customer" instead of the actual name. Customer name renders correctly inside the invoice. Data-binding bug in list view. Fix this before any marketing push.' },
+      { id: 'p2-bug-back-nav', name: 'Fix back-nav job status bug (premature Done)', xp: 20, note: 'Navigating back from Zone 10 without tapping "Complete Inspection" incorrectly changes job status from Scheduled to Done. Medium severity but misleads sweeps.' },
       { id: 'p2-prod-apk', name: 'Production APK signed and built', xp: 25, note: 'Release keystore, R8 enabled' },
       { id: 'p2-release-notes', name: 'Release notes v1.0 written', xp: 10, note: 'What\'s in the first release' },
       { id: 'p2-prod-track', name: 'Play Store production track submitted', xp: 35, note: 'Upload signed APK' },
@@ -1206,6 +1210,7 @@ const PHASES = [
       { id: 'p3-ship-fixes', name: 'Ship bug fixes from founding member feedback', xp: 25, note: 'Show them you listen \u2014 fast turnaround matters' },
       { id: 'p3-select-next10', name: 'Select next 10 founding members', xp: 30, note: 'Second wave \u2014 expand geographic coverage' },
       { id: 'p3-email-templates', name: 'Write email templates (welcome, onboarding, follow-up)', xp: 15, note: 'Repeatable communication for remaining waves' },
+      { id: 'p3-video-testimonial', name: 'Request 30-second video testimonial from first 3 members', xp: 25, note: 'Evaluator: "Get 3 beta users to record 30-second video testimonials. Put them on the homepage." Video beats text for trust. The ask: phone recording, their face, one sentence about what the app replaced for them.' },
     ]
   },
   {
@@ -1242,6 +1247,9 @@ const PHASES = [
     id: 'phase6', name: 'Growth Engine', timeframe: 'Q2 2026+',
     description: 'Keep the ball rolling', color: '#a78bfa', icon: '\uD83D\uDCC8',
     items: [
+      { id: 'p6-calendar-grid', name: 'Ship calendar grid view (week/month)', xp: 35, note: 'P1 feature per evaluator: "A list shows me one-by-one; a grid shows me the whole week at a glance. Every competitor has a grid view." Table stakes for 5+ job days.' },
+      { id: 'p6-appt-reminders', name: 'Ship automated appointment reminders (SMS/email)', xp: 35, note: 'P1 feature per evaluator: "24h and 1h before the job. Jobber and HouseCall Pro both do this. Reduces no-shows, looks professional." Currently forces manual texting.' },
+      { id: 'p6-annual-rebooking', name: 'Ship annual re-booking (\u201cBook next year\u201d button)', xp: 25, note: 'P2 per evaluator: auto-schedule repeat customers 12 months out after completing a job. "Retention gold." Chimney sweeps have high repeat-customer rate.' },
       { id: 'p6-black-collar', name: 'Black Collar ad campaign launched', xp: 40, note: 'The "60M chimneys, 5000 sweeps" ads \u2014 7 variants ready' },
       { id: 'p6-surefire-referral', name: 'SureFire referral program partnership', xp: 25, note: 'Training \u2192 app pipeline' },
       { id: 'p6-surefire-ceu', name: 'SureFire CEU training content partnership', xp: 30, note: 'Education content collaboration' },
