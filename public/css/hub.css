@@ -1271,8 +1271,7 @@ body {
   flex-shrink: 0;
   margin-top: 4px;
 }
-.tag-founding { background: rgba(39, 174, 96, 0.15); color: #2ecc71; }
-.tag-new { background: rgba(192, 57, 43, 0.2); color: #e74c3c; }
+/* old .tag-founding / .tag-new removed — see category tag colors below */
 
 .btn-sm {
   padding: 4px 12px;
@@ -1455,3 +1454,89 @@ body {
   .inbox-split { flex-direction: column; height: auto; }
   .inbox-split .inbox-list { flex: none; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); max-height: 300px; }
 }
+
+/* ── Category Tag Colors ──────────────────────────────── */
+.tag-ticket   { background: #3b82f6; color: #fff; }
+.tag-bug      { background: #ef4444; color: #fff; }
+.tag-founding { background: #22c55e; color: #000; }
+.tag-billing  { background: #f59e0b; color: #000; }
+.tag-feature  { background: #8b5cf6; color: #fff; }
+.tag-demo     { background: #06b6d4; color: #000; }
+.tag-referral { background: #ec4899; color: #fff; }
+.tag-contact  { background: #64748b; color: #fff; }
+.tag-partner  { background: #a855f7; color: #fff; }
+.tag-system   { background: #334155; color: #94a3b8; }
+
+/* ── Filter Bar ───────────────────────────────────────── */
+.inbox-filters {
+  display: flex;
+  gap: 6px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border, #1e293b);
+  overflow-x: auto;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.inbox-filter-btn {
+  background: transparent;
+  border: 1px solid var(--border, #334155);
+  color: var(--dim, #94a3b8);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.inbox-filter-btn:hover {
+  border-color: var(--accent, #f0f0f0);
+  color: var(--text, #f0f0f0);
+}
+.inbox-filter-btn.active {
+  background: var(--accent, #f0f0f0);
+  color: var(--bg, #0a0a0a);
+  border-color: var(--accent, #f0f0f0);
+}
+.filter-count {
+  font-weight: 700;
+  opacity: 0.7;
+  margin-left: 2px;
+}
+.inbox-archive-toggle {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--dim, #94a3b8);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.inbox-archive-toggle input { cursor: pointer; }
+
+/* ── Archived/System email items ──────────────────────── */
+.inbox-item.archived { opacity: 0.45; }
+.inbox-item.archived:hover { opacity: 0.7; }
+
+/* ── Linked Record Badges ─────────────────────────────── */
+.email-meta-linked { margin-top: 6px; }
+.email-linked-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+.badge-ticket {
+  background: #3b82f620;
+  color: #3b82f6;
+  border: 1px solid #3b82f640;
+}
+.badge-ticket:hover { background: #3b82f640; }
+.badge-subscriber {
+  background: #22c55e20;
+  color: #22c55e;
+  border: 1px solid #22c55e40;
+}
+.badge-subscriber:hover { background: #22c55e40; }
