@@ -30,6 +30,8 @@ router.post('/', (req, res) => {
     id: s.nextId('t'),
     status: req.body.status || 'new',
     priority: req.body.priority || 'normal',
+    source: req.body.source || '',
+    emailUid: req.body.emailUid || null,
     customer: req.body.customer || { name: '', email: '', subscriberId: '' },
     subject: req.body.subject || '',
     description: req.body.description || '',
@@ -63,7 +65,7 @@ router.put('/:id', (req, res) => {
   const idx = tickets.findIndex(t => t.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'Ticket not found' });
 
-  const allowed = ['status', 'priority', 'resolution', 'aiAnalysis', 'subject', 'description', 'customer'];
+  const allowed = ['status', 'priority', 'resolution', 'aiAnalysis', 'subject', 'description', 'customer', 'source'];
   for (const key of allowed) {
     if (req.body[key] !== undefined) tickets[idx][key] = req.body[key];
   }

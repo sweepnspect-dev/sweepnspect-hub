@@ -29,9 +29,11 @@ router.post('/', (req, res) => {
     id: s.nextId('s'),
     name: req.body.name || '',
     email: req.body.email || '',
-    plan: req.body.plan || 'solo',
+    plan: req.body.plan || '',
     mrr: req.body.mrr || 0,
     status: req.body.status || 'trial',
+    source: req.body.source || '',
+    emailUid: req.body.emailUid || null,
     startDate: req.body.startDate || new Date().toISOString(),
     tickets: []
   };
@@ -49,7 +51,7 @@ router.put('/:id', (req, res) => {
   const idx = subs.findIndex(sub => sub.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'Subscriber not found' });
 
-  const allowed = ['name', 'email', 'plan', 'mrr', 'status'];
+  const allowed = ['name', 'email', 'plan', 'mrr', 'status', 'source'];
   for (const key of allowed) {
     if (req.body[key] !== undefined) subs[idx][key] = req.body[key];
   }
