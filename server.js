@@ -90,6 +90,7 @@ app.use('/api/clauser', require('./routes/clauser'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/webhooks', require('./routes/webhooks'));
 app.use('/api/marketing', require('./routes/marketing'));
+app.use('/api/webhooks/tawk', require('./routes/tawk'));
 app.use('/api/inbox', require('./routes/inbox'));
 
 // ── Alert API ────────────────────────────────────────────
