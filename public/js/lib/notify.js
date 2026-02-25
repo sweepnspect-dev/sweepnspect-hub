@@ -37,8 +37,7 @@ const HubNotify = {
     el.textContent = text;
     document.body.appendChild(el);
     setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; setTimeout(() => el.remove(), 300); }, 3000);
-  }
-};
+  },
 
   // Alert toast — severity-colored with stacking
   alertToast(alert) {

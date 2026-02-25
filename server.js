@@ -3,6 +3,18 @@ const http = require('http');
 const { WebSocketServer } = require('ws');
 const path = require('path');
 
+// ── Load .env ────────────────────────────────────────────
+const envFs = require('fs');
+const envPath = path.join(__dirname, '.env');
+if (envFs.existsSync(envPath)) {
+  envFs.readFileSync(envPath, 'utf-8').split('\n').forEach(line => {
+    const [key, ...val] = line.split('=');
+    if (key && val.length && !process.env[key.trim()]) {
+      process.env[key.trim()] = val.join('=').trim();
+    }
+  });
+}
+
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
@@ -56,10 +68,15 @@ const AlertRouter = require('./lib/alert-router');
 const smsService = new SmsService();
 const alertRouter = new AlertRouter(broadcast, smsService);
 
+// ── Email Poller ─────────────────────────────────────────
+const EmailPoller = require('./lib/email-poller');
+const emailPoller = new EmailPoller(broadcast, alertRouter);
+
 // Make store + alert router available to routes
 app.locals.jsonStore = jsonStore;
 app.locals.broadcast = broadcast;
 app.locals.alertRouter = alertRouter;
+app.locals.emailPoller = emailPoller;
 
 // ── Routes ───────────────────────────────────────────────
 app.use('/api/tickets', require('./routes/tickets'));
@@ -70,6 +87,7 @@ app.use('/api/clauser', require('./routes/clauser'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/webhooks', require('./routes/webhooks'));
 app.use('/api/marketing', require('./routes/marketing'));
+app.use('/api/inbox', require('./routes/inbox'));
 
 // ── Alert API ────────────────────────────────────────────
 app.get('/api/alerts', (req, res) => {
@@ -154,8 +172,16 @@ function getStats() {
     .filter(r => r.date >= monthStart && r.type === 'refund')
     .reduce((sum, r) => sum + r.amount, 0);
 
+  const inbox = emailPoller.getInbox();
+
   return {
     timestamp: Date.now(),
+    inbox: {
+      unread: inbox.unread,
+      total: inbox.total,
+      status: inbox.status,
+      lastCheck: inbox.lastCheck,
+    },
     tickets: {
       open: openTickets.length,
       aiWorking: aiWorking.length,
@@ -236,5 +262,9 @@ server.listen(PORT, () => {
   console.log(`  ║     http://localhost:${PORT}            ║`);
   console.log(`  ╚══════════════════════════════════════╝\n`);
   console.log(`  WebSocket:  ws://localhost:${PORT}/ws`);
-  console.log(`  API:        http://localhost:${PORT}/api/*\n`);
+  console.log(`  API:        http://localhost:${PORT}/api/*`);
+  console.log(`  Inbox:      http://localhost:${PORT}/api/inbox\n`);
+
+  // Start email poller
+  emailPoller.start().catch(err => console.error('[EMAIL] Start failed:', err));
 });

@@ -18,6 +18,7 @@ const App = {
     this.registerView('revenue', RevenueView);
     this.registerView('commands', CommandsView);
     this.registerView('marketing', MarketingView);
+    this.registerView('inbox', InboxView);
 
     // Route on hash change
     window.addEventListener('hashchange', () => this.route());
@@ -85,8 +86,8 @@ const App = {
     // Init notifications
     HubNotify.init();
 
-    // Initial route
-    this.route();
+    // Initial route (defer slightly to allow hash to settle)
+    setTimeout(() => this.route(), 0);
   },
 
   registerView(name, viewObj) {
@@ -110,7 +111,7 @@ const App = {
     });
 
     // Update header
-    const titles = { dashboard: 'Dashboard', tickets: 'Support Tickets', subscribers: 'Subscribers', revenue: 'Revenue', commands: 'Commands', marketing: 'Marketing & Analytics' };
+    const titles = { dashboard: 'Dashboard', inbox: 'Inbox', tickets: 'Support Tickets', subscribers: 'Subscribers', revenue: 'Revenue', commands: 'Commands', marketing: 'Marketing & Analytics' };
     document.getElementById('viewTitle').textContent = titles[viewName] || viewName;
 
     // Render view
@@ -154,6 +155,11 @@ const App = {
     if (badge) {
       badge.textContent = s.tickets.open || '';
       badge.style.display = s.tickets.open > 0 ? '' : 'none';
+    }
+    const inboxBadge = document.getElementById('inboxBadge');
+    if (inboxBadge && s.inbox) {
+      inboxBadge.textContent = s.inbox.unread || '';
+      inboxBadge.style.display = s.inbox.unread > 0 ? '' : 'none';
     }
   },
 
