@@ -19,16 +19,21 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
 
-const PORT = 8888;
+const PORT = process.env.PORT || 8888;
 
 // ── Middleware ────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
-// CORS for localhost dev
+// CORS for localhost dev + production
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (origin && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+  const allowed = origin && (
+    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) ||
+    /\.sweepnspect\.com$/.test(origin) ||
+    /\.railway\.app$/.test(origin)
+  );
+  if (allowed) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -261,14 +266,14 @@ setInterval(() => {
 wss.on('close', () => clearInterval(heartbeat));
 
 // ── Start ────────────────────────────────────────────────
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
+  const host = process.env.RAILWAY_PUBLIC_DOMAIN || `localhost:${PORT}`;
   console.log(`\n  ╔══════════════════════════════════════╗`);
   console.log(`  ║     SWEEPNSPECT HQ — ONLINE          ║`);
-  console.log(`  ║     http://localhost:${PORT}            ║`);
+  console.log(`  ║     ${host.padEnd(34)}║`);
   console.log(`  ╚══════════════════════════════════════╝\n`);
-  console.log(`  WebSocket:  ws://localhost:${PORT}/ws`);
-  console.log(`  API:        http://localhost:${PORT}/api/*`);
-  console.log(`  Inbox:      http://localhost:${PORT}/api/inbox\n`);
+  console.log(`  API:        /api/*`);
+  console.log(`  Inbox:      /api/inbox\n`);
 
   // Start email poller
   emailPoller.start().catch(err => console.error('[EMAIL] Start failed:', err));
