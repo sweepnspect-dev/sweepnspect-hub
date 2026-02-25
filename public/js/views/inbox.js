@@ -3,6 +3,9 @@ const InboxView = {
   emails: [],
   status: 'loading',
   openUid: null,
+  activeFilter: null,
+  showArchived: false,
+  byCategory: {},
 
   render(container) {
     container.innerHTML = `
@@ -13,6 +16,7 @@ const InboxView = {
         </div>
         <button class="btn btn-sm" onclick="InboxView.forceCheck()">Check Now</button>
       </div>
+      <div class="inbox-filters" id="inboxFilters"></div>
       <div class="inbox-split">
         <div class="inbox-list" id="inboxList">
           <div class="empty-state"><p>Loading inbox...</p></div>
@@ -21,14 +25,21 @@ const InboxView = {
       </div>
     `;
     this.openUid = null;
+    this.activeFilter = null;
     this.load();
   },
 
   async load() {
     try {
-      const data = await App.api('inbox');
+      const params = new URLSearchParams();
+      if (this.activeFilter) params.set('category', this.activeFilter);
+      if (this.showArchived) params.set('archived', 'true');
+      const qs = params.toString() ? '?' + params.toString() : '';
+      const data = await App.api('inbox' + qs);
       this.emails = data.emails || [];
       this.status = data.status;
+      this.byCategory = data.byCategory || {};
+      this.renderFilters();
       this.renderEmails(data);
     } catch (err) {
       this.status = 'error';
@@ -43,12 +54,54 @@ const InboxView = {
       const data = await App.api('inbox/check', { method: 'POST' });
       this.emails = data.emails || [];
       this.status = data.status;
+      this.byCategory = data.byCategory || {};
+      this.renderFilters();
       this.renderEmails(data);
     } catch (err) {
       this.renderError(err.message);
     } finally {
       if (btn) { btn.textContent = 'Check Now'; btn.disabled = false; }
     }
+  },
+
+  renderFilters() {
+    const el = document.getElementById('inboxFilters');
+    if (!el) return;
+
+    const cats = [
+      { key: null,       label: 'All' },
+      { key: 'founding', label: 'Founding', cls: 'tag-founding' },
+      { key: 'billing',  label: 'Billing',  cls: 'tag-billing' },
+      { key: 'bug',      label: 'Bugs',     cls: 'tag-bug' },
+      { key: 'demo',     label: 'Demos',    cls: 'tag-demo' },
+      { key: 'ticket',   label: 'Tickets',  cls: 'tag-ticket' },
+      { key: 'feature',  label: 'Features', cls: 'tag-feature' },
+      { key: 'referral', label: 'Referrals', cls: 'tag-referral' },
+      { key: 'contact',  label: 'Contact',  cls: 'tag-contact' },
+      { key: 'partner',  label: 'Partners', cls: 'tag-partner' },
+    ];
+
+    const counts = this.byCategory;
+    el.innerHTML = cats.map(c => {
+      const count = c.key ? (counts[c.key] || 0) : Object.values(counts).reduce((s, v) => s + v, 0);
+      const active = this.activeFilter === c.key ? ' active' : '';
+      const clsAttr = c.cls ? ' ' + c.cls : '';
+      return `<button class="inbox-filter-btn${active}${clsAttr}"
+                onclick="InboxView.setFilter(${c.key ? "'" + c.key + "'" : 'null'})">${c.label}${count ? ' <span class="filter-count">' + count + '</span>' : ''}</button>`;
+    }).join('') +
+    `<label class="inbox-archive-toggle">
+      <input type="checkbox" ${this.showArchived ? 'checked' : ''} onchange="InboxView.toggleArchived(this.checked)"> Show system
+    </label>`;
+  },
+
+  setFilter(category) {
+    this.activeFilter = category;
+    this.load();
+  },
+
+  toggleArchived(show) {
+    this.showArchived = show;
+    this.load();
   },
 
   renderEmails(data) {
@@ -61,10 +114,14 @@ const InboxView = {
     if (dot && statusText) {
       if (data.status === 'connected') {
         dot.className = 'inbox-status-dot online';
-        statusText.textContent = `${data.account} \u2022 ${data.total} emails \u2022 ${data.unread} unread \u2022 last check ${App.timeAgo(data.lastCheck)}`;
+        const counts = data.byCategory || {};
+        const parts = Object.entries(counts)
+          .filter(([k, v]) => v > 0 && k !== 'system')
+          .map(([k, v]) => v + ' ' + k);
+        statusText.textContent = data.account + ' \u2022 ' + data.total + ' emails \u2022 ' + data.unread + ' unread' + (parts.length ? ' \u2022 ' + parts.join(' \u00b7 ') : '');
       } else if (data.status === 'error') {
         dot.className = 'inbox-status-dot offline';
-        statusText.textContent = `Error: ${data.error}`;
+        statusText.textContent = 'Error: ' + data.error;
       } else if (data.status === 'disabled') {
         dot.className = 'inbox-status-dot offline';
         statusText.textContent = 'Email poller disabled \u2014 set IMAP_PASS in .env';
@@ -75,23 +132,24 @@ const InboxView = {
     }
 
     if (!data.emails || data.emails.length === 0) {
-      list.innerHTML = '<div class="empty-state"><p>Inbox empty</p><p class="dim">Polling contact@sweepnspect.com every 30s</p></div>';
+      list.innerHTML = '<div class="empty-state"><p>' + (this.activeFilter ? 'No ' + this.activeFilter + ' emails' : 'Inbox empty') + '</p><p class="dim">Polling contact@sweepnspect.com every 30s</p></div>';
       return;
     }
 
     list.innerHTML = data.emails.map(email => {
       const fromName = email.from?.name || email.from?.address || 'Unknown';
-      const tag = this.classifyEmail(email);
+      const route = email.route;
       const activeCls = email.uid === this.openUid ? ' active' : '';
+      const archivedCls = route?.category === 'system' ? ' archived' : '';
       return `
-        <div class="inbox-item${email.unread ? ' unread' : ''}${activeCls}" onclick="InboxView.openEmail(${email.uid})" data-uid="${email.uid}">
+        <div class="inbox-item${email.unread ? ' unread' : ''}${activeCls}${archivedCls}" onclick="InboxView.openEmail(${email.uid})" data-uid="${email.uid}">
           <div class="inbox-dot-indicator${email.unread ? ' unread' : ''}"></div>
           <div class="inbox-body">
             <div class="inbox-from">${this.esc(fromName)}</div>
             <div class="inbox-subject">${this.esc(email.subject)}</div>
             <div class="inbox-time">${App.timeAgo(email.date)}</div>
           </div>
-          ${tag ? `<span class="inbox-tag ${tag.cls}">${tag.label}</span>` : ''}
+          ${route ? '<span class="inbox-tag ' + route.cls + '">' + route.label + '</span>' : ''}
         </div>
       `;
     }).join('');
@@ -105,15 +163,13 @@ const InboxView = {
     detail.style.display = '';
     detail.innerHTML = '<div class="email-loading">Loading email...</div>';
 
-    // Highlight active item in list
     document.querySelectorAll('.inbox-item').forEach(el => {
       el.classList.toggle('active', parseInt(el.dataset.uid) === uid);
     });
-    // Mark as read locally
     const local = this.emails.find(e => e.uid === uid);
     if (local) {
       local.unread = false;
-      const item = document.querySelector(`.inbox-item[data-uid="${uid}"]`);
+      const item = document.querySelector('.inbox-item[data-uid="' + uid + '"]');
       if (item) {
         item.classList.remove('unread');
         const dot = item.querySelector('.inbox-dot-indicator');
@@ -122,23 +178,34 @@ const InboxView = {
     }
 
     try {
-      const email = await App.api(`inbox/${uid}`);
+      const email = await App.api('inbox/' + uid);
       const fromName = email.from?.name || email.from?.address || 'Unknown';
       const fromAddr = email.from?.address || '';
       const toList = (email.to || []).map(t => t.address).join(', ');
       const date = email.date ? new Date(email.date).toLocaleString() : '';
+      const route = email.route;
+
+      let linkedHtml = '';
+      if (email.linkedTicket) {
+        linkedHtml = '<a class="email-linked-badge badge-ticket" href="#tickets/' + email.linkedTicket.id + '">Ticket ' + email.linkedTicket.id + ' (' + email.linkedTicket.status + ')</a>';
+      } else if (email.linkedSubscriber) {
+        linkedHtml = '<a class="email-linked-badge badge-subscriber" href="#subscribers/' + email.linkedSubscriber.id + '">' + this.esc(email.linkedSubscriber.name) + ' (' + email.linkedSubscriber.status + ')</a>';
+      }
 
       detail.innerHTML = `
         <div class="email-header">
           <button class="email-back" onclick="InboxView.closeEmail()">&larr; Back</button>
           <div class="email-meta">
-            <div class="email-meta-subject">${this.esc(email.subject)}</div>
+            <div class="email-meta-subject">
+              ${route ? '<span class="inbox-tag ' + route.cls + '">' + route.label + '</span> ' : ''}${this.esc(email.subject)}
+            </div>
             <div class="email-meta-from">
               <strong>${this.esc(fromName)}</strong> &lt;${this.esc(fromAddr)}&gt;
             </div>
             <div class="email-meta-details">
-              To: ${this.esc(toList)} &middot; ${date}
+              To: ${this.esc(toList)} &middot; ${date}${route?.source ? ' &middot; Routed by: ' + route.source : ''}
             </div>
+            ${linkedHtml ? '<div class="email-meta-linked">' + linkedHtml + '</div>' : ''}
           </div>
         </div>
         <div class="email-body"><pre>${this.esc(email.body || '(no text content)')}</pre></div>
@@ -152,7 +219,7 @@ const InboxView = {
         </div>
       `;
     } catch (err) {
-      detail.innerHTML = `<div class="email-loading">Error loading email: ${this.esc(err.message)}</div>`;
+      detail.innerHTML = '<div class="email-loading">Error loading email: ' + this.esc(err.message) + '</div>';
     }
   },
 
@@ -177,13 +244,13 @@ const InboxView = {
     status.textContent = '';
 
     try {
-      const result = await App.api(`inbox/${uid}/reply`, {
+      const result = await App.api('inbox/' + uid + '/reply', {
         method: 'POST',
         body: { body }
       });
       btn.textContent = 'Sent!';
       btn.className = 'btn btn-success';
-      status.textContent = `Reply sent to ${result.to}`;
+      status.textContent = 'Reply sent to ' + result.to;
       status.style.color = 'var(--success)';
       input.value = '';
       setTimeout(() => {
@@ -194,23 +261,14 @@ const InboxView = {
     } catch (err) {
       btn.textContent = 'Send Reply';
       btn.disabled = false;
-      status.textContent = `Failed: ${err.message || 'unknown error'}`;
+      status.textContent = 'Failed: ' + (err.message || 'unknown error');
       status.style.color = 'var(--brick)';
     }
   },
 
   renderError(msg) {
     const list = document.getElementById('inboxList');
-    if (list) list.innerHTML = `<div class="empty-state"><p>Error loading inbox</p><p class="dim">${this.esc(msg)}</p></div>`;
-  },
-
-  classifyEmail(email) {
-    const subj = (email.subject || '').toLowerCase();
-    if (subj.includes('founding') || subj.includes('application') || subj.includes('formsubmit'))
-      return { label: 'FOUNDING', cls: 'tag-founding' };
-    if (email.unread)
-      return { label: 'NEW', cls: 'tag-new' };
-    return null;
+    if (list) list.innerHTML = '<div class="empty-state"><p>Error loading inbox</p><p class="dim">' + this.esc(msg) + '</p></div>';
   },
 
   esc(str) {
@@ -222,18 +280,7 @@ const InboxView = {
 
   onWsMessage(type, data) {
     if (type === 'email:new') {
-      this.emails.unshift(data);
-      const listEl = document.getElementById('inboxList');
-      if (listEl) {
-        this.renderEmails({
-          status: this.status,
-          emails: this.emails,
-          total: this.emails.length,
-          unread: this.emails.filter(e => e.unread).length,
-          account: 'contact@sweepnspect.com',
-          lastCheck: new Date().toISOString(),
-        });
-      }
+      this.load();
     }
   },
 
