@@ -79,12 +79,17 @@ const EmailPoller = require('./lib/email-poller');
 const emailRouter = new EmailRouter(jsonStore, broadcast, alertRouter);
 const emailPoller = new EmailPoller(broadcast, alertRouter, emailRouter);
 
+// ── Worker Poller (Cloudflare → HQ bridge) ──────────────
+const WorkerPoller = require('./lib/worker-poller');
+const workerPoller = new WorkerPoller(jsonStore, broadcast, alertRouter);
+
 // Make store + alert router available to routes
 app.locals.jsonStore = jsonStore;
 app.locals.broadcast = broadcast;
 app.locals.alertRouter = alertRouter;
 app.locals.emailPoller = emailPoller;
 app.locals.emailRouter = emailRouter;
+app.locals.workerPoller = workerPoller;
 
 // ── Routes ───────────────────────────────────────────────
 app.use('/api/tickets', require('./routes/tickets'));
@@ -121,6 +126,10 @@ app.put('/api/alerts/config', (req, res) => {
 
 app.get('/api/sms/status', (req, res) => {
   res.json(smsService.getStatus());
+});
+
+app.get('/api/worker/status', (req, res) => {
+  res.json(workerPoller.getStatus());
 });
 
 // Webhook endpoint (separate from CRUD) — with alert trigger
@@ -277,4 +286,7 @@ server.listen(PORT, '0.0.0.0', () => {
 
   // Start email poller
   emailPoller.start().catch(err => console.error('[EMAIL] Start failed:', err));
+
+  // Start worker poller (Cloudflare → HQ bridge)
+  workerPoller.start().catch(err => console.error('[WORKER] Start failed:', err));
 });
