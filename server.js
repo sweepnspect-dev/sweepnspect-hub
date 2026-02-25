@@ -68,15 +68,18 @@ const AlertRouter = require('./lib/alert-router');
 const smsService = new SmsService();
 const alertRouter = new AlertRouter(broadcast, smsService);
 
-// ── Email Poller ─────────────────────────────────────────
+// ── Email Router + Poller ────────────────────────────────
+const EmailRouter = require('./lib/email-router');
 const EmailPoller = require('./lib/email-poller');
-const emailPoller = new EmailPoller(broadcast, alertRouter);
+const emailRouter = new EmailRouter(jsonStore, broadcast, alertRouter);
+const emailPoller = new EmailPoller(broadcast, alertRouter, emailRouter);
 
 // Make store + alert router available to routes
 app.locals.jsonStore = jsonStore;
 app.locals.broadcast = broadcast;
 app.locals.alertRouter = alertRouter;
 app.locals.emailPoller = emailPoller;
+app.locals.emailRouter = emailRouter;
 
 // ── Routes ───────────────────────────────────────────────
 app.use('/api/tickets', require('./routes/tickets'));
@@ -181,6 +184,7 @@ function getStats() {
       total: inbox.total,
       status: inbox.status,
       lastCheck: inbox.lastCheck,
+      byCategory: inbox.byCategory || {},
     },
     tickets: {
       open: openTickets.length,
