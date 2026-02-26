@@ -9,5 +9,10 @@ id = "41db36a711f14915b101a4eb5e1bda2d"
 [vars]
 FB_VERIFY_TOKEN = "sweepnspect-fb-verify-2026"
 TAWK_TICKET_EMAIL = "tickets@sweepnspect.p.tawk.email"
+CF_ACCOUNT_ID = "895d065853921596b72b893a3405ef31"
+CF_ANALYTICS_SITE_TAG = "b59bc7c646e5474e8c07c2c529254f76"
 
-# RESEND_API_KEY is set as a secret via: wrangler secret put RESEND_API_KEY
+# Secrets (set via: wrangler secret put <NAME>):
+#   RESEND_API_KEY     — Resend email API key
+#   HUB_API_TOKEN      — Bearer token for dashboard auth
+#   CF_ANALYTICS_TOKEN — Cloudflare API token with Account Analytics:Read

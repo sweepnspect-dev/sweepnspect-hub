@@ -687,18 +687,139 @@ async function handleGetStats(env) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// MARKETING (read-only for now)
+// MARKETING — Cloudflare Web Analytics proxy + cached data
 // ══════════════════════════════════════════════════════════════
 
 async function handleGetMarketing(env) {
-  const raw = await env.EVENTS.get('marketing:_data');
-  if (raw) return json(JSON.parse(raw));
-  // Default empty structure
-  return json({
-    website: { daily: [], sources: [], topPages: [] },
+  // Check KV cache first (5-minute TTL)
+  const cached = await env.EVENTS.get('marketing:_cache');
+  if (cached) return json(JSON.parse(cached));
+
+  // Try to fetch live analytics from CF GraphQL API
+  const token = env.CF_ANALYTICS_TOKEN;
+  const accountId = env.CF_ACCOUNT_ID;
+  const siteTag = env.CF_ANALYTICS_SITE_TAG;
+
+  let website = { daily: [], sources: [], topPages: [] };
+
+  if (token && accountId && siteTag) {
+    try {
+      const now = new Date();
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const dateGt = weekAgo.toISOString().split('T')[0];
+      const dateLt = now.toISOString().split('T')[0];
+
+      // Query pageloads by day + referrers + paths
+      const query = `query {
+        viewer {
+          accounts(filter: { accountTag: "${accountId}" }) {
+            daily: rumPageloadEventsAdaptiveGroups(
+              filter: { AND: [
+                { siteTag: "${siteTag}" },
+                { date_gt: "${dateGt}" },
+                { date_leq: "${dateLt}" }
+              ]}
+              limit: 10
+              orderBy: [date_ASC]
+            ) {
+              count
+              sum { visits }
+              dimensions { date }
+            }
+            referrers: rumPageloadEventsAdaptiveGroups(
+              filter: { AND: [
+                { siteTag: "${siteTag}" },
+                { date_gt: "${dateGt}" },
+                { date_leq: "${dateLt}" }
+              ]}
+              limit: 10
+              orderBy: [sum_visits_DESC]
+            ) {
+              count
+              sum { visits }
+              dimensions { refererHost }
+            }
+            paths: rumPageloadEventsAdaptiveGroups(
+              filter: { AND: [
+                { siteTag: "${siteTag}" },
+                { date_gt: "${dateGt}" },
+                { date_leq: "${dateLt}" }
+              ]}
+              limit: 10
+              orderBy: [count_DESC]
+            ) {
+              count
+              sum { visits }
+              dimensions { requestPath }
+            }
+          }
+        }
+      }`;
+
+      const gqlRes = await fetch('https://api.cloudflare.com/client/v4/graphql', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query }),
+      });
+
+      if (gqlRes.ok) {
+        const gql = await gqlRes.json();
+        const acct = gql.data?.viewer?.accounts?.[0];
+
+        if (acct) {
+          // Daily pageviews + visitors
+          website.daily = (acct.daily || []).map(d => ({
+            date: d.dimensions.date,
+            visitors: d.sum?.visits || 0,
+            pageViews: d.count || 0,
+            bounceRate: 0, // Web Analytics doesn't track bounce
+          }));
+
+          // Referrer sources
+          const totalReferrerVisits = (acct.referrers || []).reduce((s, r) => s + (r.sum?.visits || 0), 0);
+          website.sources = (acct.referrers || []).map(r => {
+            const host = r.dimensions?.refererHost || 'Direct';
+            const visits = r.sum?.visits || 0;
+            return {
+              source: host || 'Direct',
+              visitors: visits,
+              percent: totalReferrerVisits > 0 ? Math.round((visits / totalReferrerVisits) * 100) : 0,
+            };
+          });
+
+          // Top pages
+          website.topPages = (acct.paths || []).map(p => ({
+            title: p.dimensions?.requestPath || '/',
+            path: p.dimensions?.requestPath || '/',
+            views: p.count || 0,
+            avgTime: 0, // Not available in Web Analytics
+          }));
+        }
+      }
+    } catch (e) {
+      // Analytics fetch failed — fall through to cached/empty data
+    }
+  }
+
+  // Fallback: if GraphQL returned nothing, try static KV data
+  if (website.daily.length === 0) {
+    const raw = await env.EVENTS.get('marketing:_data');
+    if (raw) return json(JSON.parse(raw));
+  }
+
+  const result = {
+    website,
     app: { daily: [], overview: { appRating: 0, reviewCount: 0, dailyActive: 0 }, topScreens: [] },
     campaigns: [],
-  });
+  };
+
+  // Cache for 5 minutes
+  await env.EVENTS.put('marketing:_cache', JSON.stringify(result), { expirationTtl: 300 });
+
+  return json(result);
 }
 
 // ══════════════════════════════════════════════════════════════
