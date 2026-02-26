@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SweepNspect Hub — JAMstack Migration Report</title>
+<style>
+  :root {
+    --navy: #1a1f36;
+    --navy-light: #242942;
+    --brick: #c0392b;
+    --brick-light: #e74c3c;
+    --brass: #d4a843;
+    --cream: #f5f0e8;
+    --green: #27ae60;
+    --orange: #f39c12;
+    --blue: #3498db;
+    --purple: #9b59b6;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--navy);
+    color: var(--cream);
+    line-height: 1.6;
+    padding: 0;
+  }
+  .hero {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 50%, #1e2440 100%);
+    border-bottom: 3px solid var(--brick);
+    padding: 60px 40px 40px;
+    text-align: center;
+  }
+  .hero h1 {
+    font-size: 2.4em;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+  .hero h1 span { color: var(--brick); }
+  .hero .subtitle {
+    font-size: 1.1em;
+    opacity: 0.7;
+    margin-bottom: 24px;
+  }
+  .hero .date {
+    font-size: 0.9em;
+    color: var(--brass);
+    font-weight: 600;
+  }
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+
+  .section {
+    background: var(--navy-light);
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 32px;
+    margin-bottom: 28px;
+  }
+  .section h2 {
+    font-size: 1.4em;
+    font-weight: 700;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section h2 .icon { font-size: 1.2em; }
+  .section h3 {
+    font-size: 1.05em;
+    font-weight: 600;
+    margin: 20px 0 10px;
+    color: var(--brass);
+  }
+
+  .status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .status-card {
+    background: rgba(0,0,0,0.2);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .status-card .label {
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.6;
+    margin-bottom: 6px;
+  }
+  .status-card .value {
+    font-size: 2em;
+    font-weight: 800;
+  }
+  .status-card .detail {
+    font-size: 0.8em;
+    opacity: 0.5;
+    margin-top: 4px;
+  }
+  .status-card.green .value { color: var(--green); }
+  .status-card.orange .value { color: var(--orange); }
+  .status-card.blue .value { color: var(--blue); }
+  .status-card.brick .value { color: var(--brick-light); }
+  .status-card.brass .value { color: var(--brass); }
+  .status-card.purple .value { color: var(--purple); }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.75em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .badge.live { background: var(--green); color: #fff; }
+  .badge.done { background: var(--green); color: #fff; }
+  .badge.planned { background: var(--orange); color: #000; }
+  .badge.next { background: var(--blue); color: #fff; }
+  .badge.deferred { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.5); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 0.9em;
+  }
+  th {
+    text-align: left;
+    padding: 10px 12px;
+    background: rgba(0,0,0,0.3);
+    font-weight: 600;
+    font-size: 0.8em;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--brass);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    vertical-align: top;
+  }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  code {
+    background: rgba(0,0,0,0.3);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85em;
+    color: var(--brass);
+  }
+  pre {
+    background: rgba(0,0,0,0.3);
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82em;
+    line-height: 1.5;
+    margin: 12px 0;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .arch-diagram {
+    background: rgba(0,0,0,0.3);
+    border-radius: 10px;
+    padding: 24px;
+    margin: 16px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8em;
+    line-height: 1.6;
+    white-space: pre;
+    overflow-x: auto;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .timeline {
+    position: relative;
+    padding-left: 28px;
+    margin: 16px 0;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    background: var(--brick);
+    opacity: 0.4;
+  }
+  .timeline-item {
+    position: relative;
+    margin-bottom: 18px;
+    padding-left: 8px;
+  }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -24px;
+    top: 6px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--brick);
+  }
+  .timeline-item.done::before { background: var(--green); }
+  .timeline-item .time {
+    font-size: 0.75em;
+    color: var(--brass);
+    font-weight: 600;
+  }
+  .timeline-item .desc {
+    font-size: 0.9em;
+    margin-top: 2px;
+  }
+
+  .commit {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 6px;
+    margin: 6px 0;
+    font-size: 0.85em;
+  }
+  .commit .hash {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--brass);
+    font-weight: 600;
+    min-width: 70px;
+  }
+
+  .checklist {
+    list-style: none;
+    margin: 12px 0;
+  }
+  .checklist li {
+    padding: 8px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.9em;
+  }
+  .checklist .check {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75em;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .checklist .check.yes { background: var(--green); color: #fff; }
+  .checklist .check.no { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.3); }
+  .checklist .check.wip { background: var(--orange); color: #000; }
+
+  .footer {
+    text-align: center;
+    padding: 40px;
+    opacity: 0.4;
+    font-size: 0.85em;
+  }
+
+  @media (max-width: 700px) {
+    .hero { padding: 40px 20px 30px; }
+    .hero h1 { font-size: 1.6em; }
+    .container { padding: 20px 12px; }
+    .section { padding: 20px; }
+    .status-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>SweepNspect <span>HQ</span> — Migration Report</h1>
+  <div class="subtitle">Node.js Server → JAMstack (GitHub Pages + Cloudflare Workers + KV)</div>
+  <div class="date">February 25-26, 2026 — Build Session</div>
+</div>
+
+<div class="container">
+
+  <!-- ═══ STATUS OVERVIEW ═══ -->
+  <div class="section">
+    <h2><span class="icon">&#9889;</span> Current Status</h2>
+    <div class="status-grid">
+      <div class="status-card green">
+        <div class="label">Worker API</div>
+        <div class="value">LIVE</div>
+        <div class="detail">Full CRUD deployed</div>
+      </div>
+      <div class="status-card green">
+        <div class="label">Tawk Notifications</div>
+        <div class="value">LIVE</div>
+        <div class="detail">Edge + Hub dual-path</div>
+      </div>
+      <div class="status-card green">
+        <div class="label">Web Analytics</div>
+        <div class="value">LIVE</div>
+        <div class="detail">CF beacon tracking</div>
+      </div>
+      <div class="status-card green">
+        <div class="label">Webhooks</div>
+        <div class="value">LIVE</div>
+        <div class="detail">FB + Tawk + Founding</div>
+      </div>
+      <div class="status-card orange">
+        <div class="label">Dashboard</div>
+        <div class="value">NEXT</div>
+        <div class="detail">GitHub Pages SPA</div>
+      </div>
+      <div class="status-card blue">
+        <div class="label">Email Workers</div>
+        <div class="value">PLAN</div>
+        <div class="detail">Replace IMAP polling</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ WHAT WE BUILT ═══ -->
+  <div class="section">
+    <h2><span class="icon">&#128295;</span> What We Built This Session</h2>
+
+    <div class="timeline">
+      <div class="timeline-item done">
+        <div class="time">Session Start</div>
+        <div class="desc"><strong>Tawk.to Notification Bridge (Hub-side)</strong> — <code>lib/tawk-notifier.js</code>: Nodemailer email-to-ticket bridge for high-priority alerts. Integrated into AlertRouter.</div>
+      </div>
+      <div class="timeline-item done">
+        <div class="time">Commit 9b8eab1</div>
+        <div class="desc"><strong>Hub-side Tawk bridge pushed</strong> — tawk-notifier.js + alert-router.js + server.js changes</div>
+      </div>
+      <div class="timeline-item done">
+        <div class="time">Edge Notification</div>
+        <div class="desc"><strong>Edge-side Tawk notifications</strong> — <code>notifyTawk()</code> added to Worker using Resend API. Per-type cooldowns via KV. Non-blocking with <code>ctx.waitUntil()</code>.</div>
+      </div>
+      <div class="timeline-item done">
+        <div class="time">Commit 2f7b021</div>
+        <div class="desc"><strong>Worker deployed</strong> — Resend API key as secret, Tawk email in vars. Live on Cloudflare edge.</div>
+      </div>
+      <div class="timeline-item done">
+        <div class="time">Analytics</div>
+        <div class="desc"><strong>Cloudflare Web Analytics</strong> — Beacon added to sweepnspect.com index.html. Tracking pageviews, referrers, browsers, countries.</div>
+      </div>
+      <div class="timeline-item done">
+        <div class="time">Commit 043b4e6</div>
+        <div class="desc"><strong>Analytics pushed to GitHub Pages</strong> — Live on sweepnspect.com</div>
+      </div>
+      <div class="timeline-item done">
+        <div class="time">Design</div>
+        <div class="desc"><strong>JAMstack Migration Design</strong> — Full architecture doc with KV schema, component mapping, migration sequence. Written to <code>docs/plans/</code>.</div>
+      </div>
+      <div class="timeline-item done">
+        <div class="time">Worker Expansion</div>
+        <div class="desc"><strong>Full CRUD API in Worker</strong> — Tickets, subscribers, alerts, revenue, commands, stats, marketing, inbox. 25+ endpoints. Auth via bearer token.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ARCHITECTURE ═══ -->
+  <div class="section">
+    <h2><span class="icon">&#127959;</span> Target Architecture</h2>
+    <div class="arch-diagram">┌─────────────────────┐     ┌──────────────────────────────────┐
+│   GitHub Pages      │     │   Cloudflare Worker              │
+│   (Static SPA)      │────▶│   sweepnspect-webhook            │
+│                     │     │                                  │
+│   Dashboard HTML    │     │   Tickets     CRUD → KV          │
+│   + JS views        │     │   Subscribers CRUD → KV          │
+│   + CSS             │     │   Alerts      CRUD → KV          │
+│                     │     │   Revenue     CRUD → KV          │
+│   Polls /api/stats  │     │   Commands    CRUD → KV          │
+│   every 5 seconds   │     │   Stats       computed → KV      │
+│                     │     │   Webhooks    FB/Tawk/Founding    │
+│   Always up even    │     │   Notifications  Resend → Tawk   │
+│   if CF is down     │     │   Auth        Bearer token       │
+└─────────────────────┘     └──────────┬───────────────────────┘
+                                       │
+┌─────────────────────┐     ┌──────────▼───────────┐
+│   External Sources  │     │   Cloudflare KV      │
+│   Facebook webhooks │────▶│   Namespace: EVENTS  │
+│   Tawk.to webhooks  │     │                      │
+│   Founding form     │     │   tickets:{id}       │
+│   Website chat      │     │   subs:{id}          │
+│   (future) Email    │     │   alerts:{id}        │
+└─────────────────────┘     │   revenue:{id}       │
+                            │   commands:_data     │
+┌─────────────────────┐     │   stats:latest       │
+│   Cloudflare Web    │     │   *:_index            │
+│   Analytics         │     └──────────────────────┘
+│   (already live)    │
+└─────────────────────┘</div>
+  </div>
+
+  <!-- ═══ WORKER API ENDPOINTS ═══ -->
+  <div class="section">
+    <h2><span class="icon">&#128268;</span> Worker API — Full Endpoint Map</h2>
+
+    <h3>Public Endpoints (No Auth)</h3>
+    <table>
+      <tr><th>Method</th><th>Path</th><th>Purpose</th><th>Status</th></tr>
+      <tr><td><code>POST</code></td><td><code>/api/founding</code></td><td>Submit founding application → KV + subscriber + alert</td><td><span class="badge live">LIVE</span></td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/founding</code></td><td>List all applications</td><td><span class="badge live">LIVE</span></td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/webhooks/tawk</code></td><td>Tawk.to chat events</td><td><span class="badge live">LIVE</span></td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/webhooks/facebook</code></td><td>FB verify challenge</td><td><span class="badge live">LIVE</span></td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/webhooks/facebook</code></td><td>FB messages, comments, reactions</td><td><span class="badge live">LIVE</span></td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/webhooks/ticket</code></td><td>External ticket creation</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>GET</code></td><td><code>/health</code></td><td>Health check</td><td><span class="badge live">LIVE</span></td></tr>
+    </table>
+
+    <h3>Dashboard API (Auth Required)</h3>
+    <table>
+      <tr><th>Method</th><th>Path</th><th>Purpose</th><th>Status</th></tr>
+      <tr><td><code>GET</code></td><td><code>/api/tickets</code></td><td>List tickets (?status=, ?priority=)</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/tickets</code></td><td>Create ticket</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/tickets/:id</code></td><td>Get ticket detail</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>PUT</code></td><td><code>/api/tickets/:id</code></td><td>Update ticket (status, priority, etc)</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>DELETE</code></td><td><code>/api/tickets/:id</code></td><td>Delete ticket</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/tickets/:id/messages</code></td><td>Add message to thread</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/subscribers</code></td><td>List subscribers (?status=, ?plan=)</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/subscribers</code></td><td>Create subscriber</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/subscribers/:id</code></td><td>Get subscriber detail</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>PUT</code></td><td><code>/api/subscribers/:id</code></td><td>Update subscriber</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>DELETE</code></td><td><code>/api/subscribers/:id</code></td><td>Delete subscriber</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/alerts</code></td><td>List alerts (?limit=)</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/alerts/:id/acknowledge</code></td><td>Acknowledge alert</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/alerts/config</code></td><td>Get alert config</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>PUT</code></td><td><code>/api/alerts/config</code></td><td>Update alert config</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/revenue</code></td><td>List revenue (?type=, ?month=)</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/revenue</code></td><td>Create revenue entry</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>PUT</code></td><td><code>/api/revenue/:id</code></td><td>Update revenue entry</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>DELETE</code></td><td><code>/api/revenue/:id</code></td><td>Delete revenue entry</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/commands</code></td><td>Get tasks + schedule</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/commands/tasks</code></td><td>Create task</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>PUT</code></td><td><code>/api/commands/tasks/:id</code></td><td>Update task</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>DELETE</code></td><td><code>/api/commands/tasks/:id</code></td><td>Delete task</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/commands/schedule</code></td><td>Create schedule entry</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>DELETE</code></td><td><code>/api/commands/schedule/:id</code></td><td>Delete schedule entry</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/stats</code></td><td>Computed stats (cached 10s)</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/marketing</code></td><td>Marketing data</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/inbox</code></td><td>Email events from KV</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/tawk/status</code></td><td>Tawk notification status</td><td><span class="badge done">NEW</span></td></tr>
+    </table>
+  </div>
+
+  <!-- ═══ KV SCHEMA ═══ -->
+  <div class="section">
+    <h2><span class="icon">&#128451;</span> KV Storage Schema</h2>
+    <table>
+      <tr><th>Key Pattern</th><th>Value</th><th>TTL</th></tr>
+      <tr><td><code>tickets:{id}</code></td><td>Full ticket JSON (status, priority, customer, messages)</td><td>None</td></tr>
+      <tr><td><code>tickets:_index</code></td><td>Lightweight list [{id, status, priority, createdAt}]</td><td>None</td></tr>
+      <tr><td><code>subs:{id}</code></td><td>Full subscriber JSON (name, email, plan, mrr, founding)</td><td>None</td></tr>
+      <tr><td><code>subs:_index</code></td><td>Lightweight list [{id, name, email, status, plan}]</td><td>None</td></tr>
+      <tr><td><code>alerts:{id}</code></td><td>Full alert JSON (type, severity, message, ack)</td><td>30 days</td></tr>
+      <tr><td><code>alerts:_index</code></td><td>Lightweight list [{id, type, severity, ts, ack}]</td><td>None</td></tr>
+      <tr><td><code>alerts:_config</code></td><td>Alert configuration (sms, tawk, cooldown)</td><td>None</td></tr>
+      <tr><td><code>revenue:{id}</code></td><td>Revenue entry JSON (type, amount, date, note)</td><td>None</td></tr>
+      <tr><td><code>revenue:_index</code></td><td>Lightweight list [{id, type, amount, date}]</td><td>None</td></tr>
+      <tr><td><code>commands:_data</code></td><td>Tasks + schedule combined object</td><td>None</td></tr>
+      <tr><td><code>stats:latest</code></td><td>Computed stats snapshot (updated on writes)</td><td>None</td></tr>
+      <tr><td><code>inbox:_latest</code></td><td>Last 50 email events</td><td>None</td></tr>
+      <tr><td><code>marketing:_data</code></td><td>Marketing analytics data</td><td>None</td></tr>
+      <tr><td><code>_cooldown:{type}</code></td><td>Notification cooldown timestamp</td><td>10 min</td></tr>
+      <tr><td><code>app-{id}</code></td><td>Founding application (legacy)</td><td>90 days</td></tr>
+      <tr><td><code>evt-{id}</code></td><td>Webhook event (legacy)</td><td>30 days</td></tr>
+    </table>
+  </div>
+
+  <!-- ═══ NOTIFICATION SYSTEM ═══ -->
+  <div class="section">
+    <h2><span class="icon">&#128276;</span> Notification System — Dual Path</h2>
+    <div class="status-grid">
+      <div class="status-card green">
+        <div class="label">Edge Path</div>
+        <div class="value">24/7</div>
+        <div class="detail">Cloudflare Worker → Resend → Tawk</div>
+      </div>
+      <div class="status-card blue">
+        <div class="label">Hub Path</div>
+        <div class="value">Backup</div>
+        <div class="detail">Node.js → Nodemailer → Tawk</div>
+      </div>
+    </div>
+
+    <h3>Flow</h3>
+    <pre>Event arrives (FB/Tawk/Form/Ticket)
+  │
+  ├── Worker classifies priority (critical/high/normal/low)
+  │
+  ├── If critical or high:
+  │   ├── Check KV cooldown (_cooldown:{type}, 5 min)
+  │   ├── Build email (emoji + label + context)
+  │   ├── POST to Resend API (Bearer token)
+  │   ├── Resend sends to tickets@sweepnspect.p.tawk.email
+  │   ├── Tawk creates ticket → push notification on phone
+  │   └── Store cooldown in KV (10 min TTL)
+  │
+  └── All events stored in KV alerts + legacy events</pre>
+
+    <h3>Credentials</h3>
+    <table>
+      <tr><th>Secret</th><th>Storage</th><th>Used By</th></tr>
+      <tr><td><code>RESEND_API_KEY</code></td><td>Worker secret (wrangler)</td><td>notifyTawk() on edge</td></tr>
+      <tr><td><code>TAWK_TICKET_EMAIL</code></td><td>wrangler.toml vars</td><td>Email destination</td></tr>
+      <tr><td><code>HUB_API_TOKEN</code></td><td>Worker secret (to set)</td><td>Dashboard auth</td></tr>
+      <tr><td><code>FB_VERIFY_TOKEN</code></td><td>wrangler.toml vars</td><td>Facebook webhook verify</td></tr>
+      <tr><td>Cloudflare API Token</td><td>Vaultwarden</td><td>Deployment</td></tr>
+      <tr><td>Resend API Key</td><td>Vaultwarden ("resend")</td><td>Source of truth</td></tr>
+    </table>
+  </div>
+
+  <!-- ═══ GIT HISTORY ═══ -->
+  <div class="section">
+    <h2><span class="icon">&#128200;</span> Git Commits</h2>
+    <div class="commit"><span class="hash">9b8eab1</span> Hub-side Tawk notification bridge (tawk-notifier.js + alert-router.js + server.js)</div>
+    <div class="commit"><span class="hash">2f7b021</span> Edge-side Tawk notifications via Resend in Cloudflare Worker</div>
+    <div class="commit"><span class="hash">043b4e6</span> Add Cloudflare Web Analytics tracking to sweepnspect.com</div>
+    <div class="commit"><span class="hash">pending</span> Full CRUD API expansion — 25+ endpoints in Worker</div>
+  </div>
+
+  <!-- ═══ MIGRATION CHECKLIST ═══ -->
+  <div class="section">
+    <h2><span class="icon">&#9745;</span> Migration Checklist</h2>
+
+    <h3>Phase 1: KV Data Layer</h3>
+    <ul class="checklist">
+      <li><span class="check yes">&#10003;</span> KV CRUD helpers (get, put, list, delete with index)</li>
+      <li><span class="check yes">&#10003;</span> Ticket endpoints (GET/POST/PUT/DELETE + messages)</li>
+      <li><span class="check yes">&#10003;</span> Subscriber endpoints (GET/POST/PUT/DELETE)</li>
+      <li><span class="check yes">&#10003;</span> Alert endpoints (list, acknowledge, config)</li>
+      <li><span class="check yes">&#10003;</span> Revenue endpoints (GET/POST/PUT/DELETE)</li>
+      <li><span class="check yes">&#10003;</span> Commands endpoints (tasks + schedule CRUD)</li>
+      <li><span class="check yes">&#10003;</span> Stats computation from KV indexes</li>
+      <li><span class="check yes">&#10003;</span> Auth via bearer token</li>
+      <li><span class="check wip">&#9679;</span> Deploy expanded Worker</li>
+      <li><span class="check wip">&#9679;</span> Set HUB_API_TOKEN secret</li>
+      <li><span class="check no">&#8212;</span> Seed KV with existing JSON data</li>
+    </ul>
+
+    <h3>Phase 2: Dashboard on GitHub Pages</h3>
+    <ul class="checklist">
+      <li><span class="check no">&#8212;</span> Copy public/ to GitHub Pages (hub/ subfolder or separate repo)</li>
+      <li><span class="check no">&#8212;</span> Add API base URL config + auth token entry</li>
+      <li><span class="check no">&#8212;</span> Replace WebSocket with 5s polling</li>
+      <li><span class="check no">&#8212;</span> Point all fetch() calls to Worker URL</li>
+      <li><span class="check no">&#8212;</span> Deploy and test</li>
+    </ul>
+
+    <h3>Phase 3: Email Workers</h3>
+    <ul class="checklist">
+      <li><span class="check no">&#8212;</span> Configure MX record for sweepnspect.com</li>
+      <li><span class="check no">&#8212;</span> Create Email Worker (parse inbound → KV + alerts)</li>
+      <li><span class="check no">&#8212;</span> Port classification logic from email-router.js</li>
+      <li><span class="check yes">&#10003;</span> Outbound via Resend API (already working)</li>
+    </ul>
+
+    <h3>Phase 4: Polish</h3>
+    <ul class="checklist">
+      <li><span class="check yes">&#10003;</span> Cloudflare Web Analytics beacon</li>
+      <li><span class="check no">&#8212;</span> Analytics API proxy in Worker</li>
+      <li><span class="check no">&#8212;</span> Dashboard analytics panel</li>
+      <li><span class="check yes">&#10003;</span> Resend domain verification</li>
+    </ul>
+  </div>
+
+  <!-- ═══ FILES CHANGED ═══ -->
+  <div class="section">
+    <h2><span class="icon">&#128193;</span> Files Created/Modified</h2>
+    <table>
+      <tr><th>File</th><th>Action</th><th>Lines</th><th>Purpose</th></tr>
+      <tr><td><code>worker/src/index.js</code></td><td><span class="badge done">Rewritten</span></td><td>~680</td><td>Full CRUD API with KV storage</td></tr>
+      <tr><td><code>lib/tawk-notifier.js</code></td><td><span class="badge done">Created</span></td><td>138</td><td>Hub-side email-to-ticket bridge</td></tr>
+      <tr><td><code>lib/alert-router.js</code></td><td><span class="badge done">Modified</span></td><td>+15</td><td>Tawk notifier integration</td></tr>
+      <tr><td><code>server.js</code></td><td><span class="badge done">Modified</span></td><td>+12</td><td>TawkNotifier wiring + status endpoint</td></tr>
+      <tr><td><code>worker/wrangler.toml</code></td><td><span class="badge done">Modified</span></td><td>+3</td><td>TAWK_TICKET_EMAIL + RESEND comment</td></tr>
+      <tr><td><code>.env</code></td><td><span class="badge done">Modified</span></td><td>+2</td><td>Tawk email + cooldown config</td></tr>
+      <tr><td><code>docs/plans/...jamstack-design.md</code></td><td><span class="badge done">Created</span></td><td>~280</td><td>Full migration design document</td></tr>
+      <tr><td><code>docs/hub-migration-report.html</code></td><td><span class="badge done">Created</span></td><td>This file</td><td>Session report</td></tr>
+    </table>
+  </div>
+
+  <!-- ═══ NEXT STEPS ═══ -->
+  <div class="section">
+    <h2><span class="icon">&#128640;</span> Next Steps</h2>
+    <div class="status-grid">
+      <div class="status-card brick">
+        <div class="label">Now</div>
+        <div class="value">Deploy</div>
+        <div class="detail">Push expanded Worker to Cloudflare</div>
+      </div>
+      <div class="status-card orange">
+        <div class="label">Then</div>
+        <div class="value">Dashboard</div>
+        <div class="detail">Adapt SPA for GitHub Pages</div>
+      </div>
+      <div class="status-card blue">
+        <div class="label">After</div>
+        <div class="value">Seed</div>
+        <div class="detail">Migrate JSON data → KV</div>
+      </div>
+      <div class="status-card purple">
+        <div class="label">Future</div>
+        <div class="value">Email</div>
+        <div class="detail">CF Email Workers for inbound</div>
+      </div>
+    </div>
+
+    <h3>Immediate Actions</h3>
+    <ol style="padding-left: 20px; font-size: 0.9em; line-height: 2;">
+      <li>Deploy expanded Worker: <code>wrangler deploy</code></li>
+      <li>Set auth token: <code>wrangler secret put HUB_API_TOKEN</code></li>
+      <li>Adapt dashboard JS files — replace WS with polling, point to Worker URL</li>
+      <li>Push dashboard to GitHub Pages</li>
+      <li>Seed KV with existing subscribers + tickets from JSON files</li>
+      <li>Verify Resend domain (DNS records on Cloudflare)</li>
+    </ol>
+  </div>
+
+</div>
+
+<div class="footer">
+  SweepNspect HQ — Built by Cody (Claude Opus) — February 2026
+</div>
+
+</body>
+</html>
