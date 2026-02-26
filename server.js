@@ -70,6 +70,7 @@ function jsonStore(filename) {
 // ── Alert Infrastructure ─────────────────────────────────
 const SmsService = require('./lib/sms');
 const AlertRouter = require('./lib/alert-router');
+const TawkNotifier = require('./lib/tawk-notifier');
 const smsService = new SmsService();
 const alertRouter = new AlertRouter(broadcast, smsService);
 
@@ -78,6 +79,12 @@ const EmailRouter = require('./lib/email-router');
 const EmailPoller = require('./lib/email-poller');
 const emailRouter = new EmailRouter(jsonStore, broadcast, alertRouter);
 const emailPoller = new EmailPoller(broadcast, alertRouter, emailRouter);
+
+// ── Tawk.to Notification Bridge ─────────────────────────
+// Uses same SMTP config as email poller to send priority alerts
+// to Tawk.to ticketing address → creates ticket → push notification
+const tawkNotifier = new TawkNotifier(emailPoller.getSmtpConfig());
+alertRouter.setTawkNotifier(tawkNotifier);
 
 // ── Worker Poller (Cloudflare → HQ bridge) ──────────────
 const WorkerPoller = require('./lib/worker-poller');
@@ -126,6 +133,10 @@ app.put('/api/alerts/config', (req, res) => {
 
 app.get('/api/sms/status', (req, res) => {
   res.json(smsService.getStatus());
+});
+
+app.get('/api/tawk/status', (req, res) => {
+  res.json(tawkNotifier.getStatus());
 });
 
 app.get('/api/worker/status', (req, res) => {
