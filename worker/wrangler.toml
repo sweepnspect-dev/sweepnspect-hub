@@ -1,0 +1,10 @@
+name = "sweepnspect-webhook"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+[[kv_namespaces]]
+binding = "EVENTS"
+id = "41db36a711f14915b101a4eb5e1bda2d"
+
+[vars]
+FB_VERIFY_TOKEN = "sweepnspect-fb-verify-2026"
