@@ -10,7 +10,9 @@ const CORS_HEADERS = {
 };
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
+    // Attach waitUntil to env for use in handlers
+    env.waitUntil = ctx.waitUntil.bind(ctx);
     const url = new URL(request.url);
 
     // CORS preflight
@@ -111,6 +113,10 @@ async function handleFoundingApplication(request, env) {
 
   console.log(`[FOUNDING] New application: ${name} (${email})`);
 
+  // Fire Tawk notification (non-blocking)
+  evt.receivedAt = now; // ensure context available
+  env.waitUntil(notifyTawk(evt, env));
+
   return json({ ok: true, id, message: 'Application received' });
 }
 
@@ -189,6 +195,9 @@ async function handleTawkWebhook(request, env) {
   await env.EVENTS.put('_unacked', JSON.stringify(unacked));
 
   console.log(`[TAWK] ${event}: ${processed.summary}`);
+
+  // Fire Tawk notification for high-priority chat events (non-blocking)
+  env.waitUntil(notifyTawk(processed, env));
 
   return json({ ok: true, id });
 }
@@ -293,6 +302,9 @@ async function handleFacebookWebhook(request, env) {
       unacked.push(id);
       await env.EVENTS.put('_unacked', JSON.stringify(unacked));
       console.log(`[FB] Message from ${senderId}`);
+
+      // Fire Tawk notification (non-blocking)
+      env.waitUntil(notifyTawk(evt, env));
     }
 
     // Handle feed changes (comments, posts)
@@ -356,6 +368,97 @@ async function handleFacebookWebhook(request, env) {
   }
 
   return json({ ok: true });
+}
+
+// ── Tawk.to Priority Notification (via Resend) ──────────────
+// Sends email to Tawk ticketing address for high-priority events.
+// Creates a Tawk ticket → push notification on phone.
+// Runs on Cloudflare edge — always on, no Hub server needed.
+
+const PRIORITY_EMOJI = { critical: '🔴', high: '🟠', normal: '🟡', low: '🟢' };
+const EVENT_LABELS = {
+  'founding:application': 'FOUNDING',
+  'chat:start': 'LIVE CHAT',
+  'facebook:message': 'FB MESSAGE',
+  'facebook:comment': 'FB COMMENT',
+  'ticket:create': 'CHAT TICKET',
+};
+
+async function notifyTawk(evt, env) {
+  const tawkEmail = env.TAWK_TICKET_EMAIL;
+  const resendKey = env.RESEND_API_KEY;
+  if (!tawkEmail || !resendKey) return;
+  if (!['critical', 'high'].includes(evt.priority)) return;
+
+  // Per-type cooldown via KV (5 min)
+  const cooldownKey = `_cooldown:${evt.event}`;
+  const lastSent = await env.EVENTS.get(cooldownKey);
+  if (lastSent && (Date.now() - parseInt(lastSent)) < 300000) return;
+
+  const emoji = PRIORITY_EMOJI[evt.priority] || '⚪';
+  const label = EVENT_LABELS[evt.event] || evt.event.toUpperCase();
+  const subject = `${emoji} [${label}] ${(evt.summary || '').substring(0, 120)}`;
+
+  const lines = [
+    `Priority: ${evt.priority.toUpperCase()}`,
+    `Source: ${evt.event}`,
+    `Time: ${evt.receivedAt}`,
+    '',
+    evt.summary || '',
+    '',
+  ];
+
+  // Add context from event data
+  if (evt.application) {
+    lines.push(`Name: ${evt.application.name}`);
+    lines.push(`Email: ${evt.application.email}`);
+    lines.push(`Years: ${evt.application.years_sweeping}`);
+    lines.push(`Tools: ${evt.application.current_tools}`);
+    lines.push(`Heard: ${evt.application.heard_about}`);
+  }
+  if (evt.visitor) {
+    if (evt.visitor.name) lines.push(`Visitor: ${evt.visitor.name}`);
+    if (evt.visitor.city) lines.push(`City: ${evt.visitor.city}`);
+    if (evt.visitor.email) lines.push(`Email: ${evt.visitor.email}`);
+  }
+  if (evt.facebook) {
+    if (evt.facebook.text) lines.push(`Message: ${evt.facebook.text}`);
+    if (evt.facebook.senderId) lines.push(`Sender: ${evt.facebook.senderId}`);
+    if (evt.facebook.from?.name) lines.push(`From: ${evt.facebook.from.name}`);
+  }
+  if (evt.ticket) {
+    lines.push(`Subject: ${evt.ticket.subject}`);
+    if (evt.ticket.name) lines.push(`From: ${evt.ticket.name}`);
+    if (evt.ticket.email) lines.push(`Email: ${evt.ticket.email}`);
+  }
+
+  lines.push('', '— SweepNspect Alert System (Cloudflare Edge)');
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'SweepNspect Alerts <alerts@sweepnspect.com>',
+        to: [tawkEmail],
+        subject,
+        text: lines.join('\n'),
+      }),
+    });
+
+    if (res.ok) {
+      await env.EVENTS.put(cooldownKey, String(Date.now()), { expirationTtl: 600 });
+      console.log(`[TAWK-NOTIFY] Sent: ${subject}`);
+    } else {
+      const err = await res.text();
+      console.error(`[TAWK-NOTIFY] Failed (${res.status}): ${err}`);
+    }
+  } catch (err) {
+    console.error(`[TAWK-NOTIFY] Error: ${err.message}`);
+  }
 }
 
 // ── Helpers ─────────────────────────────────────────────────

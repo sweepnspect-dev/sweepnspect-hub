@@ -8,3 +8,6 @@ id = "41db36a711f14915b101a4eb5e1bda2d"
 
 [vars]
 FB_VERIFY_TOKEN = "sweepnspect-fb-verify-2026"
+TAWK_TICKET_EMAIL = "tickets@sweepnspect.p.tawk.email"
+
+# RESEND_API_KEY is set as a secret via: wrangler secret put RESEND_API_KEY
