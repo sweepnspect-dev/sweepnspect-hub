@@ -76,7 +76,7 @@
       /* ── Screen ── */
       .snsp-screen {
         flex: 1; display: flex; flex-direction: column;
-        background: #eaeff4; border-radius: 34px; overflow: hidden;
+        background: #1e3a5f; border-radius: 34px; overflow: hidden;
         position: relative;
       }
       .snsp-camera {
@@ -186,9 +186,17 @@
       .snsp-send-btn:hover { background: #c2410c; }
       .snsp-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+      /* ── Footer ── */
+      .snsp-footer {
+        background: #1e3a5f; text-align: center; padding: 4px 0 2px;
+        font-size: 9px; color: rgba(255,255,255,0.35);
+      }
+      .snsp-footer a { color: rgba(255,255,255,0.5); text-decoration: none; }
+      .snsp-footer a:hover { color: rgba(255,255,255,0.7); }
+
       /* ── Home Bar (navy, tight) ── */
       .snsp-homebar {
-        display: flex; justify-content: center; padding: 6px 0 8px;
+        display: flex; justify-content: center; padding: 4px 0 8px;
         background: #1e3a5f;
       }
       .snsp-homebar-pill {
@@ -284,6 +292,7 @@
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
       </div>
+      <div class="snsp-footer">Powered by <a href="https://sweepnspect.com" target="_blank">SweepNspect</a></div>
       <div class="snsp-homebar"><div class="snsp-homebar-pill"></div></div>
     `;
     addLocalMessage('agent', 'Hi ' + esc(state.visitor.name) + '! How can we help you today?');
