@@ -70,7 +70,6 @@ function jsonStore(filename) {
 // ── Alert Infrastructure ─────────────────────────────────
 const SmsService = require('./lib/sms');
 const AlertRouter = require('./lib/alert-router');
-const TawkNotifier = require('./lib/tawk-notifier');
 const smsService = new SmsService();
 const alertRouter = new AlertRouter(broadcast, smsService);
 
@@ -79,12 +78,6 @@ const EmailRouter = require('./lib/email-router');
 const EmailPoller = require('./lib/email-poller');
 const emailRouter = new EmailRouter(jsonStore, broadcast, alertRouter);
 const emailPoller = new EmailPoller(broadcast, alertRouter, emailRouter);
-
-// ── Tawk.to Notification Bridge ─────────────────────────
-// Uses same SMTP config as email poller to send priority alerts
-// to Tawk.to ticketing address → creates ticket → push notification
-const tawkNotifier = new TawkNotifier(emailPoller.getSmtpConfig());
-alertRouter.setTawkNotifier(tawkNotifier);
 
 // ── Worker Poller (Cloudflare → HQ bridge) ──────────────
 const WorkerPoller = require('./lib/worker-poller');
@@ -100,10 +93,11 @@ const automationRules = new AutomationRules(relayBridge, broadcast);
 const FacebookService = require('./lib/facebook');
 const facebookService = new FacebookService();
 
-// Make store + alert router available to routes
+// Make store + services available to routes
 app.locals.jsonStore = jsonStore;
 app.locals.broadcast = broadcast;
 app.locals.alertRouter = alertRouter;
+app.locals.smsService = smsService;
 app.locals.emailPoller = emailPoller;
 app.locals.emailRouter = emailRouter;
 app.locals.workerPoller = workerPoller;
@@ -123,6 +117,7 @@ app.use('/api/marketing', require('./routes/marketing'));
 app.use('/api/webhooks/tawk', require('./routes/tawk'));
 app.use('/api/inbox', require('./routes/inbox'));
 app.use('/api/comms', require('./routes/comms'));
+app.use('/api/livechat', require('./routes/livechat'));
 app.use('/api/automation', require('./routes/automation'));
 
 // ── Alert API ────────────────────────────────────────────
@@ -151,7 +146,7 @@ app.get('/api/sms/status', (req, res) => {
 });
 
 app.get('/api/tawk/status', (req, res) => {
-  res.json(tawkNotifier.getStatus());
+  res.json({ configured: false, status: 'removed', note: 'Replaced by custom live chat' });
 });
 
 app.get('/api/worker/status', (req, res) => {
@@ -165,7 +160,6 @@ app.get('/api/ping', (req, res) => {
 
 app.get('/api/system/services', async (req, res) => {
   const inbox = emailPoller.getInbox();
-  const tawk = tawkNotifier.getStatus();
   const worker = workerPoller.getStatus();
 
   let clauserData = { status: 'offline' };
@@ -196,7 +190,7 @@ app.get('/api/system/services', async (req, res) => {
     hq:       { status: 'online', detail: 'Port 8888' },
     ws:       { status: 'online', detail: `${wss.clients.size} client${wss.clients.size !== 1 ? 's' : ''}` },
     email:    { status: inbox.status === 'polling' || inbox.status === 'connected' ? 'online' : inbox.status === 'error' ? 'error' : 'offline', detail: inbox.status === 'error' ? inbox.error : `${inbox.checkCount} checks, ${inbox.unread} unread`, lastCheck: inbox.lastCheck },
-    tawk:     { status: tawk.configured ? 'online' : 'offline', detail: tawk.configured ? `${tawk.sendCount} sent` : 'Not configured' },
+    livechat: { status: 'online', detail: 'Custom chat relay via CF Worker' },
     facebook: facebookService.configured
       ? { status: 'online', detail: `Page ${facebookService.getStatus().pageId} — ${facebookService.getStatus().requestCount} requests` }
       : { status: 'standby', detail: 'Webhook receiver ready — no page token' },
@@ -205,6 +199,18 @@ app.get('/api/system/services', async (req, res) => {
     relay:    { status: relayOk ? 'online' : 'offline', detail: relayOk ? 'Hive mesh connected' : 'Relay not reachable' },
     worker:   { status: worker.status === 'connected' ? 'online' : worker.status === 'error' ? 'error' : 'offline', detail: worker.status === 'connected' ? `${worker.checkCount} checks` : (worker.error || 'Not connected'), lastCheck: worker.lastCheck },
   });
+});
+
+// ADB push notification to Z Fold
+app.post('/api/system/notify-phone', async (req, res) => {
+  const { message } = req.body;
+  if (!message) return res.status(400).json({ error: 'message required' });
+  try {
+    const result = await smsService.send(message);
+    res.json({ ok: true, result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get('/api/worker/health', async (req, res) => {
@@ -313,6 +319,7 @@ const DATA_STORES = {
   marketing:     { file: 'marketing.json',        empty: [],  label: 'Marketing' },
   'marketing-posts': { file: 'marketing-posts.json', empty: [], label: 'Marketing Posts' },
   'auto-log':    { file: 'automation-log.json',   empty: [],  label: 'Automation Log' },
+  'livechat':    { file: 'livechat-sessions.json', empty: [], label: 'Live Chat Sessions' },
 };
 
 app.get('/api/data/stores', (req, res) => {

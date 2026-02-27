@@ -92,15 +92,22 @@ const ChatView = {
     this.renderMessages();
 
     try {
+      // Send conversation history (exclude the pending placeholder)
+      const history = this.messages
+        .filter(m => !m.pending && m.text)
+        .slice(0, -1) // exclude current user msg (sent as prompt)
+        .map(m => ({ role: m.role, text: m.text }));
+
       const res = await App.api('ai/chat', {
         method: 'POST',
-        body: { prompt: text }
+        body: { prompt: text, messages: history }
       });
 
       const last = this.messages[this.messages.length - 1];
       if (last.pending) {
         last.text = res.answer || res.error || 'No response';
         last.speech = res.speech || '';
+        last.actions = res.actions || [];
         last.pending = false;
         last.error = !!res.error;
         // Speak the conversational version (not the markdown)

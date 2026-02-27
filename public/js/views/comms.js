@@ -1,15 +1,16 @@
 // ══════════════════════════════════════════════════════════
 // Comms View — Unified Communications
-// Email (IMAP) + Tawk.to + Facebook + Claude Sync
+// Email (IMAP) + Tawk.to + Facebook + Live Chat + Claude Sync
 // ══════════════════════════════════════════════════════════
 const CommsView = {
   messages: [],
   status: 'loading',
-  activeSource: null,    // null = all, 'email', 'tawk', 'facebook', 'sms', 'sync'
+  activeSource: null,    // null = all, 'email', 'tawk', 'facebook', 'sms', 'sync', 'livechat'
   activeFilter: null,    // email category filter
   emailCategories: null, // cached from /api/inbox/categories
   openId: null,
   showArchived: false,
+  livechatSessions: [],  // cached live chat sessions
 
   render(container, hash) {
     const parts = hash ? hash.split('/') : [];
@@ -33,6 +34,9 @@ const CommsView = {
             </button>
             <button class="source-btn" data-source="sms" onclick="CommsView.setSource('sms')">
               <span class="source-badge sms"></span> SMS
+            </button>
+            <button class="source-btn" data-source="livechat" onclick="CommsView.setSource('livechat')">
+              <span class="source-badge livechat" style="background:#4ade80"></span> Live Chat
             </button>
             <button class="source-btn" data-source="sync" onclick="CommsView.setSource('sync')">
               <span class="source-badge sync"></span> Sync
@@ -79,6 +83,7 @@ const CommsView = {
         App.api('comms/sync').catch(() => ({ messages: [] })),
         App.api('comms/sms').catch(() => ({ messages: [] })),
         App.api('inbox/categories').catch(() => null),
+        App.api('livechat/sessions').catch(() => ({ sessions: [] })),
       ]);
 
       // Merge all streams
@@ -88,7 +93,9 @@ const CommsView = {
       const syncData = results[3].status === 'fulfilled' ? results[3].value : { messages: [] };
       const smsData = results[4].status === 'fulfilled' ? results[4].value : { messages: [] };
       const categories = results[5].status === 'fulfilled' ? results[5].value : null;
+      const livechatData = results[6].status === 'fulfilled' ? results[6].value : { sessions: [] };
       if (categories) this.emailCategories = categories;
+      this.livechatSessions = livechatData.sessions || [];
 
       this.status = emailData.status || 'connected';
 
@@ -162,6 +169,25 @@ const CommsView = {
           unread: sm.unread || false,
           direction: sm.direction || 'inbound',
           raw: sm
+        });
+      });
+
+      // Live Chat sessions
+      (livechatData.sessions || []).forEach(lc => {
+        const lastMsg = lc.messages && lc.messages.length > 0
+          ? lc.messages[lc.messages.length - 1] : null;
+        const preview = lastMsg ? lastMsg.text : 'Chat started';
+        unified.push({
+          id: 'livechat-' + lc.id,
+          source: 'livechat',
+          from: lc.visitor?.name || 'Visitor',
+          fromDetail: lc.visitor?.email || '',
+          subject: preview.slice(0, 60),
+          preview,
+          date: lc.lastActivity || lc.startedAt,
+          unread: lc.status === 'active',
+          status: lc.status,
+          raw: lc,
         });
       });
 
@@ -343,6 +369,8 @@ const CommsView = {
       this.renderFbDetail(detail, msg);
     } else if (msg.source === 'sms') {
       this.renderSmsDetail(detail, msg);
+    } else if (msg.source === 'livechat') {
+      this.renderLivechatDetail(detail, msg);
     } else if (msg.source === 'sync') {
       this.renderSyncDetail(detail, msg);
     }
@@ -481,6 +509,87 @@ const CommsView = {
     `;
   },
 
+  renderLivechatDetail(detail, msg) {
+    const lc = msg.raw;
+    const statusColor = lc.status === 'active' ? '#4ade80' : lc.status === 'ended' ? '#888' : '#f59e0b';
+    const statusLabel = lc.status === 'active' ? 'Active' : lc.status === 'ended' ? 'Ended' : 'Waiting';
+
+    detail.innerHTML = `
+      <div class="comms-detail-header">
+        <button class="comms-back" onclick="CommsView.closeDetail()">&larr; Back</button>
+        <span class="source-badge livechat" style="background:${statusColor}"></span>
+        <div class="comms-detail-meta">
+          <div class="comms-detail-subject">Chat with ${App.esc(msg.from)} <span style="color:${statusColor};font-size:12px">(${statusLabel})</span></div>
+          <div class="comms-detail-from">${App.esc(msg.fromDetail || 'No email provided')}</div>
+          <div class="comms-detail-info">Started ${App.timeAgo(lc.startedAt)} &middot; ${lc.messages?.length || 0} messages</div>
+        </div>
+      </div>
+      <div class="comms-detail-body">
+        <div class="comms-chat-thread" id="livechatThread">
+          ${(lc.messages || []).map(m => `
+            <div class="comms-chat-msg ${m.from === 'visitor' ? 'from-visitor' : 'from-agent'}">
+              <div class="comms-chat-sender">${App.esc(m.from === 'visitor' ? (lc.visitor?.name || 'Visitor') : m.from === 'ai' ? 'AI' : 'J')}</div>
+              <div class="comms-chat-text">${App.esc(m.text || '')}</div>
+              <div class="comms-chat-time">${m.ts ? App.timeAgo(m.ts) : ''}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      ${lc.status === 'active' ? `
+        <div class="comms-reply">
+          <div class="comms-reply-label">Reply to ${App.esc(msg.from)}:</div>
+          <textarea class="comms-reply-input" id="livechatReplyInput" rows="3" placeholder="Type your reply..."></textarea>
+          <div class="comms-reply-actions">
+            <button class="btn btn-primary" onclick="CommsView.sendLivechatReply('${lc.id}')">Send</button>
+            <button class="btn btn-ghost" onclick="CommsView.sendLivechatAiReply('${lc.id}')">AI Reply</button>
+            <button class="btn btn-ghost btn-sm" onclick="CommsView.endLivechatSession('${lc.id}')" style="margin-left:auto;color:var(--brick)">End Chat</button>
+            <span class="comms-reply-status" id="livechatReplyStatus"></span>
+          </div>
+        </div>
+      ` : ''}
+    `;
+  },
+
+  async sendLivechatReply(sessionId) {
+    const input = document.getElementById('livechatReplyInput');
+    const status = document.getElementById('livechatReplyStatus');
+    if (!input) return;
+    const text = input.value.trim();
+    if (!text) { if (status) status.textContent = 'Write something first'; return; }
+
+    try {
+      await App.api('livechat/sessions/' + sessionId + '/reply', { method: 'POST', body: { text } });
+      input.value = '';
+      if (status) { status.textContent = 'Sent!'; status.style.color = 'var(--green)'; }
+      // Refresh detail
+      setTimeout(() => this.openMessage(this.openId), 500);
+    } catch (err) {
+      if (status) { status.textContent = 'Failed: ' + err.message; status.style.color = 'var(--brick)'; }
+    }
+  },
+
+  async sendLivechatAiReply(sessionId) {
+    const status = document.getElementById('livechatReplyStatus');
+    if (status) { status.textContent = 'AI thinking...'; status.style.color = ''; }
+
+    try {
+      const result = await App.api('livechat/sessions/' + sessionId + '/ai-reply', { method: 'POST' });
+      if (status) { status.textContent = 'AI replied!'; status.style.color = 'var(--green)'; }
+      setTimeout(() => this.openMessage(this.openId), 500);
+    } catch (err) {
+      if (status) { status.textContent = 'AI error: ' + err.message; status.style.color = 'var(--brick)'; }
+    }
+  },
+
+  async endLivechatSession(sessionId) {
+    try {
+      await App.api('livechat/sessions/' + sessionId + '/end', { method: 'POST' });
+      this.load();
+    } catch (err) {
+      console.error('Failed to end session:', err);
+    }
+  },
+
   async sendEmailReply(uid) {
     const input = document.getElementById('commsReplyInput');
     const btn = document.getElementById('commsReplyBtn');
@@ -534,7 +643,8 @@ const CommsView = {
   },
 
   onWsMessage(type, data) {
-    if (type === 'email:new' || type === 'tawk:message' || type === 'facebook:message' || type === 'sms:message' || type === 'relay:message') {
+    if (type === 'email:new' || type === 'tawk:message' || type === 'facebook:message' || type === 'sms:message' || type === 'relay:message' ||
+        type === 'livechat:start' || type === 'livechat:message' || type === 'livechat:reply' || type === 'livechat:end') {
       this.load();
     }
   },

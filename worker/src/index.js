@@ -6,11 +6,17 @@
  *   Webhooks (public):
  *     POST /api/founding         — founding application
  *     GET  /api/founding         — list applications
- *     POST /api/webhooks/tawk    — Tawk.to webhook
+ *     POST /api/webhooks/tawk    — Tawk.to webhook (deprecated)
  *     GET  /api/webhooks/facebook — FB verify
  *     POST /api/webhooks/facebook — FB events
  *
+ *   Live Chat (public — visitors):
+ *     POST /api/chat/start       — start chat session
+ *     POST /api/chat/message     — visitor sends message
+ *     GET  /api/chat/messages    — visitor polls for replies
+ *
  *   Dashboard API (auth required):
+ *     POST /api/chat/:id/reply   — agent/AI pushes reply to visitor
  *     GET/POST       /api/tickets
  *     GET/PUT/DELETE /api/tickets/:id
  *     POST           /api/tickets/:id/messages
@@ -28,7 +34,6 @@
  *     GET            /api/stats
  *     GET            /api/marketing
  *     GET            /api/inbox
- *     GET            /api/tawk/status
  *     GET            /health
  */
 
@@ -50,6 +55,9 @@ export default {
       return new Response(null, { status: 204, headers: CORS_HEADERS });
     }
 
+    // ── Static assets ─────────────────────────────────────
+    if (path === '/chat-widget.js' && method === 'GET') return serveChatWidget();
+
     // ── Public webhook endpoints (no auth) ──────────────
     if (path === '/api/founding' && method === 'POST') return handleFoundingApplication(request, env);
     if (path === '/api/founding' && method === 'GET') return handleGetApplications(request, env);
@@ -58,6 +66,12 @@ export default {
     if (path === '/api/webhooks/facebook' && method === 'POST') return handleFacebookWebhook(request, env);
     if (path === '/api/webhooks/ticket' && method === 'POST') return handleWebhookTicket(request, env);
     if (path === '/health') return json({ status: 'ok', service: 'sweepnspect-hq', timestamp: Date.now() });
+
+    // ── Live Chat (public — visitors use these) ──────────
+    if (path === '/api/chat/start' && method === 'POST') return handleChatStart(request, env);
+    if (path === '/api/chat/message' && method === 'POST') return handleChatMessage(request, env);
+    if (path === '/api/chat/messages' && method === 'GET') return handleChatPoll(request, env);
+    // Chat reply is auth-required (Hub pushes replies) — handled below
 
     // ── Legacy event polling (for Hub server compatibility) ──
     if (path === '/api/events' && method === 'GET') return handleGetEvents(request, env);
@@ -101,6 +115,9 @@ export default {
     if (path.match(/^\/api\/commands\/tasks\/[^/]+$/) && method === 'DELETE') return handleDeleteTask(env, pathId(path, 4));
     if (path === '/api/commands/schedule' && method === 'POST') return handleCreateSchedule(request, env);
     if (path.match(/^\/api\/commands\/schedule\/[^/]+$/) && method === 'DELETE') return handleDeleteSchedule(env, pathId(path, 4));
+
+    // Live Chat (auth required — Hub pushes replies)
+    if (path.match(/^\/api\/chat\/[^/]+\/reply$/) && method === 'POST') return handleChatReply(request, env, path.split('/')[3]);
 
     // Stats & Status
     if (path === '/api/stats' && method === 'GET') return handleGetStats(env);
@@ -405,12 +422,6 @@ async function sendAlert(env, type, severity, message, data = {}) {
   const index = await kvGetIndex(env, 'alerts');
   index.push({ id, type, severity, timestamp: alert.timestamp, acknowledged: false });
   await kvPutIndex(env, 'alerts', index);
-
-  // Notify via Tawk for high-priority
-  if (['critical', 'high'].includes(severity)) {
-    const evt = { event: type, priority: severity, summary: message, receivedAt: alert.timestamp, ...data };
-    env.waitUntil(notifyTawk(evt, env));
-  }
 
   return alert;
 }
@@ -844,14 +855,7 @@ async function handleGetInbox(env) {
 // ══════════════════════════════════════════════════════════════
 
 async function handleTawkStatus(env) {
-  const email = env.TAWK_TICKET_EMAIL;
-  const hasResend = !!env.RESEND_API_KEY;
-  return json({
-    configured: !!(email && hasResend),
-    tawkEmail: email || null,
-    resendConfigured: hasResend,
-    provider: 'resend-edge',
-  });
+  return json({ configured: false, status: 'deprecated', note: 'Replaced by custom live chat' });
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -957,7 +961,6 @@ async function handleFoundingApplication(request, env) {
     { subscriberId: subId, email });
 
   console.log(`[FOUNDING] New application: ${name} (${email})`);
-  env.waitUntil(notifyTawk(evt, env));
   await updateStats(env);
 
   return json({ ok: true, id, message: 'Application received' });
@@ -977,6 +980,138 @@ async function handleGetApplications(request, env) {
 async function getApplicationsList(env) {
   const raw = await env.EVENTS.get('_applications');
   return raw ? JSON.parse(raw) : [];
+}
+
+// ══════════════════════════════════════════════════════════════
+// LIVE CHAT — Custom Chat Relay
+// ══════════════════════════════════════════════════════════════
+
+async function handleChatStart(request, env) {
+  let body;
+  try { body = await request.json(); }
+  catch { return json({ error: 'Invalid JSON' }, 400); }
+
+  const sessionId = `chat-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  const now = new Date().toISOString();
+
+  const session = {
+    id: sessionId,
+    visitor: {
+      name: body.name || 'Visitor',
+      email: body.email || '',
+    },
+    messages: [],
+    status: 'active',
+    startedAt: now,
+    lastActivity: now,
+  };
+
+  await env.EVENTS.put(`chat:${sessionId}`, JSON.stringify(session), { expirationTtl: 86400 }); // 24h TTL
+
+  // Queue event for Hub polling
+  const evtId = `evt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const evt = {
+    id: evtId,
+    event: 'livechat:start',
+    receivedAt: now,
+    summary: `Live chat started: ${session.visitor.name}`,
+    priority: 'high',
+    sessionId,
+    visitor: session.visitor,
+  };
+  await env.EVENTS.put(evtId, JSON.stringify(evt), { expirationTtl: 2592000 });
+  const unacked = await getUnackedList(env);
+  unacked.push(evtId);
+  await env.EVENTS.put('_unacked', JSON.stringify(unacked));
+
+  console.log(`[CHAT] Session started: ${sessionId} — ${session.visitor.name}`);
+  return json({ ok: true, sessionId });
+}
+
+async function handleChatMessage(request, env) {
+  let body;
+  try { body = await request.json(); }
+  catch { return json({ error: 'Invalid JSON' }, 400); }
+
+  const { sessionId, text } = body;
+  if (!sessionId || !text) return json({ error: 'sessionId and text required' }, 400);
+
+  const raw = await env.EVENTS.get(`chat:${sessionId}`);
+  if (!raw) return json({ error: 'Session not found' }, 404);
+
+  const session = JSON.parse(raw);
+  if (session.status !== 'active') return json({ error: 'Session ended' }, 400);
+
+  const now = new Date().toISOString();
+  const msgId = `m-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 4)}`;
+  const message = { id: msgId, from: 'visitor', text, ts: now };
+
+  session.messages.push(message);
+  session.lastActivity = now;
+  await env.EVENTS.put(`chat:${sessionId}`, JSON.stringify(session), { expirationTtl: 86400 });
+
+  // Queue event for Hub polling
+  const evtId = `evt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const evt = {
+    id: evtId,
+    event: 'livechat:message',
+    receivedAt: now,
+    summary: `Chat message from ${session.visitor.name}: ${text.substring(0, 80)}`,
+    priority: 'normal',
+    sessionId,
+    message,
+    visitor: session.visitor,
+  };
+  await env.EVENTS.put(evtId, JSON.stringify(evt), { expirationTtl: 2592000 });
+  const unacked = await getUnackedList(env);
+  unacked.push(evtId);
+  await env.EVENTS.put('_unacked', JSON.stringify(unacked));
+
+  return json({ ok: true, messageId: msgId });
+}
+
+async function handleChatPoll(request, env) {
+  const url = new URL(request.url);
+  const sessionId = url.searchParams.get('session');
+  const after = url.searchParams.get('after') || '1970-01-01T00:00:00.000Z';
+
+  if (!sessionId) return json({ error: 'session param required' }, 400);
+
+  const raw = await env.EVENTS.get(`chat:${sessionId}`);
+  if (!raw) return json({ error: 'Session not found' }, 404);
+
+  const session = JSON.parse(raw);
+  const newMessages = session.messages.filter(m => m.ts > after);
+
+  return json({
+    sessionId,
+    status: session.status,
+    messages: newMessages,
+    visitor: session.visitor,
+  });
+}
+
+async function handleChatReply(request, env, sessionId) {
+  let body;
+  try { body = await request.json(); }
+  catch { return json({ error: 'Invalid JSON' }, 400); }
+
+  const { text, from } = body;
+  if (!text) return json({ error: 'text required' }, 400);
+
+  const raw = await env.EVENTS.get(`chat:${sessionId}`);
+  if (!raw) return json({ error: 'Session not found' }, 404);
+
+  const session = JSON.parse(raw);
+  const now = new Date().toISOString();
+  const msgId = `m-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 4)}`;
+  const message = { id: msgId, from: from || 'agent', text, ts: now };
+
+  session.messages.push(message);
+  session.lastActivity = now;
+  await env.EVENTS.put(`chat:${sessionId}`, JSON.stringify(session), { expirationTtl: 86400 });
+
+  return json({ ok: true, messageId: msgId });
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1035,7 +1170,6 @@ async function handleTawkWebhook(request, env) {
     processed.summary, { chatId: processed.chatId });
 
   console.log(`[TAWK] ${event}: ${processed.summary}`);
-  env.waitUntil(notifyTawk(processed, env));
   await updateStats(env);
 
   return json({ ok: true, id });
@@ -1089,7 +1223,6 @@ async function handleFacebookWebhook(request, env) {
       await env.EVENTS.put('_unacked', JSON.stringify(unacked));
 
       await sendAlert(env, 'facebook-message', 'high', evt.summary, { senderId });
-      env.waitUntil(notifyTawk(evt, env));
     }
 
     for (const change of (entry.changes || [])) {
@@ -1160,75 +1293,20 @@ async function handleAckEvents(request, env) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// TAWK NOTIFICATION (Resend)
+// CHAT WIDGET (served as static JS)
 // ══════════════════════════════════════════════════════════════
 
-const PRIORITY_EMOJI = { critical: '\u{1F534}', high: '\u{1F7E0}', normal: '\u{1F7E1}', low: '\u{1F7E2}' };
-const EVENT_LABELS = {
-  'founding:application': 'FOUNDING', 'founding-application': 'FOUNDING',
-  'chat:start': 'LIVE CHAT', 'tawk-chat:start': 'LIVE CHAT',
-  'facebook:message': 'FB MESSAGE', 'facebook-message': 'FB MESSAGE',
-  'facebook:comment': 'FB COMMENT', 'facebook-comment': 'FB COMMENT',
-  'ticket:create': 'CHAT TICKET', 'ticket-new': 'NEW TICKET',
-  'ticket-webhook': 'WEBHOOK TICKET', 'ticket-escalated': 'ESCALATED',
-  'subscriber-churned': 'CHURN',
-};
+function serveChatWidget() {
+  const JS = `(function(){'use strict';var W='https://sweepnspect-webhook.sweepnspect.workers.dev',P=4000,s={open:false,phase:'intro',sid:null,v:{name:'',email:''},msgs:[],lastTs:'1970-01-01T00:00:00.000Z',pt:null,sending:false};function inj(){var st=document.createElement('style');st.textContent='#snsp-chat-bubble{position:fixed;bottom:20px;right:20px;z-index:99999;width:56px;height:56px;border-radius:50%;background:#ea580c;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(234,88,12,0.4);transition:transform .2s,box-shadow .2s,background .2s}#snsp-chat-bubble:hover{transform:scale(1.08);background:#c2410c;box-shadow:0 6px 24px rgba(234,88,12,0.5)}#snsp-chat-bubble .badge{position:absolute;top:-4px;right:-4px;background:#ea580c;color:#fff;font-size:11px;width:20px;height:20px;border-radius:50%;display:none;align-items:center;justify-content:center}#snsp-chat-window{position:fixed;bottom:88px;right:20px;z-index:99998;width:360px;max-width:calc(100vw - 32px);height:480px;max-height:calc(100vh - 120px);background:#1e293b;border:1px solid #334155;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5),0 0 0 1px rgba(51,65,85,0.3);display:none;flex-direction:column;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;color:#e2e8f0}#snsp-chat-window.open{display:flex}.snsp-header{background:#0f172a;padding:14px 16px;border-bottom:1px solid #334155;display:flex;align-items:center;justify-content:space-between}.snsp-header-title{font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px}.snsp-header-title .dot{width:8px;height:8px;border-radius:50%;background:#4ade80}.snsp-close{background:none;border:none;color:#94a3b8;cursor:pointer;font-size:18px;padding:4px 8px;border-radius:4px}.snsp-close:hover{color:#e2e8f0;background:rgba(255,255,255,.08)}.snsp-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px}.snsp-intro{display:flex;flex-direction:column;gap:12px;justify-content:center;flex:1}.snsp-intro h3{margin:0 0 4px;font-size:16px;color:#fff}.snsp-intro p{margin:0;font-size:13px;color:#94a3b8;line-height:1.4}.snsp-intro input{background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:10px 12px;border-radius:8px;font-size:14px;outline:none;width:100%;box-sizing:border-box}.snsp-intro input:focus{border-color:#ea580c}.snsp-intro input::placeholder{color:#64748b}.snsp-start-btn{background:#ea580c;color:#fff;border:none;padding:12px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s}.snsp-start-btn:hover{background:#c2410c}.snsp-start-btn:disabled{opacity:.5;cursor:not-allowed}.snsp-msg{max-width:85%;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5;word-wrap:break-word}.snsp-msg-visitor{align-self:flex-end;background:#ea580c;color:#fff;border-bottom-right-radius:4px}.snsp-msg-agent,.snsp-msg-ai{align-self:flex-start;background:#334155;border:1px solid #475569;border-bottom-left-radius:4px}.snsp-msg-ai{border-color:#475569}.snsp-input-area{padding:12px;background:#0f172a;border-top:1px solid #334155;display:flex;gap:8px}.snsp-input-area input{flex:1;background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:10px 12px;border-radius:8px;font-size:14px;outline:none}.snsp-input-area input:focus{border-color:#ea580c}.snsp-input-area input::placeholder{color:#64748b}.snsp-send-btn{background:#ea580c;border:none;color:#fff;width:40px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s}.snsp-send-btn:hover{background:#c2410c}.snsp-send-btn:disabled{opacity:.4;cursor:not-allowed}.snsp-powered{text-align:center;padding:6px;font-size:10px;color:#475569;background:#0f172a}.snsp-powered a{color:#94a3b8;text-decoration:none}.snsp-faq-tiles{display:flex;flex-wrap:wrap;gap:6px;padding:4px 0}.snsp-faq-tile{background:#334155;color:#e2e8f0;border:1px solid #475569;padding:6px 12px;border-radius:16px;font-size:12px;cursor:pointer;transition:background .2s;line-height:1.4}.snsp-faq-tile:hover{background:#475569}';document.head.appendChild(st)}function esc(t){var d=document.createElement('div');d.textContent=t||'';return d.innerHTML}function create(){var b=document.createElement('div');b.id='snsp-chat-bubble';b.innerHTML='<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="8" cy="10" r="1" fill="#fff" stroke="none"/><circle cx="12" cy="10" r="1" fill="#fff" stroke="none"/><circle cx="16" cy="10" r="1" fill="#fff" stroke="none"/></svg><span class="badge" id="snspBadge">0</span>';b.onclick=function(){var w=document.getElementById('snsp-chat-window');s.open=!w.classList.contains('open');w.classList.toggle('open',s.open)};document.body.appendChild(b);var w=document.createElement('div');w.id='snsp-chat-window';w.innerHTML='<div class="snsp-header"><div class="snsp-header-title"><span class="dot"></span> SweepNspect Chat</div><button class="snsp-close" onclick="document.getElementById(\\'snsp-chat-window\\').classList.remove(\\'open\\')">&times;</button></div><div class="snsp-body" id="snspBody"></div>';document.body.appendChild(w);introUI()}function introUI(){var b=document.getElementById('snspBody');b.innerHTML='<div class="snsp-intro"><h3>Hi there! \\u{1F44B}</h3><p>Have a question about chimney inspections? We\\'re here to help.</p><input type="text" id="snspName" placeholder="Your name"><input type="email" id="snspEmail" placeholder="Email (optional)"><button class="snsp-start-btn" id="snspStartBtn" onclick="window._snspStart()">Start Chat</button></div>'}window._snspStart=async function(){var n=document.getElementById('snspName'),e=document.getElementById('snspEmail'),b=document.getElementById('snspStartBtn');var name=(n.value||'').trim();if(!name){n.style.borderColor='#ea580c';n.focus();return}s.v.name=name;s.v.email=(e.value||'').trim();b.disabled=true;b.textContent='Connecting...';try{var r=await post('/api/chat/start',{name:s.v.name,email:s.v.email});if(r.ok&&r.sessionId){s.sid=r.sessionId;s.phase='chat';chatUI();startPoll()}else{b.textContent='Error - retry';b.disabled=false}}catch(x){b.textContent='Connection failed - retry';b.disabled=false}};function chatUI(){var b=document.getElementById('snspBody');b.innerHTML='<div id="snspMessages" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-bottom:8px"></div><div class="snsp-input-area"><input type="text" id="snspInput" placeholder="Type a message..." onkeydown="if(event.key===\\'Enter\\')window._snspSend()"><button class="snsp-send-btn" onclick="window._snspSend()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button></div><div class="snsp-powered">Powered by <a href="https://sweepnspect.com" target="_blank">SweepNspect</a></div>';addMsg('agent','Hi '+esc(s.v.name)+'! How can we help you today?');showFaq();document.getElementById('snspInput').focus()}function showFaq(){var ms=document.getElementById('snspMessages');if(!ms)return;var t=document.createElement('div');t.className='snsp-faq-tiles';t.id='snspFaqTiles';['How much does it cost?','What is the Founding 25?','Does it work offline?','What devices supported?'].forEach(function(q){var ti=document.createElement('span');ti.className='snsp-faq-tile';ti.textContent=q;ti.onclick=function(){var inp=document.getElementById('snspInput');if(inp)inp.value=q;window._snspSend()};t.appendChild(ti)});ms.appendChild(t)}window._snspSend=async function(){var i=document.getElementById('snspInput');if(!i||s.sending)return;var t=i.value.trim();if(!t)return;i.value='';s.sending=true;addMsg('visitor',t);try{await post('/api/chat/message',{sessionId:s.sid,text:t})}catch(x){}s.sending=false;i.focus()};function addMsg(f,t){s.msgs.push({from:f,text:t,ts:new Date().toISOString()});renderMsgs()}function renderMsgs(){var el=document.getElementById('snspMessages');if(!el)return;el.innerHTML=s.msgs.map(function(m){var c=m.from==='visitor'?'snsp-msg-visitor':m.from==='ai'?'snsp-msg-ai':'snsp-msg-agent';var l=m.from==='visitor'?'':m.from==='ai'?'<div style="font-size:10px;color:#94a3b8;margin-bottom:2px">AI Assistant</div>':'<div style="font-size:10px;color:#94a3b8;margin-bottom:2px">Support</div>';return'<div class="snsp-msg '+c+'">'+l+esc(m.text)+'</div>'}).join('');el.scrollTop=el.scrollHeight}function startPoll(){if(s.pt)return;s.pt=setInterval(poll,P)}async function poll(){if(!s.sid)return;try{var d=await get('/api/chat/messages?session='+s.sid+'&after='+encodeURIComponent(s.lastTs));if(d.messages&&d.messages.length>0){for(var i=0;i<d.messages.length;i++){var m=d.messages[i];if(m.from==='visitor'){if(m.ts>s.lastTs)s.lastTs=m.ts;continue}if(!s.msgs.find(function(x){return x.id===m.id}))s.msgs.push(m);if(m.ts>s.lastTs)s.lastTs=m.ts}renderMsgs()}if(d.status==='ended'){clearInterval(s.pt);s.pt=null;addMsg('agent','This chat session has ended. Thanks for reaching out!')}}catch(x){}}async function post(p,b){var r=await fetch(W+p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});return r.json()}async function get(p){var r=await fetch(W+p);return r.json()}function init(){inj();create()}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init()})();`;
 
-async function notifyTawk(evt, env) {
-  const tawkEmail = env.TAWK_TICKET_EMAIL;
-  const resendKey = env.RESEND_API_KEY;
-  if (!tawkEmail || !resendKey) return;
-  if (!['critical', 'high'].includes(evt.priority)) return;
-
-  const cooldownKey = `_cooldown:${evt.event}`;
-  const lastSent = await env.EVENTS.get(cooldownKey);
-  if (lastSent && (Date.now() - parseInt(lastSent)) < 300000) return;
-
-  const emoji = PRIORITY_EMOJI[evt.priority] || '';
-  const label = EVENT_LABELS[evt.event] || evt.event.toUpperCase();
-  const subject = `${emoji} [${label}] ${(evt.summary || '').substring(0, 120)}`;
-
-  const lines = [
-    `Priority: ${evt.priority.toUpperCase()}`,
-    `Source: ${evt.event}`,
-    `Time: ${evt.receivedAt || new Date().toISOString()}`,
-    '', evt.summary || '', '',
-  ];
-
-  if (evt.application) {
-    lines.push(`Name: ${evt.application.name}`, `Email: ${evt.application.email}`,
-      `Years: ${evt.application.years_sweeping}`, `Tools: ${evt.application.current_tools}`);
-  }
-  if (evt.visitor) {
-    if (evt.visitor.name) lines.push(`Visitor: ${evt.visitor.name}`);
-    if (evt.visitor.city) lines.push(`City: ${evt.visitor.city}`);
-  }
-  if (evt.facebook) {
-    if (evt.facebook.text) lines.push(`Message: ${evt.facebook.text}`);
-    if (evt.facebook.senderId) lines.push(`Sender: ${evt.facebook.senderId}`);
-  }
-
-  lines.push('', '— SweepNspect Alert System (Cloudflare Edge)');
-
-  try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: 'SweepNspect Alerts <alerts@sweepnspect.com>',
-        to: [tawkEmail],
-        subject, text: lines.join('\n'),
-      }),
-    });
-    if (res.ok) {
-      await env.EVENTS.put(cooldownKey, String(Date.now()), { expirationTtl: 600 });
-      console.log(`[TAWK-NOTIFY] Sent: ${subject}`);
-    } else {
-      console.error(`[TAWK-NOTIFY] Failed (${res.status}): ${await res.text()}`);
-    }
-  } catch (err) {
-    console.error(`[TAWK-NOTIFY] Error: ${err.message}`);
-  }
+  return new Response(JS, {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/javascript',
+      'Cache-Control': 'public, max-age=3600',
+      ...CORS_HEADERS,
+    },
+  });
 }
 
 // ══════════════════════════════════════════════════════════════

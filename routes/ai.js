@@ -6,23 +6,62 @@ const router = express.Router();
 const PROXY_HOST = process.env.AI_PROXY_HOST || '127.0.0.1';
 const PROXY_PORT = process.env.AI_PROXY_PORT || 8889;
 
-const SYSTEM_PROMPT = `You are the SweepNspect HQ Assistant — an AI embedded in a chimney inspection business operations dashboard. You talk to J, the owner.
+// ══════════════════════════════════════════════════════════
+// SYSTEM PROMPT — AI Ops Manager
+// ══════════════════════════════════════════════════════════
 
-You have access to LIVE data from the Hub which is provided as context with each question. Use this data to give specific, accurate answers.
+const SYSTEM_PROMPT = `You are the SweepNspect Ops Manager — an AI embedded in a chimney inspection business operations dashboard. You talk to J, the owner. You can see everything happening in the business AND take actions.
 
-Capabilities:
-- Answer questions about tickets, subscribers, revenue, and operations
-- Provide business insights and recommendations
-- Explain how the Hub, VM, API, and architecture work
-- Help troubleshoot issues
+## Your Data Access
+You receive LIVE HUB DATA with every message. This includes:
+- **Tickets**: full list with status, priority, customer, dates
+- **Subscribers**: all customers with plan, MRR, status, history
+- **Revenue**: MRR, MTD, all-time, individual entries
+- **Communications**: unread counts across Tawk, Facebook, SMS channels
+- **Marketing**: recent posts, engagement, scheduled content
+- **Alerts**: unacknowledged alerts, recent critical/high events
+- **System**: service status (worker-poller, email, facebook, SMS, AI, relay)
+- **Activity**: recent activity feed
 
-Technical context:
-- Hub runs on Genesis (Windows machine) with Express.js on port 8888
-- Clauser AI agent processes tickets automatically
-- WebSocket for real-time dashboard updates
-- JSON file storage (no database)
+## Actions You Can Take
+When the user asks you to DO something (not just report), embed action blocks in your response. Use this exact format:
 
-OUTPUT FORMAT — You MUST produce TWO versions of every response, separated by <<<DISPLAY>>>
+<<<ACTION>>>
+{"action":"update-ticket","id":"t-001","fields":{"status":"resolved","resolution":"Fixed via chat"}}
+<<<END_ACTION>>>
+
+### Supported Actions:
+
+**update-ticket** — Update a ticket's status, priority, or resolution
+  Fields: status (new|open|ai-working|review|resolved|closed), priority (critical|high|normal|low), resolution (string)
+  Example: {"action":"update-ticket","id":"t-003","fields":{"status":"resolved","resolution":"Handled via chat with J"}}
+
+**update-subscriber** — Update subscriber status, plan, or notes
+  Fields: status (active|trial|churned|lead|cancelled), plan (string), notes (string)
+  Example: {"action":"update-subscriber","id":"s-001","fields":{"status":"active","notes":"Upgraded after demo call"}}
+
+**create-alert** — Create a new alert
+  Fields: type (string), severity (critical|high|normal|low), message (string)
+  Example: {"action":"create-alert","fields":{"type":"ops-ai","severity":"high","message":"Detected churn risk for Heritage Chimney"}}
+
+**send-sms** — Send an ADB push notification to J's phone
+  Fields: message (string)
+  Example: {"action":"send-sms","fields":{"message":"Urgent: Heritage Chimney escalated to critical"}}
+
+**add-revenue** — Add a revenue entry
+  Fields: amount (number), type (subscription|one-time|refund), description (string), subscriberId (string, optional)
+  Example: {"action":"add-revenue","fields":{"amount":250,"type":"subscription","description":"Metro Services monthly","subscriberId":"s-002"}}
+
+## Proactive Intelligence
+When you see concerning patterns, flag them WITHOUT being asked:
+- **Churn risk**: subscriber with multiple unresolved tickets, long time since last payment, status changes
+- **SLA breach**: tickets open > 48h without resolution, especially high/critical priority
+- **Revenue trends**: MRR drops, refund spikes, overdue payments
+- **Engagement drops**: no Facebook activity, fewer chats, subscriber silence
+- **System issues**: services offline, worker disconnected, email errors
+
+## OUTPUT FORMAT
+You MUST produce TWO versions of every response, separated by <<<DISPLAY>>>
 
 FIRST: Your spoken conversational response. Talk naturally like you're speaking to J face-to-face. No markdown, no bullets, no asterisks, no hashtags, no formatting at all. Just natural speech. Use numbers, be specific, be direct. This is what J will HEAR through text-to-speech.
 
@@ -30,21 +69,291 @@ FIRST: Your spoken conversational response. Talk naturally like you're speaking 
 
 SECOND: The same information formatted with markdown for the screen. Use bold, bullets, code blocks, headers — whatever makes it scannable. This is what J will SEE on the dashboard.
 
-Example:
-Hey J, you've got 3 open tickets right now. Two are high priority — the scheduling conflict for Heritage Chimney and the billing dispute from Metro Services. MRR is sitting at twenty-two fifty. One thing I'd flag, Heritage has 5 unresolved tickets total which puts them in churn territory.
+Action blocks go AFTER the <<<DISPLAY>>> section, at the very end.
+
+Example with action:
+Hey J, I resolved ticket t-003 for you. It was the scheduling conflict with Heritage — marked it as handled. Just so you know, Heritage now has zero open tickets, so they're in good shape.
 
 <<<DISPLAY>>>
 
-**3 Open Tickets**
-- **High** — Scheduling conflict (Heritage Chimney)
-- **High** — Billing dispute (Metro Services)
-- **Medium** — Equipment question (Riverside)
+**Ticket t-003 Resolved**
+- Status: resolved
+- Resolution: Scheduling conflict handled via ops chat
+- Customer: Heritage Chimney — 0 remaining open tickets
 
-**MRR:** $2,250
+<<<ACTION>>>
+{"action":"update-ticket","id":"t-003","fields":{"status":"resolved","resolution":"Scheduling conflict handled via ops chat"}}
+<<<END_ACTION>>>
 
-> **Churn Risk:** Heritage Chimney has 5 unresolved tickets
+IMPORTANT: Always include both speech and display sections. Be proactive about flagging issues. When taking actions, always confirm what you did in both versions.`;
 
-IMPORTANT: Always include both sections. The spoken part comes FIRST. Keep the spoken version conversational — contractions, natural phrasing, like you're talking. If data shows something concerning, mention it proactively in both versions.`;
+// ══════════════════════════════════════════════════════════
+// CONTEXT BUILDER
+// ══════════════════════════════════════════════════════════
+
+function getOpsContext(req) {
+  const jsonStore = req.app.locals.jsonStore;
+  const sections = [];
+
+  try {
+    const now = new Date();
+    sections.push(`LIVE HUB DATA (as of ${now.toISOString()}):`);
+
+    // ── Tickets ──
+    const tickets = jsonStore('tickets.json').read();
+    const openTickets = tickets.filter(t => !['resolved', 'closed'].includes(t.status));
+    const byStatus = {};
+    tickets.forEach(t => { byStatus[t.status] = (byStatus[t.status] || 0) + 1; });
+    const byPriority = {};
+    openTickets.forEach(t => { byPriority[t.priority || 'normal'] = (byPriority[t.priority || 'normal'] || 0) + 1; });
+
+    sections.push(`\nTICKETS (${tickets.length} total, ${openTickets.length} open):`);
+    sections.push(`  By status: ${Object.entries(byStatus).map(([k, v]) => `${k}=${v}`).join(', ')}`);
+    sections.push(`  By priority (open only): ${Object.entries(byPriority).map(([k, v]) => `${k}=${v}`).join(', ')}`);
+    if (openTickets.length > 0) {
+      sections.push('  Recent open tickets (up to 10):');
+      openTickets.slice(0, 10).forEach(t => {
+        const age = Math.round((now - new Date(t.createdAt)) / 3600000);
+        sections.push(`    [${t.id}] ${t.priority || 'normal'} | ${t.status} | "${t.subject}" | ${t.customer?.name || 'Unknown'} | ${age}h old`);
+      });
+    }
+
+    // ── Subscribers ──
+    const subs = jsonStore('subscribers.json').read();
+    const activeSubs = subs.filter(s => s.status === 'active');
+    const trialSubs = subs.filter(s => s.status === 'trial');
+    const churnedSubs = subs.filter(s => s.status === 'churned');
+    const mrr = activeSubs.reduce((sum, s) => sum + (s.mrr || 0), 0);
+
+    sections.push(`\nSUBSCRIBERS (${subs.length} total):`);
+    sections.push(`  Active: ${activeSubs.length} | Trial: ${trialSubs.length} | Churned: ${churnedSubs.length} | Lead: ${subs.filter(s => s.status === 'lead').length}`);
+    sections.push(`  MRR: $${mrr}`);
+    subs.forEach(s => {
+      const ticketCount = tickets.filter(t => t.customer?.subscriberId === s.id && !['resolved', 'closed'].includes(t.status)).length;
+      sections.push(`    [${s.id}] ${s.name || 'Unnamed'} — ${s.status} — $${s.mrr || 0}/mo — ${s.plan || 'none'} — ${ticketCount} open tickets${s.email ? ' — ' + s.email : ''}`);
+    });
+
+    // ── Revenue ──
+    const rev = jsonStore('revenue.json').read();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const mtdRevenue = rev.filter(r => r.date >= monthStart && r.type !== 'refund').reduce((s, r) => s + (r.amount || 0), 0);
+    const mtdRefunds = rev.filter(r => r.date >= monthStart && r.type === 'refund').reduce((s, r) => s + (r.amount || 0), 0);
+    const allTimeRevenue = rev.filter(r => r.type !== 'refund').reduce((s, r) => s + (r.amount || 0), 0);
+
+    sections.push(`\nREVENUE:`);
+    sections.push(`  MRR: $${mrr} | MTD revenue: $${mtdRevenue} | MTD refunds: $${mtdRefunds} | All-time: $${allTimeRevenue}`);
+    if (rev.length > 0) {
+      sections.push('  Recent entries (last 5):');
+      rev.slice(0, 5).forEach(r => {
+        sections.push(`    $${r.amount} ${r.type || 'payment'} — ${r.description || 'No desc'} — ${r.date || 'no date'}${r.subscriberId ? ' [' + r.subscriberId + ']' : ''}`);
+      });
+    }
+
+    // ── Comms (unread counts) ──
+    const tawkMsgs = jsonStore('comms-tawk.json').read();
+    const fbMsgs = jsonStore('comms-facebook.json').read();
+    const smsMsgs = jsonStore('comms-sms.json').read();
+    const tawkUnread = tawkMsgs.filter(m => m.unread).length;
+    const fbUnread = fbMsgs.filter(m => m.unread).length;
+    const smsUnread = smsMsgs.filter(m => m.unread).length;
+
+    sections.push(`\nCOMMUNICATIONS:`);
+    sections.push(`  Tawk: ${tawkMsgs.length} total, ${tawkUnread} unread`);
+    sections.push(`  Facebook: ${fbMsgs.length} total, ${fbUnread} unread`);
+    sections.push(`  SMS: ${smsMsgs.length} total, ${smsUnread} unread`);
+
+    // ── Marketing ──
+    try {
+      const posts = jsonStore('marketing-posts.json').read();
+      const published = posts.filter(p => p.status === 'published');
+      const scheduled = posts.filter(p => p.status === 'scheduled');
+      const totalEngagement = published.reduce((s, p) => s + (p.likes || 0) + (p.comments || 0) + (p.shares || 0), 0);
+
+      sections.push(`\nMARKETING:`);
+      sections.push(`  Posts: ${published.length} published, ${scheduled.length} scheduled`);
+      sections.push(`  Total engagement: ${totalEngagement} (likes+comments+shares)`);
+      if (published.length > 0) {
+        sections.push('  Recent posts (last 3):');
+        published.slice(0, 3).forEach(p => {
+          sections.push(`    "${(p.message || '').substring(0, 60)}" — ${p.publishedAt || 'unknown date'}`);
+        });
+      }
+    } catch { sections.push('\nMARKETING: [could not load]'); }
+
+    // ── Alerts ──
+    const alerts = jsonStore('alerts.json').read();
+    const unacked = alerts.filter(a => !a.acknowledged);
+    const criticalAlerts = unacked.filter(a => a.severity === 'critical' || a.severity === 'high');
+
+    sections.push(`\nALERTS:`);
+    sections.push(`  Unacknowledged: ${unacked.length} (${criticalAlerts.length} critical/high)`);
+    if (criticalAlerts.length > 0) {
+      sections.push('  Recent critical/high:');
+      criticalAlerts.slice(0, 5).forEach(a => {
+        sections.push(`    [${a.severity}] ${a.type}: ${a.message} — ${a.timestamp}`);
+      });
+    }
+
+    // ── System services ──
+    const workerStatus = req.app.locals.workerPoller?.getStatus() || {};
+    const emailStatus = req.app.locals.emailPoller?.getInbox() || {};
+    const fbService = req.app.locals.facebookService;
+    const smsService = req.app.locals.smsService;
+
+    sections.push(`\nSYSTEM SERVICES:`);
+    sections.push(`  Worker Poller: ${workerStatus.status || 'unknown'} (${workerStatus.checkCount || 0} checks)`);
+    sections.push(`  Email: ${emailStatus.status || 'unknown'} (${emailStatus.unread || 0} unread)`);
+    sections.push(`  Facebook: ${fbService?.configured ? 'online' : 'standby'}`);
+    sections.push(`  SMS/ADB: available`);
+
+    // ── Recent Activity (from automation log) ──
+    try {
+      const actLog = jsonStore('automation-log.json').read();
+      if (actLog.length > 0) {
+        sections.push(`\nRECENT AUTOMATION (last 5):`);
+        actLog.slice(0, 5).forEach(e => {
+          sections.push(`  ${e.rule || 'rule'}: ${e.event || ''} — ${e.timestamp || ''}`);
+        });
+      }
+    } catch {}
+
+    // ── Commands/Tasks ──
+    try {
+      const cmds = jsonStore('commands.json').read();
+      const tasks = cmds.tasks || cmds;
+      const schedule = cmds.schedule || [];
+      if (tasks.length > 0 || schedule.length > 0) {
+        sections.push(`\nTASKS: ${Array.isArray(tasks) ? tasks.length : 0} tasks, ${schedule.length} scheduled`);
+        if (Array.isArray(tasks)) {
+          tasks.slice(0, 5).forEach(t => {
+            sections.push(`  ${t.text || t.title || 'task'} — ${t.status || 'pending'}`);
+          });
+        }
+      }
+    } catch {}
+
+  } catch (e) {
+    sections.push(`\n[Error loading Hub data: ${e.message}]`);
+  }
+
+  return sections.join('\n');
+}
+
+// ══════════════════════════════════════════════════════════
+// ACTION DISPATCHER
+// ══════════════════════════════════════════════════════════
+
+function parseActions(raw) {
+  const actions = [];
+  const actionRegex = /<<<ACTION>>>\s*([\s\S]*?)\s*<<<END_ACTION>>>/g;
+  let match;
+  while ((match = actionRegex.exec(raw)) !== null) {
+    try {
+      actions.push(JSON.parse(match[1].trim()));
+    } catch (e) {
+      console.error('[AI] Failed to parse action:', match[1], e.message);
+    }
+  }
+  return actions;
+}
+
+function stripActions(raw) {
+  return raw.replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/g, '').trim();
+}
+
+async function executeActions(actions, req) {
+  const jsonStore = req.app.locals.jsonStore;
+  const broadcast = req.app.locals.broadcast;
+  const alertRouter = req.app.locals.alertRouter;
+  const results = [];
+
+  for (const action of actions) {
+    try {
+      switch (action.action) {
+        case 'update-ticket': {
+          const store = jsonStore('tickets.json');
+          const tickets = store.read();
+          const ticket = tickets.find(t => t.id === action.id);
+          if (!ticket) { results.push({ action: action.action, id: action.id, ok: false, error: 'Ticket not found' }); break; }
+          const fields = action.fields || {};
+          if (fields.status) ticket.status = fields.status;
+          if (fields.priority) ticket.priority = fields.priority;
+          if (fields.resolution !== undefined) ticket.resolution = fields.resolution;
+          if (fields.status === 'resolved' && !ticket.resolvedAt) ticket.resolvedAt = new Date().toISOString();
+          store.write(tickets);
+          broadcast({ type: 'ticket:updated', data: ticket });
+          results.push({ action: action.action, id: action.id, ok: true });
+          console.log(`[AI-ACTION] Updated ticket ${action.id}: ${JSON.stringify(fields)}`);
+          break;
+        }
+        case 'update-subscriber': {
+          const store = jsonStore('subscribers.json');
+          const subs = store.read();
+          const sub = subs.find(s => s.id === action.id);
+          if (!sub) { results.push({ action: action.action, id: action.id, ok: false, error: 'Subscriber not found' }); break; }
+          const fields = action.fields || {};
+          if (fields.status) sub.status = fields.status;
+          if (fields.plan) sub.plan = fields.plan;
+          if (fields.notes !== undefined) sub.notes = fields.notes;
+          store.write(subs);
+          broadcast({ type: 'subscriber:updated', data: sub });
+          results.push({ action: action.action, id: action.id, ok: true });
+          console.log(`[AI-ACTION] Updated subscriber ${action.id}: ${JSON.stringify(fields)}`);
+          break;
+        }
+        case 'create-alert': {
+          const fields = action.fields || {};
+          if (alertRouter && fields.message) {
+            alertRouter.send(fields.type || 'ops-ai', fields.severity || 'normal', fields.message, {});
+            results.push({ action: action.action, ok: true });
+            console.log(`[AI-ACTION] Created alert: ${fields.message}`);
+          }
+          break;
+        }
+        case 'send-sms': {
+          const fields = action.fields || {};
+          const smsService = req.app.locals.smsService;
+          if (smsService && fields.message) {
+            const result = await smsService.send(fields.message);
+            results.push({ action: action.action, ok: result.sent !== false, detail: result });
+            console.log(`[AI-ACTION] Sent SMS/ADB: ${fields.message}`);
+          }
+          break;
+        }
+        case 'add-revenue': {
+          const store = jsonStore('revenue.json');
+          const rev = store.read();
+          const fields = action.fields || {};
+          const entry = {
+            id: store.nextId ? store.nextId('r') : `r-${Date.now().toString(36)}`,
+            amount: fields.amount || 0,
+            type: fields.type || 'payment',
+            description: fields.description || '',
+            subscriberId: fields.subscriberId || '',
+            date: new Date().toISOString(),
+          };
+          rev.unshift(entry);
+          store.write(rev);
+          broadcast({ type: 'revenue:new', data: entry });
+          results.push({ action: action.action, ok: true, id: entry.id });
+          console.log(`[AI-ACTION] Added revenue: $${entry.amount} ${entry.type}`);
+          break;
+        }
+        default:
+          results.push({ action: action.action, ok: false, error: 'Unknown action' });
+      }
+    } catch (e) {
+      results.push({ action: action.action, ok: false, error: e.message });
+      console.error(`[AI-ACTION] Error executing ${action.action}:`, e.message);
+    }
+  }
+
+  return results;
+}
+
+// ══════════════════════════════════════════════════════════
+// PROXY HELPERS
+// ══════════════════════════════════════════════════════════
 
 function callProxy(prompt) {
   return new Promise((resolve, reject) => {
@@ -101,88 +410,11 @@ function checkProxy() {
   });
 }
 
-// POST /api/ai/ask
-router.post('/ask', async (req, res) => {
-  const { question } = req.body;
-  if (!question) return res.status(400).json({ error: 'No question provided' });
-
-  // Gather live context
-  const jsonStore = req.app.locals.jsonStore;
-  let context = '';
-  try {
-    const tickets = jsonStore('tickets.json').read();
-    const subs = jsonStore('subscribers.json').read();
-    const rev = jsonStore('revenue.json').read();
-    const cmds = jsonStore('commands.json').read();
-
-    const openTickets = tickets.filter(t => !['resolved', 'closed'].includes(t.status));
-    const activeSubs = subs.filter(s => s.status === 'active');
-    const mrr = activeSubs.reduce((sum, s) => sum + (s.mrr || 0), 0);
-
-    context = `
-LIVE HUB DATA (as of ${new Date().toISOString()}):
-
-TICKETS (${tickets.length} total):
-- Open: ${openTickets.length}
-- AI-Working: ${tickets.filter(t => t.status === 'ai-working').length}
-- Needs Review: ${tickets.filter(t => t.status === 'review').length}
-- Resolved: ${tickets.filter(t => t.status === 'resolved').length}
-${openTickets.length > 0 ? '\nOpen tickets:\n' + openTickets.map(t =>
-  `  [${t.id}] ${t.priority} — ${t.subject} (${t.customer?.name || 'Unknown'})`
-).join('\n') : ''}
-
-SUBSCRIBERS (${subs.length} total):
-- Active: ${activeSubs.length}
-- Trial: ${subs.filter(s => s.status === 'trial').length}
-- Churned: ${subs.filter(s => s.status === 'churned').length}
-${subs.map(s => `  [${s.id}] ${s.name} — ${s.status} — $${s.mrr || 0}/mo`).join('\n')}
-
-REVENUE:
-- MRR: $${mrr}
-- Entries this month: ${rev.length}
-- Total all-time: $${rev.filter(r => r.type !== 'refund').reduce((s, r) => s + r.amount, 0)}
-
-RECENT COMMANDS: ${cmds.length > 0 ? cmds.slice(-5).map(c => c.text).join('; ') : 'None'}
-`;
-  } catch (e) {
-    context = '\n[Could not load Hub data: ' + e.message + ']\n';
-  }
-
-  const fullPrompt = SYSTEM_PROMPT + '\n\n' + context + '\n\nUser question: ' + question;
-
-  try {
-    const raw = await callProxy(fullPrompt);
-    const { speech, display } = splitResponse(raw);
-    res.json({ answer: display, speech });
-  } catch (err) {
-    console.error('[AI] Error:', err.message);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// POST /api/ai/chat — direct chat from dashboard Chat tab
-router.post('/chat', async (req, res) => {
-  const { prompt } = req.body;
-  if (!prompt) return res.status(400).json({ error: 'No prompt provided' });
-
-  const fullPrompt = SYSTEM_PROMPT + '\n\nUser: ' + prompt;
-
-  try {
-    const raw = await callProxy(fullPrompt);
-    const { speech, display } = splitResponse(raw);
-    res.json({ answer: display, speech });
-  } catch (err) {
-    console.error('[AI] Chat error:', err.message);
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // Split LLM response into speech + display parts
 function splitResponse(raw) {
   const marker = '<<<DISPLAY>>>';
   const idx = raw.indexOf(marker);
   if (idx === -1) {
-    // No marker — use raw for both, strip md for speech
     return { speech: raw, display: raw };
   }
   const speech = raw.slice(0, idx).trim();
@@ -192,6 +424,64 @@ function splitResponse(raw) {
     display: display || speech
   };
 }
+
+// ══════════════════════════════════════════════════════════
+// ROUTES
+// ══════════════════════════════════════════════════════════
+
+// POST /api/ai/ask — Quick question with full context (Home tab widget)
+router.post('/ask', async (req, res) => {
+  const { question } = req.body;
+  if (!question) return res.status(400).json({ error: 'No question provided' });
+
+  const context = getOpsContext(req);
+  const fullPrompt = SYSTEM_PROMPT + '\n\n' + context + '\n\nUser question: ' + question;
+
+  try {
+    const raw = await callProxy(fullPrompt);
+    // Parse and execute any actions
+    const actions = parseActions(raw);
+    const actionResults = actions.length > 0 ? await executeActions(actions, req) : [];
+    // Strip actions from display
+    const cleaned = stripActions(raw);
+    const { speech, display } = splitResponse(cleaned);
+    res.json({ answer: display, speech, actions: actionResults });
+  } catch (err) {
+    console.error('[AI] Error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/ai/chat — Full chat with context + conversation history (Chat tab)
+router.post('/chat', async (req, res) => {
+  const { prompt, messages } = req.body;
+  if (!prompt) return res.status(400).json({ error: 'No prompt provided' });
+
+  const context = getOpsContext(req);
+
+  // Build conversation history
+  let conversationBlock = '';
+  if (messages && Array.isArray(messages) && messages.length > 0) {
+    // Include last 10 messages for context window management
+    const recent = messages.slice(-10);
+    conversationBlock = '\n\nCONVERSATION HISTORY:\n' +
+      recent.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.text}`).join('\n');
+  }
+
+  const fullPrompt = SYSTEM_PROMPT + '\n\n' + context + conversationBlock + '\n\nUser: ' + prompt;
+
+  try {
+    const raw = await callProxy(fullPrompt);
+    const actions = parseActions(raw);
+    const actionResults = actions.length > 0 ? await executeActions(actions, req) : [];
+    const cleaned = stripActions(raw);
+    const { speech, display } = splitResponse(cleaned);
+    res.json({ answer: display, speech, actions: actionResults });
+  } catch (err) {
+    console.error('[AI] Chat error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // POST /api/ai/tts — LLM or automation triggers voice notification
 router.post('/tts', (req, res) => {
