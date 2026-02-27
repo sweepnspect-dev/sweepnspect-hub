@@ -26,16 +26,16 @@
     style.textContent = `
       #snsp-chat-bubble {
         position: fixed; bottom: 20px; right: 20px; z-index: 99999;
-        width: 56px; height: 56px; border-radius: 50%;
+        width: 60px; height: 60px; border-radius: 50%;
         background: #ea580c; color: #fff; border: none;
         cursor: pointer; display: flex; align-items: center; justify-content: center;
-        box-shadow: 0 4px 16px rgba(234,88,12,0.4);
+        box-shadow: 0 4px 20px rgba(234,88,12,0.45);
         transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
       }
       #snsp-chat-bubble:hover {
         transform: scale(1.08);
         background: #c2410c;
-        box-shadow: 0 6px 24px rgba(234,88,12,0.5);
+        box-shadow: 0 6px 28px rgba(234,88,12,0.55);
       }
       #snsp-chat-bubble .badge {
         position: absolute; top: -4px; right: -4px;
@@ -44,25 +44,28 @@
         display: none; align-items: center; justify-content: center;
       }
       #snsp-chat-window {
-        position: fixed; bottom: 88px; right: 20px; z-index: 99998;
+        position: fixed; bottom: 92px; right: 20px; z-index: 99998;
         width: 360px; max-width: calc(100vw - 32px);
         height: 480px; max-height: calc(100vh - 120px);
-        background: #1e293b; border: 1px solid #334155;
-        border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(51,65,85,0.3);
+        background: rgba(15,23,42,0.55);
+        backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(148,163,184,0.15);
+        border-radius: 16px;
+        box-shadow: 0 12px 48px rgba(0,0,0,0.4);
         display: none; flex-direction: column; overflow: hidden;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         color: #e2e8f0;
       }
       #snsp-chat-window.open { display: flex; }
       .snsp-header {
-        background: #0f172a; padding: 14px 16px;
-        border-bottom: 1px solid #334155; display: flex;
+        background: rgba(15,23,42,0.6); padding: 14px 16px;
+        border-bottom: 1px solid rgba(148,163,184,0.12); display: flex;
         align-items: center; justify-content: space-between;
+        backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
       }
       .snsp-header-title {
         font-weight: 600; font-size: 14px; display: flex;
-        align-items: center; gap: 8px;
+        align-items: center; gap: 8px; color: #fff;
       }
       .snsp-header-title .dot {
         width: 8px; height: 8px; border-radius: 50%; background: #4ade80;
@@ -71,7 +74,7 @@
         background: none; border: none; color: #94a3b8; cursor: pointer;
         font-size: 18px; padding: 4px 8px; border-radius: 4px;
       }
-      .snsp-close:hover { color: #e2e8f0; background: rgba(255,255,255,0.08); }
+      .snsp-close:hover { color: #e2e8f0; background: rgba(255,255,255,0.1); }
       .snsp-body {
         flex: 1; overflow-y: auto; padding: 16px;
         display: flex; flex-direction: column; gap: 8px;
@@ -87,9 +90,10 @@
         margin: 0; font-size: 13px; color: #94a3b8; line-height: 1.4;
       }
       .snsp-intro input {
-        background: #0f172a; border: 1px solid #334155; color: #e2e8f0;
-        padding: 10px 12px; border-radius: 8px; font-size: 14px;
+        background: rgba(15,23,42,0.5); border: 1px solid rgba(148,163,184,0.2);
+        color: #e2e8f0; padding: 10px 12px; border-radius: 8px; font-size: 14px;
         outline: none; width: 100%; box-sizing: border-box;
+        backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
       }
       .snsp-intro input:focus { border-color: #ea580c; }
       .snsp-intro input::placeholder { color: #64748b; }
@@ -109,24 +113,28 @@
         border-bottom-right-radius: 4px;
       }
       .snsp-msg-agent, .snsp-msg-ai {
-        align-self: flex-start; background: #334155;
-        border: 1px solid #475569; border-bottom-left-radius: 4px;
+        align-self: flex-start;
+        background: rgba(51,65,85,0.55);
+        border: 1px solid rgba(148,163,184,0.15);
+        border-bottom-left-radius: 4px;
+        backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
       }
-      .snsp-msg-ai { border-color: #475569; }
+      .snsp-msg-ai { border-color: rgba(148,163,184,0.2); }
       .snsp-msg-time {
         font-size: 10px; color: #64748b; margin-top: 2px;
       }
       .snsp-typing {
         align-self: flex-start; padding: 10px 14px;
-        background: #334155; border: 1px solid #475569;
+        background: rgba(51,65,85,0.55); border: 1px solid rgba(148,163,184,0.15);
         border-radius: 12px; font-size: 13px; color: #94a3b8;
       }
       .snsp-input-area {
-        padding: 12px; background: #0f172a;
-        border-top: 1px solid #334155; display: flex; gap: 8px;
+        padding: 12px; background: rgba(15,23,42,0.6);
+        border-top: 1px solid rgba(148,163,184,0.12); display: flex; gap: 8px;
+        backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
       }
       .snsp-input-area input {
-        flex: 1; background: #1e293b; border: 1px solid #334155;
+        flex: 1; background: rgba(30,41,59,0.5); border: 1px solid rgba(148,163,184,0.2);
         color: #e2e8f0; padding: 10px 12px; border-radius: 8px;
         font-size: 14px; outline: none;
       }
@@ -142,28 +150,29 @@
       .snsp-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
       .snsp-powered {
         text-align: center; padding: 6px; font-size: 10px;
-        color: #475569; background: #0f172a;
+        color: #64748b; background: rgba(15,23,42,0.4);
       }
       .snsp-powered a { color: #94a3b8; text-decoration: none; }
       .snsp-faq-tiles {
         display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0;
       }
       .snsp-faq-tile {
-        background: #334155; color: #e2e8f0; border: 1px solid #475569;
+        background: rgba(51,65,85,0.5); color: #e2e8f0;
+        border: 1px solid rgba(148,163,184,0.15);
         padding: 6px 12px; border-radius: 16px; font-size: 12px;
         cursor: pointer; transition: background 0.2s; line-height: 1.4;
       }
-      .snsp-faq-tile:hover { background: #475569; }
+      .snsp-faq-tile:hover { background: rgba(71,85,105,0.6); }
     `;
     document.head.appendChild(style);
   }
 
   // ── DOM ─────────────────────────────────────────────────
   function createWidget() {
-    // Bubble — orange with SVG chat icon
+    // Bubble — orange with filled chat icon
     const bubble = document.createElement('div');
     bubble.id = 'snsp-chat-bubble';
-    bubble.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="8" cy="10" r="1" fill="#fff" stroke="none"/><circle cx="12" cy="10" r="1" fill="#fff" stroke="none"/><circle cx="16" cy="10" r="1" fill="#fff" stroke="none"/></svg><span class="badge" id="snspBadge">0</span>';
+    bubble.innerHTML = '<svg viewBox="0 0 24 24" width="28" height="28" fill="#fff"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg><span class="badge" id="snspBadge">0</span>';
     bubble.onclick = toggleChat;
     document.body.appendChild(bubble);
 
