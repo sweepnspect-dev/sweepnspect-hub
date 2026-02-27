@@ -1,5 +1,5 @@
 /**
- * SweepNspect Live Chat Widget — Phone Frame, Light Mode
+ * SweepNspect Live Chat Widget — Phone Frame, App-Matched
  * Self-contained, no dependencies
  * Drop-in: <script src="...chat-widget.js"></script>
  */
@@ -20,11 +20,10 @@
     sending: false,
   };
 
-  // ── Styles ──────────────────────────────────────────────
   function injectStyles() {
     const style = document.createElement('style');
     style.textContent = `
-      /* ── Chat Bubble ── */
+      /* ── Bubble ── */
       #snsp-chat-bubble {
         position: fixed; bottom: 20px; right: 20px; z-index: 99999;
         width: 60px; height: 60px; border-radius: 50%;
@@ -53,20 +52,14 @@
         border-radius: 40px; padding: 6px;
         border: 3px solid; border-color: #606068 #48484e #2a2a30 #48484e;
         box-shadow:
-          -12px 16px 45px rgba(0,0,0,0.6),
-          0 8px 30px rgba(0,0,0,0.4),
+          -12px 16px 45px rgba(0,0,0,0.6), 0 8px 30px rgba(0,0,0,0.4),
           0 0 0 1px rgba(140,140,150,0.2),
-          inset 2px 2px 0 rgba(255,255,255,0.12),
-          inset 0 2px 6px rgba(255,255,255,0.06),
-          inset -2px -2px 0 rgba(0,0,0,0.6),
-          inset 0 -3px 8px rgba(0,0,0,0.3);
+          inset 2px 2px 0 rgba(255,255,255,0.12), inset 0 2px 6px rgba(255,255,255,0.06),
+          inset -2px -2px 0 rgba(0,0,0,0.6), inset 0 -3px 8px rgba(0,0,0,0.3);
         display: none; flex-direction: column; overflow: hidden;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        color: #0f172a;
       }
       #snsp-chat-window.open { display: flex; }
-
-      /* Side buttons */
       #snsp-chat-window::before {
         content: ''; position: absolute; right: -5px; top: 100px;
         width: 3px; height: 40px;
@@ -83,11 +76,9 @@
       /* ── Screen ── */
       .snsp-screen {
         flex: 1; display: flex; flex-direction: column;
-        background: #ffffff; border-radius: 34px; overflow: hidden;
+        background: #eaeff4; border-radius: 34px; overflow: hidden;
         position: relative;
       }
-
-      /* Camera punch-hole */
       .snsp-camera {
         width: 10px; height: 10px; background: #06060a;
         border-radius: 50%; position: absolute; top: 10px; left: 50%;
@@ -96,134 +87,129 @@
         box-shadow: inset 0 1px 3px rgba(0,0,0,0.9), 0 0 3px rgba(0,0,0,0.4);
       }
 
-      /* ── Status Bar (navy) ── */
+      /* ── Status Bar ── */
       .snsp-statusbar {
         display: flex; align-items: center; justify-content: space-between;
-        padding: 8px 20px 2px; font-size: 11px; color: #94a3b8;
-        background: #0f172a; min-height: 26px;
+        padding: 8px 20px 2px; font-size: 10px; color: #cbd5e1;
+        background: #1e3a5f; min-height: 26px;
       }
-      .snsp-statusbar-time { font-weight: 600; color: #e2e8f0; font-size: 10px; }
+      .snsp-statusbar-time { font-weight: 600; color: #fff; }
       .snsp-statusbar-icons { display: flex; gap: 4px; align-items: center; }
-      .snsp-statusbar-icons svg { opacity: 0.7; }
+      .snsp-statusbar-icons svg { opacity: 0.8; }
 
-      /* ── App Header (navy with logo) ── */
+      /* ── App Bar (navy) ── */
       .snsp-header {
-        background: #0f172a; padding: 6px 14px 10px;
+        background: #1e3a5f; padding: 8px 14px 12px;
         display: flex; align-items: center; justify-content: space-between;
       }
-      .snsp-header-left {
-        display: flex; align-items: center; gap: 8px;
-      }
-      .snsp-header-logo {
-        height: 22px; width: auto; display: block;
-      }
+      .snsp-header-left { display: flex; align-items: center; gap: 8px; }
+      .snsp-header-logo { height: 24px; width: auto; display: block; }
       .snsp-header-title {
-        font-weight: 600; font-size: 13px; color: #e2e8f0;
+        font-weight: 600; font-size: 14px; color: #fff;
         display: flex; align-items: center; gap: 6px;
       }
       .snsp-header-title .dot {
         width: 7px; height: 7px; border-radius: 50%; background: #4ade80;
       }
       .snsp-close {
-        background: none; border: none; color: #64748b; cursor: pointer;
-        font-size: 18px; padding: 2px 6px; border-radius: 6px;
+        background: none; border: none; color: #94a3b8; cursor: pointer;
+        font-size: 20px; padding: 2px 6px; border-radius: 6px; line-height: 1;
       }
-      .snsp-close:hover { color: #e2e8f0; background: rgba(255,255,255,0.1); }
+      .snsp-close:hover { color: #fff; background: rgba(255,255,255,0.1); }
 
-      /* ── Chat Body (white) ── */
+      /* ── Chat Body (app bg) ── */
       .snsp-body {
-        flex: 1; overflow-y: auto; padding: 14px 12px;
+        flex: 1; overflow-y: auto; padding: 12px 10px;
         display: flex; flex-direction: column; gap: 8px;
-        background: #ffffff;
+        background: #eaeff4; color: #0f172a;
       }
 
-      /* ── Intro Form ── */
+      /* ── Intro ── */
       .snsp-intro {
-        display: flex; flex-direction: column; gap: 12px;
-        justify-content: center; flex: 1;
+        display: flex; flex-direction: column; gap: 10px;
+        justify-content: center; flex: 1; padding: 0 4px;
       }
-      .snsp-intro h3 { margin: 0 0 2px; font-size: 16px; color: #0f172a; }
+      .snsp-intro h3 { margin: 0; font-size: 16px; color: #1e293b; }
       .snsp-intro p { margin: 0; font-size: 13px; color: #64748b; line-height: 1.4; }
       .snsp-intro input {
-        background: #f8fafc; border: 1px solid #e2e8f0; color: #0f172a;
-        padding: 10px 12px; border-radius: 8px; font-size: 14px;
+        background: #fff; border: 1px solid #cbd5e1; color: #1e293b;
+        padding: 11px 14px; border-radius: 12px; font-size: 14px;
         outline: none; width: 100%; box-sizing: border-box;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
       }
-      .snsp-intro input:focus { border-color: #ea580c; }
+      .snsp-intro input:focus { border-color: #ea580c; box-shadow: 0 0 0 2px rgba(234,88,12,0.15); }
       .snsp-intro input::placeholder { color: #94a3b8; }
       .snsp-start-btn {
         background: #ea580c; color: #fff; border: none; padding: 12px;
-        border-radius: 8px; font-size: 14px; font-weight: 600;
+        border-radius: 12px; font-size: 14px; font-weight: 600;
         cursor: pointer; transition: background 0.2s;
+        box-shadow: 0 2px 8px rgba(234,88,12,0.25);
       }
       .snsp-start-btn:hover { background: #c2410c; }
       .snsp-start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-      /* ── Messages ── */
+      /* ── Messages (card style) ── */
       .snsp-msg {
-        max-width: 82%; padding: 9px 12px; border-radius: 16px;
-        font-size: 13px; line-height: 1.45; word-wrap: break-word;
+        max-width: 82%; padding: 10px 14px; font-size: 13px;
+        line-height: 1.5; word-wrap: break-word;
       }
       .snsp-msg-visitor {
         align-self: flex-end; background: #ea580c; color: #fff;
-        border-bottom-right-radius: 4px;
+        border-radius: 16px 16px 4px 16px;
+        box-shadow: 0 1px 4px rgba(234,88,12,0.2);
       }
       .snsp-msg-agent, .snsp-msg-ai {
-        align-self: flex-start; background: #f1f5f9; color: #0f172a;
-        border: 1px solid #e2e8f0; border-bottom-left-radius: 4px;
+        align-self: flex-start; background: #fff; color: #1e293b;
+        border-radius: 16px 16px 16px 4px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.06);
       }
 
       /* ── Input Area (navy) ── */
       .snsp-input-area {
-        padding: 10px 12px 12px; background: #0f172a;
-        border-top: 1px solid #1e293b; display: flex; gap: 8px;
-        align-items: center;
+        padding: 8px 10px; background: #1e3a5f;
+        display: flex; gap: 8px; align-items: center;
       }
       .snsp-input-area input {
-        flex: 1; background: #1e293b; border: 1px solid #334155;
-        color: #e2e8f0; padding: 9px 14px; border-radius: 20px;
+        flex: 1; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18);
+        color: #fff; padding: 9px 14px; border-radius: 20px;
         font-size: 13px; outline: none;
       }
-      .snsp-input-area input:focus { border-color: #ea580c; }
-      .snsp-input-area input::placeholder { color: #64748b; }
+      .snsp-input-area input:focus { border-color: #ea580c; background: rgba(255,255,255,0.18); }
+      .snsp-input-area input::placeholder { color: rgba(255,255,255,0.5); }
       .snsp-send-btn {
         background: #ea580c; border: none; color: #fff;
         width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
         display: flex; align-items: center; justify-content: center;
         transition: background 0.2s; flex-shrink: 0;
+        box-shadow: 0 2px 6px rgba(234,88,12,0.3);
       }
       .snsp-send-btn:hover { background: #c2410c; }
       .snsp-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-      /* ── Bottom (navy with home indicator) ── */
-      .snsp-footer {
-        background: #0f172a; text-align: center;
-        padding: 2px 0 0; font-size: 9px; color: #475569;
-      }
-      .snsp-footer a { color: #64748b; text-decoration: none; }
+      /* ── Home Bar (navy, tight) ── */
       .snsp-homebar {
-        display: flex; justify-content: center; padding: 5px 0 8px;
-        background: #0f172a;
+        display: flex; justify-content: center; padding: 6px 0 8px;
+        background: #1e3a5f;
       }
       .snsp-homebar-pill {
-        width: 100px; height: 4px; border-radius: 2px; background: #334155;
+        width: 90px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.2);
       }
 
-      /* ── FAQ Tiles ── */
+      /* ── FAQ Tiles (app button style) ── */
       .snsp-faq-tiles {
-        display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0;
+        display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 0;
       }
       .snsp-faq-tile {
-        background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0;
-        padding: 6px 10px; border-radius: 14px; font-size: 11px;
-        cursor: pointer; transition: background 0.2s; line-height: 1.3;
+        background: #fff; color: #334155; border: 1px solid #cbd5e1;
+        padding: 7px 12px; border-radius: 20px; font-size: 11px;
+        cursor: pointer; transition: all 0.15s; line-height: 1.3;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
       }
-      .snsp-faq-tile:hover { background: #e2e8f0; }
+      .snsp-faq-tile:hover { background: #f1f5f9; border-color: #ea580c; color: #ea580c; }
     `;
     document.head.appendChild(style);
   }
 
-  // ── DOM ─────────────────────────────────────────────────
   function createWidget() {
     const bubble = document.createElement('div');
     bubble.id = 'snsp-chat-bubble';
@@ -239,13 +225,13 @@
         <div class="snsp-statusbar">
           <span class="snsp-statusbar-time">9:41</span>
           <span class="snsp-statusbar-icons">
-            <svg width="12" height="12" fill="#94a3b8" viewBox="0 0 24 24"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3a4.237 4.237 0 00-6 0zm-4-4l2 2a7.074 7.074 0 0110 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
-            <svg width="12" height="12" fill="#94a3b8" viewBox="0 0 24 24"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
+            <svg width="12" height="12" fill="#cbd5e1" viewBox="0 0 24 24"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3a4.237 4.237 0 00-6 0zm-4-4l2 2a7.074 7.074 0 0110 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
+            <svg width="12" height="12" fill="#cbd5e1" viewBox="0 0 24 24"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
           </span>
         </div>
         <div class="snsp-header">
           <div class="snsp-header-left">
-            <img src="https://sweepnspect.com/images/sweepnspect-logo-TransBG.png" alt="SweepNspect" class="snsp-header-logo">
+            <img src="https://sweepnspect.com/images/sweepnspect-logo-TransBG.png" alt="" class="snsp-header-logo">
             <div class="snsp-header-title"><span class="dot"></span> Live Chat</div>
           </div>
           <button class="snsp-close" onclick="document.getElementById('snsp-chat-window').classList.remove('open')">&times;</button>
@@ -264,8 +250,7 @@
   }
 
   function renderIntro() {
-    const body = document.getElementById('snspBody');
-    body.innerHTML = `
+    document.getElementById('snspBody').innerHTML = `
       <div class="snsp-intro">
         <h3>Hi there! \u{1F44B}</h3>
         <p>Have a question about SweepNspect? We're here to help.</p>
@@ -277,34 +262,28 @@
   }
 
   window._snspStart = async function() {
-    const nameEl = document.getElementById('snspName');
-    const emailEl = document.getElementById('snspEmail');
-    const btn = document.getElementById('snspStartBtn');
+    const nameEl = document.getElementById('snspName'), btn = document.getElementById('snspStartBtn');
     const name = (nameEl.value || '').trim();
     if (!name) { nameEl.style.borderColor = '#ea580c'; nameEl.focus(); return; }
     state.visitor.name = name;
-    state.visitor.email = (emailEl.value || '').trim();
+    state.visitor.email = (document.getElementById('snspEmail').value || '').trim();
     btn.disabled = true; btn.textContent = 'Connecting...';
     try {
       const res = await post('/api/chat/start', { name: state.visitor.name, email: state.visitor.email });
-      if (res.ok && res.sessionId) {
-        state.sessionId = res.sessionId; state.phase = 'chat';
-        renderChat(); startPolling();
-      } else { btn.textContent = 'Error \u2014 retry'; btn.disabled = false; }
+      if (res.ok && res.sessionId) { state.sessionId = res.sessionId; state.phase = 'chat'; renderChat(); startPolling(); }
+      else { btn.textContent = 'Error \u2014 retry'; btn.disabled = false; }
     } catch { btn.textContent = 'Connection failed \u2014 retry'; btn.disabled = false; }
   };
 
   function renderChat() {
-    const body = document.getElementById('snspBody');
-    body.innerHTML = `
-      <div id="snspMessages" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-bottom:8px"></div>
+    document.getElementById('snspBody').innerHTML = `
+      <div id="snspMessages" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-bottom:4px"></div>
       <div class="snsp-input-area">
         <input type="text" id="snspInput" placeholder="Message..." onkeydown="if(event.key==='Enter')window._snspSend()">
-        <button class="snsp-send-btn" id="snspSendBtn" onclick="window._snspSend()">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        <button class="snsp-send-btn" onclick="window._snspSend()">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
       </div>
-      <div class="snsp-footer">Powered by <a href="https://sweepnspect.com" target="_blank">SweepNspect</a></div>
       <div class="snsp-homebar"><div class="snsp-homebar-pill"></div></div>
     `;
     addLocalMessage('agent', 'Hi ' + esc(state.visitor.name) + '! How can we help you today?');
@@ -318,10 +297,9 @@
     const tiles = document.createElement('div');
     tiles.className = 'snsp-faq-tiles'; tiles.id = 'snspFaqTiles';
     ['How much does it cost?','What is the Founding 25?','Does it work offline?','What devices supported?'].forEach(function(q) {
-      var tile = document.createElement('span');
-      tile.className = 'snsp-faq-tile'; tile.textContent = q;
-      tile.onclick = function() { var input = document.getElementById('snspInput'); if (input) input.value = q; window._snspSend(); };
-      tiles.appendChild(tile);
+      var t = document.createElement('span'); t.className = 'snsp-faq-tile'; t.textContent = q;
+      t.onclick = function() { var i = document.getElementById('snspInput'); if (i) i.value = q; window._snspSend(); };
+      tiles.appendChild(t);
     });
     msgs.appendChild(tiles);
   }
@@ -336,14 +314,10 @@
     state.sending = false; input.focus();
   };
 
-  function addLocalMessage(from, text) {
-    state.messages.push({ from, text, ts: new Date().toISOString() });
-    renderMessages();
-  }
+  function addLocalMessage(from, text) { state.messages.push({ from, text, ts: new Date().toISOString() }); renderMessages(); }
 
   function renderMessages() {
-    const el = document.getElementById('snspMessages');
-    if (!el) return;
+    const el = document.getElementById('snspMessages'); if (!el) return;
     el.innerHTML = state.messages.map(m => {
       const cls = m.from === 'visitor' ? 'snsp-msg-visitor' : m.from === 'ai' ? 'snsp-msg-ai' : 'snsp-msg-agent';
       const label = m.from === 'visitor' ? '' : m.from === 'ai' ? '<div style="font-size:10px;color:#94a3b8;margin-bottom:2px">AI Assistant</div>' : '<div style="font-size:10px;color:#94a3b8;margin-bottom:2px">Support</div>';
@@ -353,7 +327,6 @@
   }
 
   function startPolling() { if (state.pollTimer) return; state.pollTimer = setInterval(poll, POLL_INTERVAL); }
-
   async function poll() {
     if (!state.sessionId) return;
     try {
@@ -361,7 +334,7 @@
       if (data.messages && data.messages.length > 0) {
         for (const m of data.messages) {
           if (m.from === 'visitor') { if (m.ts > state.lastTs) state.lastTs = m.ts; continue; }
-          if (!state.messages.find(existing => existing.id === m.id)) state.messages.push(m);
+          if (!state.messages.find(x => x.id === m.id)) state.messages.push(m);
           if (m.ts > state.lastTs) state.lastTs = m.ts;
         }
         renderMessages();
@@ -370,11 +343,10 @@
     } catch {}
   }
 
-  async function post(path, body) { const res = await fetch(WORKER_URL + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); return res.json(); }
-  async function get(path) { const res = await fetch(WORKER_URL + path); return res.json(); }
+  async function post(path, body) { const r = await fetch(WORKER_URL + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); return r.json(); }
+  async function get(path) { const r = await fetch(WORKER_URL + path); return r.json(); }
   function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
   function init() { injectStyles(); createWidget(); }
 })();
