@@ -1,50 +1,57 @@
-// ── Revenue View ────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+// Revenue View — MRR, Transactions, Financial Tracking
+// ══════════════════════════════════════════════════════════
 const RevenueView = {
   entries: [],
 
   render(container) {
     container.innerHTML = `
-      <div class="stat-grid" id="revStats">
-        <div class="stat-card">
-          <div class="stat-label">MRR</div>
-          <div class="stat-value brass" id="revMrr">-</div>
+      <div class="revenue-view">
+        <div class="stat-grid" id="revStats">
+          <div class="stat-card">
+            <div class="stat-label">MRR</div>
+            <div class="stat-value brass" id="revMrr">-</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">This Month</div>
+            <div class="stat-value success" id="revMonth">-</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Refunds</div>
+            <div class="stat-value danger" id="revRefunds">-</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">All Time</div>
+            <div class="stat-value" id="revAllTime">-</div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">This Month</div>
-          <div class="stat-value success" id="revMonth">-</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Refunds</div>
-          <div class="stat-value danger" id="revRefunds">-</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">All Time</div>
-          <div class="stat-value" id="revAllTime">-</div>
-        </div>
-      </div>
 
-      <div style="display:flex; justify-content:flex-end; margin-bottom:16px">
-        <button class="btn btn-primary" onclick="RevenueView.showNewModal()">+ Add Entry</button>
-      </div>
+        <div class="revenue-toolbar">
+          <div></div>
+          <button class="btn btn-primary" onclick="RevenueView.showNewModal()">+ Add Entry</button>
+        </div>
 
-      <div class="panel">
-        <div class="panel-header"><h2>Transactions</h2></div>
-        <div class="panel-body" style="padding:0">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Type</th>
-                <th>Amount</th>
-                <th>Subscriber</th>
-                <th>Note</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="revBody">
-              <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">Loading...</td></tr>
-            </tbody>
-          </table>
+        <div class="panel">
+          <div class="panel-header"><h2>Transactions</h2></div>
+          <div class="panel-body" style="padding:0">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>Subscriber</th>
+                    <th>Note</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="revBody">
+                  <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -63,22 +70,25 @@ const RevenueView = {
       el.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">No transactions yet</td></tr>';
       return;
     }
-    el.innerHTML = this.entries.map(r => `
-      <tr>
-        <td style="color:var(--text-dim)">${r.date ? new Date(r.date).toLocaleDateString() : ''}</td>
-        <td>
-          <span style="font-size:10px;font-weight:600;text-transform:uppercase;padding:2px 8px;border-radius:10px;
-            background:${r.type === 'refund' ? 'rgba(192,57,43,0.15)' : r.type === 'subscription' ? 'rgba(39,174,96,0.15)' : 'rgba(212,165,116,0.15)'};
-            color:${r.type === 'refund' ? 'var(--brick)' : r.type === 'subscription' ? 'var(--green)' : 'var(--brass)'}">${r.type}</span>
-        </td>
-        <td style="font-weight:600;color:${r.type === 'refund' ? 'var(--brick)' : 'var(--green)'}">
-          ${r.type === 'refund' ? '-' : '+'}$${r.amount}
-        </td>
-        <td style="color:var(--text-dim)">${r.subscriberId || ''}</td>
-        <td style="color:var(--text-dim)">${this.esc(r.note || '')}</td>
-        <td><button class="task-delete" onclick="RevenueView.deleteEntry('${r.id}')">&times;</button></td>
-      </tr>
-    `).join('');
+    el.innerHTML = this.entries.map(r => {
+      const typeColor = r.type === 'refund' ? 'var(--brick-dim)' : r.type === 'subscription' ? 'var(--green-dim)' : 'var(--brass-dim)';
+      const typeTextColor = r.type === 'refund' ? 'var(--brick)' : r.type === 'subscription' ? 'var(--green)' : 'var(--brass)';
+      const amountColor = r.type === 'refund' ? 'var(--brick)' : 'var(--green)';
+      return `
+        <tr>
+          <td style="color:var(--text-dim)">${r.date ? new Date(r.date).toLocaleDateString() : ''}</td>
+          <td>
+            <span style="font-size:10px;font-weight:600;text-transform:uppercase;padding:2px 8px;border-radius:10px;background:${typeColor};color:${typeTextColor}">${r.type}</span>
+          </td>
+          <td style="font-weight:600;font-family:var(--font-mono);color:${amountColor}">
+            ${r.type === 'refund' ? '-' : '+'}$${r.amount}
+          </td>
+          <td style="color:var(--text-dim)">${r.subscriberId || ''}</td>
+          <td style="color:var(--text-dim)">${App.esc(r.note || '')}</td>
+          <td><button class="task-delete" onclick="RevenueView.deleteEntry('${r.id}')">&times;</button></td>
+        </tr>
+      `;
+    }).join('');
   },
 
   onStats(stats) {
@@ -134,12 +144,5 @@ const RevenueView = {
 
   onWsMessage(type) {
     if (type.startsWith('revenue:')) this.loadEntries();
-  },
-
-  esc(str) {
-    if (!str) return '';
-    const d = document.createElement('div');
-    d.textContent = str;
-    return d.innerHTML;
   }
 };

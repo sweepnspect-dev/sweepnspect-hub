@@ -5,7 +5,7 @@
   "aiEnabled": true,
   "alerts": {
     "sms": {
-      "enabled": false,
+      "enabled": true,
       "batchWindowMs": 30000,
       "cooldownMs": 300000
     },

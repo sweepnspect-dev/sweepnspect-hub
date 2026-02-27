@@ -1,0 +1,78 @@
+[
+  {
+    "id": "rule-001",
+    "name": "Critical ticket → notify + investigate",
+    "enabled": true,
+    "event": "ticket:new",
+    "conditions": [
+      { "field": "priority", "op": "in", "value": ["critical", "high"] }
+    ],
+    "actions": [
+      {
+        "type": "relay_notify",
+        "to": "z",
+        "template": "🚨 {{priority}} ticket: {{subject}} (from {{customer.name}})"
+      },
+      {
+        "type": "claude_dispatch",
+        "template": "A {{priority}} support ticket just came in for SweepNspect. Subject: {{subject}}. Description: {{description}}. Customer: {{customer.name}} ({{customer.email}}). Investigate: check recent git commits in D:\\Hive\\Projects\\SweepNspect for related changes, check if this is a known issue, and suggest a resolution."
+      }
+    ]
+  },
+  {
+    "id": "rule-002",
+    "name": "Crash ticket → investigate root cause",
+    "enabled": true,
+    "event": "ticket:new",
+    "conditions": [
+      { "field": "source", "op": "eq", "value": "crash-webhook" }
+    ],
+    "actions": [
+      {
+        "type": "relay_notify",
+        "to": "z",
+        "template": "💥 App crash: {{subject}} ({{crashCount}} occurrences)"
+      },
+      {
+        "type": "claude_dispatch",
+        "template": "SweepNspect Android app crash detected. Error: {{subject}}. Description: {{description}}. Check git log in D:\\Hive\\Projects\\SweepNspect for recent changes that could have caused this crash. Look at the error stack and identify the root cause."
+      }
+    ]
+  },
+  {
+    "id": "rule-003",
+    "name": "Founding application → notify + follow up",
+    "enabled": true,
+    "event": "subscriber:new",
+    "conditions": [
+      { "field": "plan", "op": "eq", "value": "founding" }
+    ],
+    "actions": [
+      {
+        "type": "relay_notify",
+        "to": "z",
+        "template": "🎉 New founding member application: {{name}} ({{email}})"
+      },
+      {
+        "type": "create_task",
+        "title": "Follow up with founding applicant: {{name}}",
+        "assignee": "z",
+        "priority": "high"
+      }
+    ]
+  },
+  {
+    "id": "rule-004",
+    "name": "Live chat started → notify Z",
+    "enabled": true,
+    "event": "chat:start",
+    "conditions": [],
+    "actions": [
+      {
+        "type": "relay_notify",
+        "to": "z",
+        "template": "💬 Live chat started: {{name}} from {{city}}"
+      }
+    ]
+  }
+]

@@ -90,6 +90,16 @@ alertRouter.setTawkNotifier(tawkNotifier);
 const WorkerPoller = require('./lib/worker-poller');
 const workerPoller = new WorkerPoller(jsonStore, broadcast, alertRouter);
 
+// ── Relay Bridge + Automation Rules ─────────────────────
+const RelayBridge = require('./lib/relay-bridge');
+const AutomationRules = require('./lib/automation-rules');
+const relayBridge = new RelayBridge(broadcast);
+const automationRules = new AutomationRules(relayBridge, broadcast);
+
+// ── Facebook Service ─────────────────────────────────────
+const FacebookService = require('./lib/facebook');
+const facebookService = new FacebookService();
+
 // Make store + alert router available to routes
 app.locals.jsonStore = jsonStore;
 app.locals.broadcast = broadcast;
@@ -97,6 +107,9 @@ app.locals.alertRouter = alertRouter;
 app.locals.emailPoller = emailPoller;
 app.locals.emailRouter = emailRouter;
 app.locals.workerPoller = workerPoller;
+app.locals.relayBridge = relayBridge;
+app.locals.automationRules = automationRules;
+app.locals.facebookService = facebookService;
 
 // ── Routes ───────────────────────────────────────────────
 app.use('/api/tickets', require('./routes/tickets'));
@@ -109,6 +122,8 @@ app.use('/api/webhooks', require('./routes/webhooks'));
 app.use('/api/marketing', require('./routes/marketing'));
 app.use('/api/webhooks/tawk', require('./routes/tawk'));
 app.use('/api/inbox', require('./routes/inbox'));
+app.use('/api/comms', require('./routes/comms'));
+app.use('/api/automation', require('./routes/automation'));
 
 // ── Alert API ────────────────────────────────────────────
 app.get('/api/alerts', (req, res) => {
@@ -141,6 +156,194 @@ app.get('/api/tawk/status', (req, res) => {
 
 app.get('/api/worker/status', (req, res) => {
   res.json(workerPoller.getStatus());
+});
+
+// ── System endpoints (for dashboard System view) ─────────
+app.get('/api/ping', (req, res) => {
+  res.json({ ok: true, ts: Date.now() });
+});
+
+app.get('/api/system/services', async (req, res) => {
+  const inbox = emailPoller.getInbox();
+  const tawk = tawkNotifier.getStatus();
+  const worker = workerPoller.getStatus();
+
+  let clauserData = { status: 'offline' };
+  try {
+    const clauserMod = require('./routes/clauser');
+    clauserData = clauserMod.getStatus();
+  } catch {}
+
+  let relayOk = false;
+  try {
+    const health = await relayBridge.getHealth().catch(() => null);
+    relayOk = !!health;
+  } catch {}
+
+  let aiOk = false;
+  try {
+    const aiRes = await new Promise((resolve) => {
+      const r = require('http').get(`http://${process.env.AI_PROXY_HOST || '127.0.0.1'}:${process.env.AI_PROXY_PORT || 8889}/status`, { timeout: 3000 }, (resp) => {
+        resolve(resp.statusCode === 200);
+      });
+      r.on('error', () => resolve(false));
+      r.on('timeout', () => { r.destroy(); resolve(false); });
+    });
+    aiOk = aiRes;
+  } catch {}
+
+  res.json({
+    hq:       { status: 'online', detail: 'Port 8888' },
+    ws:       { status: 'online', detail: `${wss.clients.size} client${wss.clients.size !== 1 ? 's' : ''}` },
+    email:    { status: inbox.status === 'polling' || inbox.status === 'connected' ? 'online' : inbox.status === 'error' ? 'error' : 'offline', detail: inbox.status === 'error' ? inbox.error : `${inbox.checkCount} checks, ${inbox.unread} unread`, lastCheck: inbox.lastCheck },
+    tawk:     { status: tawk.configured ? 'online' : 'offline', detail: tawk.configured ? `${tawk.sendCount} sent` : 'Not configured' },
+    facebook: facebookService.configured
+      ? { status: 'online', detail: `Page ${facebookService.getStatus().pageId} — ${facebookService.getStatus().requestCount} requests` }
+      : { status: 'standby', detail: 'Webhook receiver ready — no page token' },
+    clauser:  { status: clauserData.status === 'offline' ? 'offline' : 'online', detail: clauserData.currentTask || (clauserData.status === 'online' ? 'Idle' : clauserData.status) },
+    ai:       { status: aiOk ? 'online' : 'offline', detail: aiOk ? 'Claude CLI bridge' : 'AI Proxy not running' },
+    relay:    { status: relayOk ? 'online' : 'offline', detail: relayOk ? 'Hive mesh connected' : 'Relay not reachable' },
+    worker:   { status: worker.status === 'connected' ? 'online' : worker.status === 'error' ? 'error' : 'offline', detail: worker.status === 'connected' ? `${worker.checkCount} checks` : (worker.error || 'Not connected'), lastCheck: worker.lastCheck },
+  });
+});
+
+app.get('/api/worker/health', async (req, res) => {
+  const status = workerPoller.getStatus();
+  res.json({
+    ok: status.status === 'connected',
+    status: status.status,
+    lastCheck: status.lastCheck,
+    workerUrl: status.workerUrl,
+  });
+});
+
+app.get('/api/relay/status', async (req, res) => {
+  try {
+    const health = await relayBridge.getHealth().catch(() => null);
+    const heartbeats = health?.heartbeats || {};
+
+    // Build nodes array from heartbeat data
+    const nodes = [];
+
+    // Genesis (this machine)
+    const hubBeat = heartbeats.hub || {};
+    nodes.push({
+      name: 'GENESIS',
+      id: 'genesis',
+      platform: 'Windows',
+      ip: '100.73.4.77',
+      lastSeen: hubBeat.ts || new Date().toISOString(),
+      status: 'online',
+      port: 8888,
+    });
+
+    // Z Fold (from z heartbeat)
+    const zBeat = heartbeats.z || {};
+    if (zBeat.ts) {
+      nodes.push({
+        name: 'Z Fold',
+        id: 'z',
+        platform: 'Android',
+        ip: '100.99.38.96',
+        lastSeen: zBeat.ts,
+        battery: zBeat.battery,
+        status: zBeat.genesis || 'unknown',
+      });
+    }
+
+    // Event Watcher
+    const ewBeat = heartbeats['event-watcher'] || {};
+    if (ewBeat.ts) {
+      nodes.push({
+        name: 'Event Watcher',
+        id: 'event-watcher',
+        platform: 'Daemon',
+        lastSeen: ewBeat.ts,
+        status: ewBeat.status || 'unknown',
+      });
+    }
+
+    res.json({
+      status: 'ok',
+      nodes,
+      relay: {
+        uptime: health?.uptime,
+        totalMessages: health?.totalMessages,
+      },
+    });
+  } catch (err) {
+    res.json({ status: 'error', error: err.message, nodes: [] });
+  }
+});
+
+app.get('/api/relay/messages', async (req, res) => {
+  try {
+    // Peek at messages from multiple queues without consuming them
+    const results = await Promise.allSettled([
+      relayBridge.peekMessages('genesis'),
+      relayBridge.peekMessages('hub'),
+      relayBridge.peekMessages('z'),
+    ]);
+
+    const all = [];
+    results.forEach(r => {
+      if (r.status === 'fulfilled' && r.value?.messages) {
+        all.push(...r.value.messages);
+      }
+    });
+
+    // Sort by timestamp descending
+    all.sort((a, b) => new Date(b.ts || 0) - new Date(a.ts || 0));
+    res.json({ messages: all });
+  } catch (err) {
+    res.json({ messages: [], error: err.message });
+  }
+});
+
+// ── Data Management ──────────────────────────────────────
+const DATA_STORES = {
+  tickets:       { file: 'tickets.json',        empty: [],  label: 'Tickets' },
+  subscribers:   { file: 'subscribers.json',     empty: [],  label: 'Subscribers' },
+  revenue:       { file: 'revenue.json',         empty: [],  label: 'Revenue' },
+  alerts:        { file: 'alerts.json',          empty: [],  label: 'Alerts' },
+  commands:      { file: 'commands.json',        empty: { tasks: [], schedule: [] }, label: 'Tasks & Schedule' },
+  'comms-tawk':  { file: 'comms-tawk.json',      empty: [],  label: 'Tawk Messages' },
+  'comms-fb':    { file: 'comms-facebook.json',   empty: [],  label: 'Facebook Messages' },
+  'comms-sms':   { file: 'comms-sms.json',       empty: [],  label: 'SMS Messages' },
+  marketing:     { file: 'marketing.json',        empty: [],  label: 'Marketing' },
+  'marketing-posts': { file: 'marketing-posts.json', empty: [], label: 'Marketing Posts' },
+  'auto-log':    { file: 'automation-log.json',   empty: [],  label: 'Automation Log' },
+};
+
+app.get('/api/data/stores', (req, res) => {
+  const stores = {};
+  for (const [key, def] of Object.entries(DATA_STORES)) {
+    const data = jsonStore(def.file).read();
+    const count = Array.isArray(data) ? data.length
+      : (data.tasks ? data.tasks.length + (data.schedule?.length || 0) : 0);
+    stores[key] = { label: def.label, file: def.file, count };
+  }
+  res.json(stores);
+});
+
+app.delete('/api/data/:store', (req, res) => {
+  const def = DATA_STORES[req.params.store];
+  if (!def) return res.status(404).json({ error: 'Unknown store: ' + req.params.store });
+  const s = jsonStore(def.file);
+  s.write(JSON.parse(JSON.stringify(def.empty)));
+  broadcast({ type: 'data:purged', data: { store: req.params.store, label: def.label } });
+  res.json({ ok: true, store: req.params.store, label: def.label });
+});
+
+app.delete('/api/data', (req, res) => {
+  const purged = [];
+  for (const [key, def] of Object.entries(DATA_STORES)) {
+    const s = jsonStore(def.file);
+    s.write(JSON.parse(JSON.stringify(def.empty)));
+    purged.push(key);
+  }
+  broadcast({ type: 'data:purged-all', data: { stores: purged } });
+  res.json({ ok: true, purged });
 });
 
 // Webhook endpoint (separate from CRUD) — with alert trigger
@@ -240,6 +443,14 @@ function broadcast(msg) {
   wss.clients.forEach(client => {
     if (client.readyState === 1) client.send(payload);
   });
+
+  // Auto-evaluate automation rules for broadcast events
+  // (skip stats/init/relay to avoid loops)
+  if (automationRules && msg.type && !['stats', 'init', 'relay:health', 'automation:fired', 'tts:speak'].includes(msg.type)) {
+    automationRules.evaluate(msg.type, msg.data).catch(err => {
+      console.error('[AUTOMATION] Broadcast rule error:', err.message);
+    });
+  }
 }
 
 wss.on('connection', (ws) => {
@@ -283,6 +494,38 @@ setInterval(() => {
   clauserWasOnline = online;
 }, 30000);
 
+// ── Marketing Post Scheduler (publish scheduled posts) ──
+setInterval(() => {
+  if (!facebookService.configured) return;
+  const ps = jsonStore('marketing-posts.json');
+  const posts = ps.read();
+  const now = Date.now();
+  let changed = false;
+
+  posts.forEach(async (post) => {
+    if (post.status !== 'scheduled' || !post.scheduledFor) return;
+    if (new Date(post.scheduledFor).getTime() > now) return;
+
+    const result = await facebookService.createPost(post.message, post.link || undefined);
+    if (result.ok) {
+      post.status = 'published';
+      post.fbPostId = result.data.id;
+      post.publishedAt = new Date().toISOString();
+      broadcast({ type: 'marketing:post-published', data: post });
+    } else {
+      post.status = 'failed';
+      post.lastError = result.error;
+    }
+    post.updatedAt = new Date().toISOString();
+    changed = true;
+  });
+
+  // Write after all synchronous marking is done (async publishes write individually)
+  if (changed) {
+    setTimeout(() => ps.write(posts), 2000);
+  }
+}, 60000);
+
 wss.on('close', () => clearInterval(heartbeat));
 
 // ── Start ────────────────────────────────────────────────
@@ -300,4 +543,9 @@ server.listen(PORT, '0.0.0.0', () => {
 
   // Start worker poller (Cloudflare → HQ bridge)
   workerPoller.start().catch(err => console.error('[WORKER] Start failed:', err));
+
+  // Start relay health polling (broadcasts mesh status every 30s)
+  relayBridge.startHealthPolling(30000);
+  console.log(`  Relay:      ${relayBridge.getConnectionStatus().relayUrl}`);
+  console.log(`  Automation: ${automationRules.getRules().length} rules loaded`);
 });

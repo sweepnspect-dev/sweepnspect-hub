@@ -28,6 +28,23 @@ router.post('/', (req, res) => {
 
       broadcast({ type: 'chat:start', data: { name, city, chatId: data.chatId || data.id } });
 
+      // Archive to comms-tawk for Communications tab
+      const chatStore = req.app.locals.jsonStore('comms-tawk.json');
+      const chatMsgs = chatStore.read();
+      const chatId = data.chatId || data.id || 'tawk-' + Date.now();
+      if (!chatMsgs.find(m => m.id === chatId)) {
+        chatMsgs.unshift({
+          id: chatId, chatId,
+          visitorName: name, visitorEmail: visitor.email || '',
+          message: `Chat started${city ? ' from ' + city : ''}`,
+          time: new Date().toISOString(),
+          unread: true, type: 'chat-start', messages: [],
+        });
+        if (chatMsgs.length > 500) chatMsgs.length = 500;
+        chatStore.write(chatMsgs);
+      }
+      broadcast({ type: 'tawk:message', data: { chatId, name } });
+
       alertRouter.send('chat-start', 'high',
         `Live chat: ${name}${city ? ' (' + city + ')' : ''} is on sweepnspect.com`,
         { name, city, chatId: data.chatId || data.id }
@@ -91,6 +108,24 @@ router.post('/', (req, res) => {
           time: ticket.createdAt
         }
       });
+
+      // Archive to comms-tawk for Communications tab
+      const tStore = req.app.locals.jsonStore('comms-tawk.json');
+      const tMsgs = tStore.read();
+      const tId = data.chatId || data.id || 'tawk-' + Date.now();
+      if (!tMsgs.find(m => m.id === tId)) {
+        tMsgs.unshift({
+          id: tId, chatId: tId,
+          visitorName: name, visitorEmail: email,
+          message: message || subject,
+          time: ticket.createdAt,
+          unread: true, type: 'ticket', ticketId: ticket.id,
+          messages: [],
+        });
+        if (tMsgs.length > 500) tMsgs.length = 500;
+        tStore.write(tMsgs);
+      }
+      broadcast({ type: 'tawk:message', data: { chatId: tId, name, ticketId: ticket.id } });
 
       alertRouter.send('chat-ticket', 'normal',
         `Chat ticket: ${name} — ${subject}`,

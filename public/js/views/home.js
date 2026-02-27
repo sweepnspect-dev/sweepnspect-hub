@@ -1,99 +1,101 @@
-// ── Dashboard View ──────────────────────────────────────
-const DashboardView = {
+// ══════════════════════════════════════════════════════════
+// Home View — Dashboard KPIs, Activity Feed, AI Chat
+// ══════════════════════════════════════════════════════════
+const HomeView = {
   clauserStatus: null,
 
   render(container) {
     container.innerHTML = `
-      <div class="stat-grid">
-        <div class="stat-card">
-          <div class="stat-label">Open Tickets</div>
-          <div class="stat-value danger" id="dashTickets">-</div>
-          <div class="stat-sub" id="dashTicketSub"></div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Active Subscribers</div>
-          <div class="stat-value brass" id="dashSubs">-</div>
-          <div class="stat-sub" id="dashSubSub"></div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Monthly Revenue</div>
-          <div class="stat-value success" id="dashMrr">-</div>
-          <div class="stat-sub" id="dashMrrSub"></div>
-        </div>
-        <div class="stat-card clauser-card" id="clauserCard">
-          <div class="stat-label">Clauser AI</div>
-          <div class="clauser-panel">
-            <div class="clauser-status-row">
-              <span class="clauser-dot offline" id="clauserDot"></span>
-              <span class="clauser-status-text" id="clauserStatusText">Offline</span>
-            </div>
-            <div class="clauser-task" id="clauserTask"></div>
-            <div class="clauser-meta">
-              <span id="clauserProcessed">0 tickets processed</span>
-              <span id="clauserUptime"></span>
-            </div>
-            <button class="btn btn-sm btn-ghost clauser-toggle" id="clauserToggleBtn" onclick="DashboardView.toggleClauser()">Pause</button>
+      <div class="home-view">
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-label">Open Tickets</div>
+            <div class="stat-value danger" id="dashTickets">-</div>
+            <div class="stat-sub" id="dashTicketSub"></div>
           </div>
-        </div>
-      </div>
-
-      <div class="panel-grid">
-        <div class="panel">
-          <div class="panel-header">
-            <h2>Live Activity</h2>
+          <div class="stat-card">
+            <div class="stat-label">Active Subscribers</div>
+            <div class="stat-value brass" id="dashSubs">-</div>
+            <div class="stat-sub" id="dashSubSub"></div>
           </div>
-          <div class="panel-body" id="activityFeed">
-            <div class="empty-state" style="padding:24px"><p>Waiting for activity...</p></div>
+          <div class="stat-card">
+            <div class="stat-label">Monthly Revenue</div>
+            <div class="stat-value success" id="dashMrr">-</div>
+            <div class="stat-sub" id="dashMrrSub"></div>
+          </div>
+          <div class="stat-card clauser-card" id="clauserCard">
+            <div class="stat-label">Clauser AI</div>
+            <div class="clauser-panel">
+              <div class="clauser-status-row">
+                <span class="clauser-dot offline" id="clauserDot"></span>
+                <span class="clauser-status-text" id="clauserStatusText">Offline</span>
+              </div>
+              <div class="clauser-task" id="clauserTask"></div>
+              <div class="clauser-meta">
+                <span id="clauserProcessed">0 tickets processed</span>
+                <span id="clauserUptime"></span>
+              </div>
+              <button class="btn btn-sm btn-ghost clauser-toggle" id="clauserToggleBtn" onclick="HomeView.toggleClauser()">Pause</button>
+            </div>
           </div>
         </div>
 
-        <div>
+        <div class="panel-grid">
           <div class="panel">
             <div class="panel-header">
-              <h2>Quick Actions</h2>
+              <h2>Live Activity</h2>
             </div>
-            <div class="panel-body">
-              <div class="quick-actions">
-                <button class="btn btn-primary" onclick="location.hash='tickets'; setTimeout(()=>TicketsView.showNewTicketModal(),100)">New Ticket</button>
-                <button class="btn btn-ghost" onclick="location.hash='subscribers'">View Subscribers</button>
-                <button class="btn btn-ghost" onclick="location.hash='revenue'">Check Revenue</button>
-                <button class="btn btn-ghost" onclick="location.hash='commands'">Tasks</button>
+            <div class="panel-body" id="activityFeed">
+              <div class="empty-state" style="padding:24px"><p>Waiting for activity...</p></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="panel">
+              <div class="panel-header">
+                <h2>Quick Actions</h2>
+              </div>
+              <div class="panel-body">
+                <div class="quick-actions">
+                  <button class="btn btn-primary" onclick="location.hash='tickets'; setTimeout(()=>TicketsView.showNewTicketModal(),100)">New Ticket</button>
+                  <button class="btn btn-ghost" onclick="location.hash='customers'">View Customers</button>
+                  <button class="btn btn-ghost" onclick="location.hash='revenue'">Check Revenue</button>
+                  <button class="btn btn-ghost" onclick="location.hash='tasks'">Tasks</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-header">
+                <h2>Needs Review</h2>
+              </div>
+              <div class="panel-body" id="dashReviewList">
+                <div class="empty-state" style="padding:16px"><p>No tickets waiting</p></div>
               </div>
             </div>
           </div>
+        </div>
 
-          <div class="panel">
-            <div class="panel-header">
-              <h2>Needs Review</h2>
-            </div>
-            <div class="panel-body" id="dashReviewList">
-              <div class="empty-state" style="padding:16px"><p>No tickets waiting</p></div>
-            </div>
+        <div class="panel" style="margin-top:20px">
+          <div class="panel-header">
+            <h2>Recent Alerts</h2>
+          </div>
+          <div class="panel-body" id="dashAlertsList">
+            <div class="empty-state" style="padding:16px"><p>No alerts</p></div>
           </div>
         </div>
-      </div>
 
-      <div class="panel" style="margin-top:20px">
-        <div class="panel-header">
-          <h2>Recent Alerts</h2>
+        <div style="margin-top:20px">
+          <div id="dashAiChat"></div>
         </div>
-        <div class="panel-body" id="dashAlertsList">
-          <div class="empty-state" style="padding:16px"><p>No alerts</p></div>
-        </div>
-      </div>
-
-      <div style="margin-top:20px">
-        <div id="dashAiChat"></div>
       </div>
     `;
 
-    // Load data
     this.loadActivity();
     this.loadReviewTickets();
     this.loadAlerts();
     this.fetchClauserStatus();
 
-    // Init AI chat
     if (typeof AIChat !== 'undefined') {
       AIChat.init('dashAiChat');
     }
@@ -116,12 +118,9 @@ const DashboardView = {
     const processed = el('clauserProcessed');
     const uptime = el('clauserUptime');
     const btn = el('clauserToggleBtn');
-    const sbDot = el('clauserSbDot');
-    const sbLabel = el('clauserSbLabel');
 
     if (!dot) return;
 
-    // Dot + status text
     const statusMap = {
       online:  { cls: 'online',  label: 'Online \u2014 Idle' },
       working: { cls: 'working', label: 'Working' },
@@ -132,13 +131,11 @@ const DashboardView = {
     dot.className = `clauser-dot ${s.cls}`;
     text.textContent = s.label;
 
-    // Current task
     if (task) {
       task.textContent = data.currentTask || '';
       task.style.display = data.currentTask ? '' : 'none';
     }
 
-    // Meta
     if (processed) processed.textContent = `${data.ticketsProcessed || 0} tickets processed`;
     if (uptime && data.uptime > 0) {
       const m = Math.floor(data.uptime / 60);
@@ -148,7 +145,6 @@ const DashboardView = {
       uptime.textContent = '';
     }
 
-    // Toggle button
     if (btn) {
       if (data.status === 'offline') {
         btn.style.display = 'none';
@@ -157,21 +153,18 @@ const DashboardView = {
         btn.textContent = data.status === 'paused' ? 'Resume' : 'Pause';
       }
     }
-
-    // Status bar indicator
-    if (sbDot) sbDot.className = `clauser-dot ${s.cls}`;
-    if (sbLabel) sbLabel.textContent = `Clauser: ${s.label}`;
   },
 
   async toggleClauser() {
     const isPaused = this.clauserStatus?.status === 'paused';
     const directive = isPaused ? '@clauser resume' : '@clauser pause';
     try {
-      await App.api('commands', {
-        method: 'POST',
-        body: { text: directive }
-      });
+      await App.api('commands', { method: 'POST', body: { text: directive } });
     } catch (e) { /* ignore */ }
+  },
+
+  onClauserStatus(data) {
+    this.updateClauserCard(data);
   },
 
   onWsMessage(type, data) {
@@ -188,10 +181,6 @@ const DashboardView = {
   },
 
   onAlert(data) {
-    // Prepend to dashboard alert list
-    const el = document.getElementById('dashAlertsList');
-    if (!el) return;
-    // Re-render with new data
     const current = App.state.alerts.slice(0, 10);
     this.renderDashAlerts(current);
   },
@@ -233,13 +222,13 @@ const DashboardView = {
         <li class="ticket-item" onclick="location.hash='tickets/${t.id}'">
           <div class="ticket-priority ${t.priority}"></div>
           <div class="ticket-info">
-            <div class="ticket-subject">${t.subject}</div>
+            <div class="ticket-subject">${App.esc(t.subject)}</div>
             <div class="ticket-meta">${t.id} &middot; ${App.timeAgo(t.createdAt)}</div>
           </div>
           <span class="ticket-status ${t.status}">${t.status}</span>
         </li>
       `).join('')}</ul>`;
-    } catch (e) { /* ignore if server unreachable */ }
+    } catch (e) { /* ignore */ }
   },
 
   onStats(stats) {
@@ -260,7 +249,6 @@ const DashboardView = {
   },
 
   onActivity(data) {
-    App.state.activities.unshift(data);
     this.renderActivities(App.state.activities);
   },
 

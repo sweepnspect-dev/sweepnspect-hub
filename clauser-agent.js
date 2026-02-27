@@ -7,7 +7,7 @@ const http = require('http');
 
 // ── Config ──────────────────────────────────────────────────
 const HUB_URL = process.env.HUB_URL || 'http://127.0.0.1:8888';
-const AI_PROXY_URL = process.env.AI_PROXY_URL || 'http://10.0.2.2:8889';
+const AI_PROXY_URL = process.env.AI_PROXY_URL || 'http://127.0.0.1:8889';
 const POLL_INTERVAL = 30000;       // 30s — check for new tickets
 const HEARTBEAT_INTERVAL = 15000;  // 15s
 const CHURN_INTERVAL = 300000;     // 5min
@@ -19,6 +19,7 @@ let currentTask = null;
 let backoffMs = 0;
 let proxyAvailable = false;
 const MAX_BACKOFF = 120000;
+const churnAlerted = new Set(); // track already-alerted subscriber IDs
 
 // ── HTTP helpers ────────────────────────────────────────────
 function apiRequest(method, path, body) {
@@ -196,6 +197,14 @@ async function processNewTickets() {
           icon: 'status'
         });
 
+        // Voice notification for critical/high tickets
+        if (['critical', 'high'].includes(ticket.priority)) {
+          await apiPost('ai/tts', {
+            text: `Clauser finished analyzing ${ticket.priority} ticket: ${ticket.subject}`,
+            priority: ticket.priority === 'critical' ? 'critical' : null
+          }).catch(() => {});
+        }
+
         log(`Ticket ${ticket.id} analyzed and moved to review`);
       } catch (err) {
         log(`Error analyzing ticket ${ticket.id}: ${err.message}`);
@@ -243,11 +252,25 @@ async function checkChurnSignals() {
       );
 
       if (openTickets.length >= 3) {
+        // Only alert once per subscriber until their tickets change
+        const key = `${sub.id}:${openTickets.length}`;
+        if (churnAlerted.has(key)) continue;
+
+        churnAlerted.add(key);
         log(`Churn signal: ${sub.name} has ${openTickets.length} open tickets`);
         await apiPost('clauser/activity', {
           text: `Churn risk: ${sub.name} has ${openTickets.length} unresolved tickets`,
           icon: 'subscriber'
         });
+        await apiPost('ai/tts', {
+          text: `Churn warning: ${sub.name} has ${openTickets.length} unresolved tickets`,
+          priority: 'critical'
+        }).catch(() => {});
+      } else {
+        // Clear old alerts if tickets resolved below threshold
+        for (const existing of churnAlerted) {
+          if (existing.startsWith(sub.id + ':')) churnAlerted.delete(existing);
+        }
       }
     }
   } catch (err) {

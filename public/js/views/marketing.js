@@ -1,243 +1,461 @@
-// ── Marketing View ──────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+// Marketing View — Facebook Post Management
+// Compose, schedule, publish, and track engagement
+// ══════════════════════════════════════════════════════════
 const MarketingView = {
-  data: null,
+  posts: [],
+  pageInfo: null,
+  activeSection: 'feed',  // feed, compose, insights
+  editingPost: null,
 
-  render(container) {
+  render(container, hash) {
+    const parts = hash ? hash.split('/') : [];
+    if (parts[1] === 'compose') this.activeSection = 'compose';
+    else if (parts[1] === 'insights') this.activeSection = 'insights';
+    else if (parts[1] && parts[1].startsWith('post-')) {
+      this.activeSection = 'feed';
+      this.editingPost = parts[1].replace('post-', '');
+    } else {
+      this.activeSection = 'feed';
+    }
+
     container.innerHTML = `
-      <div class="stat-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr))">
-        <div class="stat-card">
-          <div class="stat-label">Website Visitors</div>
-          <div class="stat-value brass" id="mktVisitors">-</div>
-          <div class="stat-sub">last 7 days</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Page Views</div>
-          <div class="stat-value" id="mktPageViews">-</div>
-          <div class="stat-sub">last 7 days</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">App Downloads</div>
-          <div class="stat-value success" id="mktDownloads">-</div>
-          <div class="stat-sub">last 7 days</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Active App Users</div>
-          <div class="stat-value brass" id="mktActiveUsers">-</div>
-          <div class="stat-sub">today</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">App Rating</div>
-          <div class="stat-value success" id="mktRating">-</div>
-          <div class="stat-sub" id="mktReviews">-</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Crash Rate</div>
-          <div class="stat-value" id="mktCrashRate">-</div>
-          <div class="stat-sub">last 7 days</div>
-        </div>
-      </div>
-
-      <div class="panel-grid">
-        <!-- Website Traffic -->
-        <div class="panel">
-          <div class="panel-header"><h2>Website Traffic (7 days)</h2></div>
-          <div class="panel-body">
-            <div class="mini-chart" id="mktWebChart" style="height:100px"></div>
-            <div id="mktWebTable"></div>
+      <div class="marketing-view">
+        <div class="stat-grid marketing-stats" id="mktStats">
+          <div class="stat-card">
+            <div class="stat-label">Page Followers</div>
+            <div class="stat-value brass" id="mktFollowers">—</div>
+            <div class="stat-sub" id="mktPageName">Loading...</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Posts This Month</div>
+            <div class="stat-value" id="mktPostsMonth">—</div>
+            <div class="stat-sub">published</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Reach</div>
+            <div class="stat-value brass" id="mktReach">—</div>
+            <div class="stat-sub">all posts</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Avg Engagement</div>
+            <div class="stat-value" id="mktEngagement">—</div>
+            <div class="stat-sub">likes + comments</div>
           </div>
         </div>
 
-        <!-- Traffic Sources -->
-        <div class="panel">
-          <div class="panel-header"><h2>Where Visitors Come From</h2></div>
-          <div class="panel-body" id="mktSources">
-            <div class="empty-state" style="padding:16px"><p>Loading...</p></div>
+        <div class="comms-toolbar">
+          <div class="comms-sources" id="mktSections">
+            <button class="source-btn${this.activeSection === 'feed' ? ' active' : ''}" data-section="feed" onclick="MarketingView.setSection('feed')">
+              Feed
+            </button>
+            <button class="source-btn${this.activeSection === 'compose' ? ' active' : ''}" data-section="compose" onclick="MarketingView.setSection('compose')">
+              Compose
+            </button>
+            <button class="source-btn${this.activeSection === 'insights' ? ' active' : ''}" data-section="insights" onclick="MarketingView.setSection('insights')">
+              Insights
+            </button>
+          </div>
+          <div class="comms-toolbar-right">
+            <button class="btn btn-sm btn-ghost" onclick="MarketingView.syncFromFb()">Sync from Facebook</button>
           </div>
         </div>
-      </div>
 
-      <div class="panel-grid">
-        <!-- App Usage -->
-        <div class="panel">
-          <div class="panel-header"><h2>App Usage (7 days)</h2></div>
-          <div class="panel-body">
-            <div class="mini-chart" id="mktAppChart" style="height:100px"></div>
-            <div id="mktAppTable"></div>
-          </div>
-        </div>
-
-        <!-- Top Screens -->
-        <div class="panel">
-          <div class="panel-header"><h2>Most Used App Screens</h2></div>
-          <div class="panel-body" id="mktScreens">
-            <div class="empty-state" style="padding:16px"><p>Loading...</p></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Top Pages -->
-      <div class="panel">
-        <div class="panel-header"><h2>Top Website Pages</h2></div>
-        <div class="panel-body" id="mktPages">
-          <div class="empty-state" style="padding:16px"><p>Loading...</p></div>
-        </div>
-      </div>
-
-      <!-- Campaigns -->
-      <div class="panel">
-        <div class="panel-header"><h2>Ad Campaigns</h2></div>
-        <div class="panel-body" id="mktCampaigns">
-          <div class="empty-state" style="padding:16px"><p>Loading...</p></div>
+        <div id="mktContent" class="marketing-content">
+          <div class="empty-state"><p>Loading...</p></div>
         </div>
       </div>
     `;
 
-    this.loadData();
+    this.loadAll();
   },
 
-  async loadData() {
-    try {
-      this.data = await App.api('marketing');
-      this.renderAll();
-    } catch (e) {
-      console.error('Marketing load error:', e);
+  async loadAll() {
+    const [postsRes, pageRes] = await Promise.allSettled([
+      App.api('marketing/posts'),
+      App.api('marketing/page').catch(() => null),
+    ]);
+
+    this.posts = postsRes.status === 'fulfilled' ? postsRes.value : [];
+    if (!Array.isArray(this.posts)) this.posts = [];
+
+    if (pageRes.status === 'fulfilled' && pageRes.value) {
+      this.pageInfo = pageRes.value;
     }
+
+    this.renderStats();
+    this.renderSection();
   },
 
-  renderAll() {
-    const d = this.data;
-    if (!d) return;
-
-    // Top stats
-    const web = d.website || {};
-    const app = d.app || {};
-    const daily = web.daily || [];
-    const appDaily = app.daily || [];
-
-    const totalVisitors = daily.reduce((s, r) => s + r.visitors, 0);
-    const totalPageViews = daily.reduce((s, r) => s + r.pageViews, 0);
-    const totalDownloads = appDaily.reduce((s, r) => s + r.downloads, 0);
-    const todayApp = appDaily[appDaily.length - 1] || {};
-    const totalCrashes = appDaily.reduce((s, r) => s + r.crashes, 0);
-    const totalSessions = appDaily.reduce((s, r) => s + r.sessions, 0);
-    const crashRate = totalSessions > 0 ? ((totalCrashes / totalSessions) * 100).toFixed(1) : '0';
-
+  renderStats() {
     const el = (id) => document.getElementById(id);
-    if (el('mktVisitors')) el('mktVisitors').textContent = totalVisitors.toLocaleString();
-    if (el('mktPageViews')) el('mktPageViews').textContent = totalPageViews.toLocaleString();
-    if (el('mktDownloads')) el('mktDownloads').textContent = totalDownloads;
-    if (el('mktActiveUsers')) el('mktActiveUsers').textContent = todayApp.activeUsers || app.overview?.dailyActive || '-';
-    if (el('mktRating')) el('mktRating').textContent = app.overview?.appRating || '-';
-    if (el('mktReviews')) el('mktReviews').textContent = `${app.overview?.reviewCount || 0} reviews`;
-    if (el('mktCrashRate')) {
-      el('mktCrashRate').textContent = crashRate + '%';
-      el('mktCrashRate').className = `stat-value ${parseFloat(crashRate) > 2 ? 'danger' : 'success'}`;
+
+    if (this.pageInfo) {
+      const f = el('mktFollowers');
+      if (f) f.textContent = this.formatNum(this.pageInfo.followers_count || this.pageInfo.fan_count || 0);
+      const n = el('mktPageName');
+      if (n) n.textContent = this.pageInfo.name || 'Facebook Page';
     }
 
-    // Website chart
-    this.renderBarChart('mktWebChart', daily, 'visitors', 'var(--brass)');
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthPosts = this.posts.filter(p =>
+      p.status === 'published' && p.publishedAt && new Date(p.publishedAt) >= monthStart
+    );
+    const pm = el('mktPostsMonth');
+    if (pm) pm.textContent = monthPosts.length;
 
-    // Website daily table
-    if (el('mktWebTable')) {
-      el('mktWebTable').innerHTML = `<table class="data-table">
-        <tr><th>Date</th><th>Visitors</th><th>Page Views</th><th>Bounce</th></tr>
-        ${daily.map(r => `<tr>
-          <td>${this.shortDate(r.date)}</td>
-          <td>${r.visitors}</td>
-          <td>${r.pageViews}</td>
-          <td>${r.bounceRate}%</td>
-        </tr>`).join('')}
-      </table>`;
+    const totalReach = this.posts.reduce((s, p) => s + (p.engagement?.reach || 0), 0);
+    const r = el('mktReach');
+    if (r) r.textContent = this.formatNum(totalReach);
+
+    const published = this.posts.filter(p => p.status === 'published');
+    const totalEng = published.reduce((s, p) =>
+      s + (p.engagement?.likes || 0) + (p.engagement?.comments || 0), 0);
+    const avg = published.length ? Math.round(totalEng / published.length) : 0;
+    const e = el('mktEngagement');
+    if (e) e.textContent = avg;
+  },
+
+  setSection(section) {
+    this.activeSection = section;
+    this.editingPost = null;
+    document.querySelectorAll('#mktSections .source-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.section === section);
+    });
+    this.renderSection();
+    window.location.hash = section === 'feed' ? '#marketing' : `#marketing/${section}`;
+  },
+
+  renderSection() {
+    const el = document.getElementById('mktContent');
+    if (!el) return;
+    if (this.activeSection === 'compose') this.renderCompose(el);
+    else if (this.activeSection === 'insights') this.renderInsights(el);
+    else this.renderFeed(el);
+  },
+
+  // ── Feed Section ─────────────────────────────────────────
+  renderFeed(el) {
+    if (this.posts.length === 0) {
+      el.innerHTML = `
+        <div class="empty-state">
+          <p>No posts yet</p>
+          <p class="dim">Compose a post or sync from your Facebook page</p>
+          <button class="btn btn-primary" style="margin-top:12px" onclick="MarketingView.setSection('compose')">Compose Post</button>
+        </div>
+      `;
+      return;
     }
 
-    // Sources
-    if (el('mktSources')) {
-      const sources = web.sources || [];
-      el('mktSources').innerHTML = sources.map(s => `
-        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-          <div style="flex:1;font-size:13px;color:var(--cream)">${s.source}</div>
-          <div style="width:120px;height:6px;background:var(--navy);border-radius:3px;overflow:hidden">
-            <div style="width:${s.percent}%;height:100%;background:var(--brass);border-radius:3px"></div>
+    const sorted = [...this.posts].sort((a, b) =>
+      new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)
+    );
+
+    el.innerHTML = `
+      <div class="marketing-feed">
+        ${sorted.map(p => this.renderPostCard(p)).join('')}
+      </div>
+    `;
+  },
+
+  renderPostCard(post) {
+    const statusMap = {
+      published: { cls: 'published', label: 'Published' },
+      scheduled: { cls: 'scheduled', label: 'Scheduled' },
+      draft:     { cls: 'draft',     label: 'Draft' },
+      failed:    { cls: 'failed',    label: 'Failed' },
+    };
+    const s = statusMap[post.status] || { cls: 'draft', label: post.status };
+    const eng = post.engagement || {};
+    const preview = post.message.length > 180 ? post.message.slice(0, 180) + '...' : post.message;
+
+    let actions = '';
+    if (post.status === 'draft' || post.status === 'scheduled') {
+      actions += `<button class="btn btn-xs btn-primary" onclick="MarketingView.publishPost('${post.id}')">Publish Now</button>`;
+      actions += `<button class="btn btn-xs btn-ghost" onclick="MarketingView.editPost('${post.id}')">Edit</button>`;
+    }
+    if (post.status === 'published' && post.fbPostId) {
+      actions += `<button class="btn btn-xs btn-ghost" onclick="MarketingView.refreshInsights('${post.id}')">Refresh Stats</button>`;
+    }
+    actions += `<button class="btn btn-xs btn-ghost" style="color:var(--brick-light)" onclick="MarketingView.deletePost('${post.id}')">Delete</button>`;
+
+    let scheduledInfo = '';
+    if (post.status === 'scheduled' && post.scheduledFor) {
+      scheduledInfo = `<div class="marketing-post-scheduled">Scheduled: ${new Date(post.scheduledFor).toLocaleString()}</div>`;
+    }
+
+    let failedInfo = '';
+    if (post.status === 'failed' && post.lastError) {
+      failedInfo = `<div class="marketing-post-error">${App.esc(post.lastError)}</div>`;
+    }
+
+    return `
+      <div class="marketing-post-card" data-id="${post.id}">
+        <div class="marketing-post-header">
+          <span class="marketing-status-badge ${s.cls}">${s.label}</span>
+          <span class="marketing-post-date">${App.timeAgo(post.publishedAt || post.createdAt)}</span>
+        </div>
+        <div class="marketing-post-body">
+          ${post.imageUrl ? `<img class="marketing-post-img" src="${App.esc(post.imageUrl)}" alt="">` : ''}
+          <div class="marketing-post-message">${App.esc(preview)}</div>
+          ${post.link ? `<div class="marketing-post-link">${App.esc(post.link)}</div>` : ''}
+          ${scheduledInfo}
+          ${failedInfo}
+        </div>
+        <div class="marketing-post-engagement">
+          <span title="Likes">&hearts; ${eng.likes || 0}</span>
+          <span title="Comments">&#128172; ${eng.comments || 0}</span>
+          <span title="Shares">&#8635; ${eng.shares || 0}</span>
+          ${eng.reach ? `<span title="Reach">&#128065; ${this.formatNum(eng.reach)}</span>` : ''}
+        </div>
+        <div class="marketing-post-actions">${actions}</div>
+      </div>
+    `;
+  },
+
+  // ── Compose Section ──────────────────────────────────────
+  renderCompose(el, prefill) {
+    const post = prefill || this.editingPost;
+    let existingPost = null;
+    if (typeof post === 'string') {
+      existingPost = this.posts.find(p => p.id === post);
+    }
+
+    const msg = existingPost ? existingPost.message : '';
+    const link = existingPost ? existingPost.link : '';
+    const schedFor = existingPost?.scheduledFor || '';
+
+    el.innerHTML = `
+      <div class="marketing-compose panel">
+        <div class="panel-header">
+          <h2>${existingPost ? 'Edit Post' : 'Compose New Post'}</h2>
+          <span class="marketing-char-count" id="mktCharCount">${msg.length} / 63,206</span>
+        </div>
+        <div class="panel-body">
+          <div class="form-group">
+            <label class="form-label">Message</label>
+            <textarea class="form-textarea" id="mktComposeMsg" rows="6" placeholder="What's on your mind?"
+              oninput="MarketingView.updateCharCount()">${App.esc(msg)}</textarea>
           </div>
-          <div style="width:60px;text-align:right;font-size:12px;color:var(--text-dim)">${s.percent}%</div>
-          <div style="width:60px;text-align:right;font-size:12px;color:var(--text-dim)">${s.visitors}</div>
+          <div class="form-group">
+            <label class="form-label">Link (optional)</label>
+            <input class="form-input" id="mktComposeLink" type="url" placeholder="https://..." value="${App.esc(link)}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Schedule For (optional)</label>
+            <input class="form-input" id="mktComposeSchedule" type="datetime-local" value="${schedFor ? this.toLocalDatetime(schedFor) : ''}">
+          </div>
+          <div class="marketing-compose-actions">
+            <button class="btn btn-primary" onclick="MarketingView.submitPost('publish')">
+              ${existingPost ? 'Update & Publish' : 'Post Now'}
+            </button>
+            <button class="btn btn-ghost" onclick="MarketingView.submitPost('schedule')">
+              Schedule
+            </button>
+            <button class="btn btn-ghost" onclick="MarketingView.submitPost('draft')">
+              Save Draft
+            </button>
+            ${existingPost ? `<input type="hidden" id="mktEditId" value="${existingPost.id}">` : ''}
+          </div>
+          <div id="mktComposeStatus" class="marketing-compose-status"></div>
         </div>
-      `).join('');
+      </div>
+    `;
+  },
+
+  updateCharCount() {
+    const ta = document.getElementById('mktComposeMsg');
+    const ct = document.getElementById('mktCharCount');
+    if (ta && ct) ct.textContent = `${ta.value.length} / 63,206`;
+  },
+
+  toLocalDatetime(isoStr) {
+    const d = new Date(isoStr);
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  },
+
+  async submitPost(action) {
+    const message = document.getElementById('mktComposeMsg')?.value?.trim();
+    const link = document.getElementById('mktComposeLink')?.value?.trim();
+    const scheduleInput = document.getElementById('mktComposeSchedule')?.value;
+    const editId = document.getElementById('mktEditId')?.value;
+    const statusEl = document.getElementById('mktComposeStatus');
+
+    if (!message) {
+      if (statusEl) { statusEl.textContent = 'Message cannot be empty'; statusEl.style.color = 'var(--brick-light)'; }
+      return;
     }
 
-    // App chart
-    this.renderBarChart('mktAppChart', appDaily, 'sessions', 'var(--green)');
-
-    // App daily table
-    if (el('mktAppTable')) {
-      el('mktAppTable').innerHTML = `<table class="data-table">
-        <tr><th>Date</th><th>Downloads</th><th>Active</th><th>Sessions</th><th>Crashes</th></tr>
-        ${appDaily.map(r => `<tr>
-          <td>${this.shortDate(r.date)}</td>
-          <td>${r.downloads}</td>
-          <td>${r.activeUsers}</td>
-          <td>${r.sessions}</td>
-          <td style="color:${r.crashes > 3 ? 'var(--brick)' : 'var(--text-dim)'}">${r.crashes}</td>
-        </tr>`).join('')}
-      </table>`;
+    if (action === 'schedule' && !scheduleInput) {
+      if (statusEl) { statusEl.textContent = 'Pick a date/time to schedule'; statusEl.style.color = 'var(--brick-light)'; }
+      return;
     }
 
-    // Top screens
-    if (el('mktScreens')) {
-      const screens = app.topScreens || [];
-      el('mktScreens').innerHTML = screens.map((s, i) => `
-        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
-          <span style="width:20px;text-align:center;font-size:11px;color:var(--text-dim)">${i + 1}</span>
-          <div style="flex:1;font-size:13px;color:var(--cream)">${s.screen}</div>
-          <div style="font-size:12px;color:var(--text-dim)">${s.views.toLocaleString()} views</div>
-          <div style="font-size:12px;color:var(--text-dim)">${s.avgTime}s avg</div>
-        </div>
-      `).join('');
+    const body = { message, link: link || '', status: action };
+    if (action === 'schedule' && scheduleInput) {
+      body.scheduledFor = new Date(scheduleInput).toISOString();
     }
 
-    // Top pages
-    if (el('mktPages')) {
-      const pages = web.topPages || [];
-      el('mktPages').innerHTML = `<table class="data-table">
-        <tr><th>#</th><th>Page</th><th>Views</th><th>Avg Time</th></tr>
-        ${pages.map((p, i) => `<tr>
-          <td>${i + 1}</td>
-          <td><span style="color:var(--cream)">${p.title}</span> <span style="color:var(--text-dim);font-size:11px">${p.path}</span></td>
-          <td>${p.views.toLocaleString()}</td>
-          <td>${p.avgTime}s</td>
-        </tr>`).join('')}
-      </table>`;
-    }
+    // Disable buttons
+    document.querySelectorAll('.marketing-compose-actions .btn').forEach(b => b.disabled = true);
+    if (statusEl) { statusEl.textContent = 'Sending...'; statusEl.style.color = 'var(--text-dim)'; }
 
-    // Campaigns
-    if (el('mktCampaigns')) {
-      const campaigns = d.campaigns || [];
-      el('mktCampaigns').innerHTML = `<table class="data-table">
-        <tr><th>Campaign</th><th>Status</th><th>Spent</th><th>Leads</th><th>Conversions</th><th>ROI</th></tr>
-        ${campaigns.map(c => `<tr>
-          <td style="color:var(--cream)">${c.name}</td>
-          <td><span class="ticket-status ${c.status === 'active' ? 'review' : 'escalated'}">${c.status}</span></td>
-          <td>$${c.spent}</td>
-          <td>${c.leads}</td>
-          <td>${c.conversions}</td>
-          <td style="color:${c.roi > 250 ? 'var(--green)' : 'var(--text)'}">${c.roi}%</td>
-        </tr>`).join('')}
-      </table>`;
+    try {
+      if (editId) {
+        await App.api('marketing/posts/' + editId, { method: 'PUT', body });
+        if (action === 'publish') {
+          await App.api('marketing/posts/' + editId + '/publish', { method: 'POST' });
+        }
+      } else {
+        await App.api('marketing/posts', { method: 'POST', body });
+      }
+
+      if (statusEl) {
+        statusEl.style.color = 'var(--green)';
+        if (action === 'publish') statusEl.textContent = 'Published!';
+        else if (action === 'schedule') statusEl.textContent = 'Scheduled!';
+        else statusEl.textContent = 'Draft saved!';
+      }
+
+      setTimeout(() => {
+        this.editingPost = null;
+        this.setSection('feed');
+        this.loadAll();
+      }, 1000);
+    } catch (err) {
+      if (statusEl) { statusEl.textContent = 'Error: ' + (err.message || 'unknown'); statusEl.style.color = 'var(--brick-light)'; }
+      document.querySelectorAll('.marketing-compose-actions .btn').forEach(b => b.disabled = false);
     }
   },
 
-  renderBarChart(containerId, data, key, color) {
-    const el = document.getElementById(containerId);
-    if (!el || !data.length) return;
-    const max = Math.max(...data.map(d => d[key]));
-    el.innerHTML = data.map(d => {
-      const pct = max > 0 ? (d[key] / max) * 100 : 0;
-      return `<div class="chart-bar" style="height:${pct}%;background:${color}" title="${this.shortDate(d.date)}: ${d[key]}"></div>`;
-    }).join('');
+  editPost(id) {
+    this.editingPost = id;
+    this.activeSection = 'compose';
+    document.querySelectorAll('#mktSections .source-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.section === 'compose');
+    });
+    this.renderSection();
   },
 
-  shortDate(dateStr) {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  async publishPost(id) {
+    if (!confirm('Publish this post to Facebook now?')) return;
+    try {
+      await App.api('marketing/posts/' + id + '/publish', { method: 'POST' });
+      this.loadAll();
+    } catch (err) {
+      alert('Publish failed: ' + (err.message || 'unknown error'));
+    }
+  },
+
+  async deletePost(id) {
+    if (!confirm('Delete this post? If published, it will also be removed from Facebook.')) return;
+    try {
+      await App.api('marketing/posts/' + id, { method: 'DELETE' });
+      this.loadAll();
+    } catch (err) {
+      alert('Delete failed: ' + (err.message || 'unknown error'));
+    }
+  },
+
+  async refreshInsights(id) {
+    try {
+      await App.api('marketing/posts/' + id + '/insights');
+      this.loadAll();
+    } catch (err) {
+      alert('Could not refresh: ' + (err.message || 'unknown error'));
+    }
+  },
+
+  async syncFromFb() {
+    const btn = document.querySelector('.comms-toolbar-right .btn');
+    if (btn) { btn.textContent = 'Syncing...'; btn.disabled = true; }
+    try {
+      const result = await App.api('marketing/sync', { method: 'POST' });
+      if (btn) btn.textContent = `Synced (${result.added} new)`;
+      this.loadAll();
+    } catch (err) {
+      if (btn) btn.textContent = 'Sync failed';
+      alert('Sync error: ' + (err.message || 'unknown'));
+    } finally {
+      setTimeout(() => {
+        if (btn) { btn.textContent = 'Sync from Facebook'; btn.disabled = false; }
+      }, 3000);
+    }
+  },
+
+  // ── Insights Section ─────────────────────────────────────
+  renderInsights(el) {
+    const published = this.posts.filter(p => p.status === 'published');
+
+    if (published.length === 0) {
+      el.innerHTML = `<div class="empty-state"><p>No published posts to analyze</p></div>`;
+      return;
+    }
+
+    const sorted = [...published].sort((a, b) =>
+      new Date(b.publishedAt || b.createdAt) - new Date(a.publishedAt || a.createdAt)
+    );
+
+    el.innerHTML = `
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Post Performance</h2>
+          <button class="btn btn-sm btn-ghost" onclick="MarketingView.syncFromFb()">Sync from Facebook</button>
+        </div>
+        <div class="panel-body">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Post</th>
+                <th>Published</th>
+                <th>Reach</th>
+                <th>Impressions</th>
+                <th>Likes</th>
+                <th>Comments</th>
+                <th>Shares</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sorted.map(p => {
+                const eng = p.engagement || {};
+                const preview = (p.message || '').slice(0, 50) + (p.message?.length > 50 ? '...' : '');
+                return `
+                  <tr>
+                    <td>${App.esc(preview)}</td>
+                    <td>${App.timeAgo(p.publishedAt)}</td>
+                    <td>${this.formatNum(eng.reach || 0)}</td>
+                    <td>${this.formatNum(eng.impressions || 0)}</td>
+                    <td>${eng.likes || 0}</td>
+                    <td>${eng.comments || 0}</td>
+                    <td>${eng.shares || 0}</td>
+                    <td>${p.fbPostId ? `<button class="btn btn-xs btn-ghost" onclick="MarketingView.refreshInsights('${p.id}')">Refresh</button>` : ''}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  },
+
+  // ── Helpers ──────────────────────────────────────────────
+  formatNum(n) {
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+    return String(n);
+  },
+
+  onWsMessage(type, data) {
+    if (type.startsWith('marketing:')) {
+      this.loadAll();
+    }
+  },
+
+  onStats(stats) {
+    // No stats-driven updates needed
   }
 };

@@ -3,10 +3,10 @@ const http = require('http');
 const router = express.Router();
 
 // AI Proxy on the Windows host — uses claude CLI with subscription auth
-const PROXY_HOST = process.env.AI_PROXY_HOST || '10.0.2.2';
+const PROXY_HOST = process.env.AI_PROXY_HOST || '127.0.0.1';
 const PROXY_PORT = process.env.AI_PROXY_PORT || 8889;
 
-const SYSTEM_PROMPT = `You are the SweepNspect HQ Assistant — an AI embedded in a chimney inspection business operations dashboard.
+const SYSTEM_PROMPT = `You are the SweepNspect HQ Assistant — an AI embedded in a chimney inspection business operations dashboard. You talk to J, the owner.
 
 You have access to LIVE data from the Hub which is provided as context with each question. Use this data to give specific, accurate answers.
 
@@ -16,18 +16,35 @@ Capabilities:
 - Explain how the Hub, VM, API, and architecture work
 - Help troubleshoot issues
 
-Style:
-- Concise and direct — no fluff
-- Use numbers and specifics from the data
-- Format with markdown (bold, bullets, code)
-- If data shows something concerning (high churn, many open tickets), proactively mention it
-
 Technical context:
-- Hub runs on Alpine Linux VM (QEMU) on Windows
-- Express.js server on port 8888
+- Hub runs on Genesis (Windows machine) with Express.js on port 8888
 - Clauser AI agent processes tickets automatically
 - WebSocket for real-time dashboard updates
-- JSON file storage (no database)`;
+- JSON file storage (no database)
+
+OUTPUT FORMAT — You MUST produce TWO versions of every response, separated by <<<DISPLAY>>>
+
+FIRST: Your spoken conversational response. Talk naturally like you're speaking to J face-to-face. No markdown, no bullets, no asterisks, no hashtags, no formatting at all. Just natural speech. Use numbers, be specific, be direct. This is what J will HEAR through text-to-speech.
+
+<<<DISPLAY>>>
+
+SECOND: The same information formatted with markdown for the screen. Use bold, bullets, code blocks, headers — whatever makes it scannable. This is what J will SEE on the dashboard.
+
+Example:
+Hey J, you've got 3 open tickets right now. Two are high priority — the scheduling conflict for Heritage Chimney and the billing dispute from Metro Services. MRR is sitting at twenty-two fifty. One thing I'd flag, Heritage has 5 unresolved tickets total which puts them in churn territory.
+
+<<<DISPLAY>>>
+
+**3 Open Tickets**
+- **High** — Scheduling conflict (Heritage Chimney)
+- **High** — Billing dispute (Metro Services)
+- **Medium** — Equipment question (Riverside)
+
+**MRR:** $2,250
+
+> **Churn Risk:** Heritage Chimney has 5 unresolved tickets
+
+IMPORTANT: Always include both sections. The spoken part comes FIRST. Keep the spoken version conversational — contractions, natural phrasing, like you're talking. If data shows something concerning, mention it proactively in both versions.`;
 
 function callProxy(prompt) {
   return new Promise((resolve, reject) => {
@@ -134,12 +151,57 @@ RECENT COMMANDS: ${cmds.length > 0 ? cmds.slice(-5).map(c => c.text).join('; ') 
   const fullPrompt = SYSTEM_PROMPT + '\n\n' + context + '\n\nUser question: ' + question;
 
   try {
-    const answer = await callProxy(fullPrompt);
-    res.json({ answer });
+    const raw = await callProxy(fullPrompt);
+    const { speech, display } = splitResponse(raw);
+    res.json({ answer: display, speech });
   } catch (err) {
     console.error('[AI] Error:', err.message);
     res.status(500).json({ error: err.message });
   }
+});
+
+// POST /api/ai/chat — direct chat from dashboard Chat tab
+router.post('/chat', async (req, res) => {
+  const { prompt } = req.body;
+  if (!prompt) return res.status(400).json({ error: 'No prompt provided' });
+
+  const fullPrompt = SYSTEM_PROMPT + '\n\nUser: ' + prompt;
+
+  try {
+    const raw = await callProxy(fullPrompt);
+    const { speech, display } = splitResponse(raw);
+    res.json({ answer: display, speech });
+  } catch (err) {
+    console.error('[AI] Chat error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Split LLM response into speech + display parts
+function splitResponse(raw) {
+  const marker = '<<<DISPLAY>>>';
+  const idx = raw.indexOf(marker);
+  if (idx === -1) {
+    // No marker — use raw for both, strip md for speech
+    return { speech: raw, display: raw };
+  }
+  const speech = raw.slice(0, idx).trim();
+  const display = raw.slice(idx + marker.length).trim();
+  return {
+    speech: speech || display,
+    display: display || speech
+  };
+}
+
+// POST /api/ai/tts — LLM or automation triggers voice notification
+router.post('/tts', (req, res) => {
+  const { text, priority, rate } = req.body;
+  if (!text) return res.status(400).json({ error: 'No text provided' });
+
+  const broadcast = req.app.locals.broadcast;
+  broadcast({ type: 'tts:speak', data: { text, priority: priority || null, rate: rate || null } });
+
+  res.json({ ok: true, spoken: text });
 });
 
 // GET /api/ai/status — check if AI proxy is reachable

@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SweepNspect — Founding 25 Launch Status</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0c10;
+  --surface: #12151c;
+  --surface-2: #181c26;
+  --border: #1e2433;
+  --border-bright: #2a3145;
+  --text: #c8cdd8;
+  --text-dim: #6b7280;
+  --text-bright: #e8ecf4;
+  --green: #22c55e;
+  --green-dim: #16a34a;
+  --green-glow: rgba(34, 197, 94, 0.12);
+  --amber: #f59e0b;
+  --amber-glow: rgba(245, 158, 11, 0.12);
+  --red: #ef4444;
+  --blue: #3b82f6;
+  --blue-dim: #1e40af;
+  --mono: 'DM Mono', 'Consolas', monospace;
+  --serif: 'Instrument Serif', Georgia, serif;
+  --sans: 'DM Sans', system-ui, sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── Grain overlay ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 48px 32px 80px;
+}
+
+/* ── Header ── */
+.header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 40px;
+  margin-bottom: 48px;
+  position: relative;
+}
+
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 120px;
+  height: 1px;
+  background: var(--green);
+  box-shadow: 0 0 12px var(--green-glow);
+}
+
+.dateline {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.dateline .live-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--green);
+  border-radius: 50%;
+  margin-right: 6px;
+  animation: pulse-dot 2s ease-in-out infinite;
+  vertical-align: middle;
+  box-shadow: 0 0 6px var(--green);
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+h1 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(36px, 5vw, 52px);
+  color: var(--text-bright);
+  line-height: 1.1;
+  margin-bottom: 12px;
+}
+
+h1 em {
+  font-style: italic;
+  color: var(--green);
+}
+
+.subtitle {
+  font-size: 17px;
+  color: var(--text-dim);
+  max-width: 540px;
+}
+
+/* ── Section ── */
+.section {
+  margin-bottom: 52px;
+}
+
+.section-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-dim);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 28px;
+  color: var(--text-bright);
+  margin-bottom: 16px;
+}
+
+p { margin-bottom: 12px; }
+
+/* ── Status Grid ── */
+.status-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 600px) {
+  .status-grid { grid-template-columns: 1fr; }
+}
+
+.status-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.status-card:hover {
+  border-color: var(--border-bright);
+}
+
+.status-card.live {
+  border-left: 2px solid var(--green);
+}
+
+.status-card.pending {
+  border-left: 2px solid var(--amber);
+}
+
+.status-card.info {
+  border-left: 2px solid var(--blue);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.card-title {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-bright);
+}
+
+.badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.badge-live {
+  color: var(--green);
+  background: var(--green-glow);
+}
+
+.badge-pending {
+  color: var(--amber);
+  background: var(--amber-glow);
+}
+
+.card-url {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  word-break: break-all;
+  margin-top: 6px;
+}
+
+.card-url a {
+  color: var(--text-dim);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border);
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.card-url a:hover {
+  color: var(--text);
+  border-color: var(--text-dim);
+}
+
+.card-detail {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* ── Pipeline Diagram ── */
+.pipeline {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 28px;
+  margin: 20px 0;
+  overflow-x: auto;
+}
+
+.pipe-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.pipe-row:last-child { margin-bottom: 0; }
+
+.pipe-node {
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.pipe-node.action {
+  background: var(--surface-2);
+  border: 1px solid var(--border-bright);
+  color: var(--text);
+}
+
+.pipe-node.service {
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  color: var(--green);
+}
+
+.pipe-node.store {
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  color: var(--blue);
+}
+
+.pipe-arrow {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 0 6px;
+}
+
+/* ── Endpoint Table ── */
+.endpoint-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+}
+
+.endpoint-table th {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.endpoint-table td {
+  font-size: 13px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.endpoint-table tr:last-child td { border-bottom: none; }
+
+.endpoint-table .method {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.endpoint-table .method.post { color: var(--green); }
+.endpoint-table .method.get { color: var(--blue); }
+
+.endpoint-table .path {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-bright);
+}
+
+.endpoint-table .desc {
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+/* ── Test Results ── */
+.test-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 16px 0;
+}
+
+.test-header {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  padding: 10px 16px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.test-body {
+  padding: 16px;
+}
+
+.test-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.test-row:last-child { margin-bottom: 0; }
+
+.check {
+  font-size: 14px;
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+}
+
+.check.pass { color: var(--green); }
+.check.warn { color: var(--amber); }
+
+.test-label { color: var(--text); }
+.test-detail {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* ── Timeline ── */
+.timeline {
+  position: relative;
+  padding-left: 28px;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 4px;
+  bottom: 4px;
+  width: 1px;
+  background: var(--border);
+}
+
+.tl-item {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.tl-item:last-child { margin-bottom: 0; }
+
+.tl-item::before {
+  content: '';
+  position: absolute;
+  left: -24px;
+  top: 7px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--green);
+}
+
+.tl-item.action-item::before {
+  border-color: var(--amber);
+  background: var(--amber);
+}
+
+.tl-time {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.tl-text {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.tl-text strong {
+  color: var(--text-bright);
+  font-weight: 600;
+}
+
+/* ── Action Items ── */
+.action-list {
+  list-style: none;
+}
+
+.action-list li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.action-list li:last-child { border-bottom: none; }
+
+.action-num {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--bg);
+  background: var(--amber);
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.action-content strong {
+  color: var(--text-bright);
+  font-weight: 600;
+}
+
+.action-content {
+  color: var(--text);
+}
+
+.action-context {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 3px;
+}
+
+/* ── Code block ── */
+.code-block {
+  font-family: var(--mono);
+  font-size: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  color: var(--text);
+  overflow-x: auto;
+  line-height: 1.7;
+  margin: 12px 0;
+}
+
+.code-block .comment { color: var(--text-dim); }
+.code-block .key { color: var(--blue); }
+.code-block .val { color: var(--green); }
+
+/* ── Footer ── */
+.footer {
+  margin-top: 64px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  display: flex;
+  justify-content: space-between;
+}
+
+/* ── Full-width card ── */
+.status-card.full {
+  grid-column: 1 / -1;
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── Header ── -->
+  <header class="header">
+    <div class="dateline"><span class="live-dot"></span>Launch Status Report &mdash; February 25, 2026</div>
+    <h1>Founding 25 Campaign<br><em>is live.</em></h1>
+    <p class="subtitle">Infrastructure deployed, forms collecting, Tawk.to chat active. The NCSG convention window is open. Time to drive applications.</p>
+  </header>
+
+  <!-- ── Infrastructure Status ── -->
+  <section class="section">
+    <div class="section-label">Infrastructure Status</div>
+
+    <div class="status-grid">
+      <div class="status-card live">
+        <div class="card-header">
+          <span class="card-title">Founding Application Form</span>
+          <span class="badge badge-live">Live</span>
+        </div>
+        <div class="card-detail">POST to Cloudflare Worker with mailto fallback. Thank-you confirmation on submit. Tested end-to-end.</div>
+        <div class="card-url"><a href="https://sweepnspect.com/founding.html" target="_blank">sweepnspect.com/founding.html</a></div>
+      </div>
+
+      <div class="status-card live">
+        <div class="card-header">
+          <span class="card-title">Cloudflare Worker</span>
+          <span class="badge badge-live">Live</span>
+        </div>
+        <div class="card-detail">Webhook receiver + application storage. KV-backed with 90-day TTL. Version e038dd67.</div>
+        <div class="card-url"><a href="https://sweepnspect-webhook.sweepnspect.workers.dev/health" target="_blank">sweepnspect-webhook.sweepnspect.workers.dev</a></div>
+      </div>
+
+      <div class="status-card live">
+        <div class="card-header">
+          <span class="card-title">Tawk.to Live Chat</span>
+          <span class="badge badge-live">Live</span>
+        </div>
+        <div class="card-detail">Embedded on all pages: index, founding, download. Webhooks configured to worker endpoint.</div>
+        <div class="card-url">Property: 699f195eb2f3e31c2e62105d</div>
+      </div>
+
+      <div class="status-card live">
+        <div class="card-header">
+          <span class="card-title">Marketing Website</span>
+          <span class="badge badge-live">Live</span>
+        </div>
+        <div class="card-detail">GitHub Pages with custom domain. SSL valid through April 2026. All pages rendering.</div>
+        <div class="card-url"><a href="https://sweepnspect.com" target="_blank">sweepnspect.com</a></div>
+      </div>
+
+      <div class="status-card live">
+        <div class="card-header">
+          <span class="card-title">Launch Hub / Playbook</span>
+          <span class="badge badge-live">Live</span>
+        </div>
+        <div class="card-detail">29/101 tasks complete. 730 XP. Phase 0 &amp; Phase 1 active. Gamified progress tracking.</div>
+        <div class="card-url"><a href="https://sweepnspect-dev.github.io/sweepnspect-hub/" target="_blank">sweepnspect-dev.github.io/sweepnspect-hub</a></div>
+      </div>
+
+      <div class="status-card live">
+        <div class="card-header">
+          <span class="card-title">Facebook Page</span>
+          <span class="badge badge-live">Live</span>
+        </div>
+        <div class="card-detail">Linked in website footer. Ready for founding 25 campaign posts and group outreach.</div>
+        <div class="card-url"><a href="https://www.facebook.com/profile.php?id=61585749142480" target="_blank">facebook.com &mdash; SweepNspect</a></div>
+      </div>
+
+      <div class="status-card pending">
+        <div class="card-header">
+          <span class="card-title">HQ Operations Server</span>
+          <span class="badge badge-pending">Local Only</span>
+        </div>
+        <div class="card-detail">Express server with IMAP poller, email router, ticket system, subscriber management. Ready for deployment.</div>
+        <div class="card-url">D:\Hive\Projects\SweepNspect-Hub\server.js</div>
+      </div>
+
+      <div class="status-card pending">
+        <div class="card-header">
+          <span class="card-title">Play Store Listing</span>
+          <span class="badge badge-pending">Pending</span>
+        </div>
+        <div class="card-detail">App nearly ready. Production APK build, signing, and Play Store submission still needed. Target: Feb 26.</div>
+        <div class="card-url">download.html shows "Launching February 2026"</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Data Pipeline ── -->
+  <section class="section">
+    <div class="section-label">Data Pipeline</div>
+    <h2>How applications flow</h2>
+
+    <div class="pipeline">
+      <div class="pipe-row">
+        <span class="pipe-node action">Visitor fills form</span>
+        <span class="pipe-arrow">&rarr;</span>
+        <span class="pipe-node service">POST /api/founding</span>
+        <span class="pipe-arrow">&rarr;</span>
+        <span class="pipe-node store">Cloudflare KV</span>
+      </div>
+      <div class="pipe-row">
+        <span class="pipe-node store" style="margin-left: 0;">&nbsp;&nbsp;&nbsp;KV stored&nbsp;&nbsp;&nbsp;</span>
+        <span class="pipe-arrow">&rarr;</span>
+        <span class="pipe-node service">Event created</span>
+        <span class="pipe-arrow">&rarr;</span>
+        <span class="pipe-node action">GET /api/events</span>
+        <span class="pipe-arrow">&rarr;</span>
+        <span class="pipe-node action">HQ Dashboard</span>
+      </div>
+    </div>
+
+    <div class="pipeline">
+      <div class="pipe-row">
+        <span class="pipe-node action">Visitor opens chat</span>
+        <span class="pipe-arrow">&rarr;</span>
+        <span class="pipe-node service">Tawk.to</span>
+        <span class="pipe-arrow">&rarr;</span>
+        <span class="pipe-node service">Webhook</span>
+        <span class="pipe-arrow">&rarr;</span>
+        <span class="pipe-node store">Cloudflare KV</span>
+      </div>
+      <div class="pipe-row">
+        <span class="pipe-node action">Email to contact@</span>
+        <span class="pipe-arrow">&rarr;</span>
+        <span class="pipe-node service">IMAP Poller</span>
+        <span class="pipe-arrow">&rarr;</span>
+        <span class="pipe-node service">Email Router</span>
+        <span class="pipe-arrow">&rarr;</span>
+        <span class="pipe-node action">Auto-classify</span>
+      </div>
+    </div>
+
+    <p style="font-size: 13px; color: var(--text-dim); margin-top: 8px;">
+      Email router classifies by bracket prefix: <code style="font-family: var(--mono); color: var(--green);">[FOUNDING]</code> &rarr; auto-create subscriber,
+      <code style="font-family: var(--mono); color: var(--blue);">[CONTACT]</code> &rarr; general,
+      <code style="font-family: var(--mono); color: var(--red);">[BUG]</code> &rarr; auto-create ticket.
+    </p>
+  </section>
+
+  <!-- ── API Endpoints ── -->
+  <section class="section">
+    <div class="section-label">Worker API Endpoints</div>
+
+    <table class="endpoint-table">
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Path</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="method post">POST</span></td>
+          <td><span class="path">/api/founding</span></td>
+          <td><span class="desc">Submit founding application &mdash; stores in KV, creates HQ event</span></td>
+        </tr>
+        <tr>
+          <td><span class="method get">GET</span></td>
+          <td><span class="path">/api/founding</span></td>
+          <td><span class="desc">List all founding applications with status</span></td>
+        </tr>
+        <tr>
+          <td><span class="method post">POST</span></td>
+          <td><span class="path">/api/webhooks/tawk</span></td>
+          <td><span class="desc">Tawk.to webhook receiver &mdash; chat:start, chat:end, ticket:create</span></td>
+        </tr>
+        <tr>
+          <td><span class="method get">GET</span></td>
+          <td><span class="path">/api/events</span></td>
+          <td><span class="desc">Poll unacknowledged events (HQ dashboard consumes this)</span></td>
+        </tr>
+        <tr>
+          <td><span class="method post">POST</span></td>
+          <td><span class="path">/api/events/ack</span></td>
+          <td><span class="desc">Acknowledge events after processing</span></td>
+        </tr>
+        <tr>
+          <td><span class="method get">GET</span></td>
+          <td><span class="path">/health</span></td>
+          <td><span class="desc">Health check &mdash; returns status, service name, timestamp</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ── Test Results ── -->
+  <section class="section">
+    <div class="section-label">Verification</div>
+    <h2>End-to-end test results</h2>
+
+    <div class="test-block">
+      <div class="test-header">Founding Form &rarr; Worker &rarr; KV Pipeline</div>
+      <div class="test-body">
+        <div class="test-row">
+          <span class="check pass">&#x2713;</span>
+          <div>
+            <div class="test-label"><strong>Worker health check</strong></div>
+            <div class="test-detail">GET /health &rarr; 200 {"status":"ok","service":"sweepnspect-webhook"}</div>
+          </div>
+        </div>
+        <div class="test-row">
+          <span class="check pass">&#x2713;</span>
+          <div>
+            <div class="test-label"><strong>cURL test submission</strong></div>
+            <div class="test-detail">POST /api/founding &rarr; 200 {"ok":true,"id":"app-1772053843915-szqahd"}</div>
+          </div>
+        </div>
+        <div class="test-row">
+          <span class="check pass">&#x2713;</span>
+          <div>
+            <div class="test-label"><strong>Browser E2E test</strong></div>
+            <div class="test-detail">Filled form in Clauser browser &rarr; submit &rarr; "Submitting..." &rarr; thank-you message displayed</div>
+          </div>
+        </div>
+        <div class="test-row">
+          <span class="check pass">&#x2713;</span>
+          <div>
+            <div class="test-label"><strong>KV storage verified</strong></div>
+            <div class="test-detail">GET /api/founding &rarr; {"applications":[...], "total": 2} &mdash; both test entries present</div>
+          </div>
+        </div>
+        <div class="test-row">
+          <span class="check pass">&#x2713;</span>
+          <div>
+            <div class="test-label"><strong>Event created for HQ</strong></div>
+            <div class="test-detail">founding:application event added to _unacked list for dashboard polling</div>
+          </div>
+        </div>
+        <div class="test-row">
+          <span class="check pass">&#x2713;</span>
+          <div>
+            <div class="test-label"><strong>Live site deployed</strong></div>
+            <div class="test-detail">GitHub Pages build completed &mdash; worker URL and mailto fallback confirmed in production JS</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="test-block">
+      <div class="test-header">Form Resilience</div>
+      <div class="test-body">
+        <div class="test-row">
+          <span class="check pass">&#x2713;</span>
+          <div>
+            <div class="test-label"><strong>Worker reachable</strong> &mdash; application stored in KV, thank-you shown</div>
+          </div>
+        </div>
+        <div class="test-row">
+          <span class="check pass">&#x2713;</span>
+          <div>
+            <div class="test-label"><strong>Worker unreachable</strong> &mdash; fallback opens mailto:contact@sweepnspect.com with [FOUNDING] prefix</div>
+          </div>
+        </div>
+        <div class="test-row">
+          <span class="check pass">&#x2713;</span>
+          <div>
+            <div class="test-label"><strong>Required field validation</strong> &mdash; name, email, years, heard_about enforced by browser + worker</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── HQ Email Router ── -->
+  <section class="section">
+    <div class="section-label">Email Routing Engine</div>
+    <h2>contact@sweepnspect.com classification</h2>
+    <p style="margin-bottom: 16px;">The HQ server's email router auto-classifies inbound email and creates records. Ready to activate when the server is deployed.</p>
+
+    <table class="endpoint-table">
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Detection</th>
+          <th>Auto-Action</th>
+          <th>Severity</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="method post" style="color: var(--green);">FOUNDING</span></td>
+          <td><span class="desc">[FOUNDING] prefix or "founding" / "application" keywords</span></td>
+          <td><span class="desc">Create subscriber record</span></td>
+          <td><span class="desc" style="color: var(--amber);">High</span></td>
+        </tr>
+        <tr>
+          <td><span class="method" style="color: var(--red);">BUG</span></td>
+          <td><span class="desc">[BUG] prefix or "bug" / "crash" / "broken" / "error"</span></td>
+          <td><span class="desc">Create ticket (high priority)</span></td>
+          <td><span class="desc" style="color: var(--red);">High</span></td>
+        </tr>
+        <tr>
+          <td><span class="method" style="color: var(--red);">BILLING</span></td>
+          <td><span class="desc">[BILLING] prefix or "payment" / "refund" / "cancel"</span></td>
+          <td><span class="desc">Create ticket (critical)</span></td>
+          <td><span class="desc" style="color: var(--red);">Critical</span></td>
+        </tr>
+        <tr>
+          <td><span class="method">TICKET</span></td>
+          <td><span class="desc">[TICKET] prefix, "support" / "help", or Tawk.to transcripts</span></td>
+          <td><span class="desc">Create ticket</span></td>
+          <td><span class="desc">Normal</span></td>
+        </tr>
+        <tr>
+          <td><span class="method" style="color: var(--blue);">CONTACT</span></td>
+          <td><span class="desc">Default fallback for unmatched emails</span></td>
+          <td><span class="desc">None</span></td>
+          <td><span class="desc">Low</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ── Session Timeline ── -->
+  <section class="section">
+    <div class="section-label">Session Timeline</div>
+    <h2>What happened today</h2>
+
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-time">21:00 UTC</div>
+        <div class="tl-text"><strong>Assessed launch readiness</strong> &mdash; identified founding form as broken (mailto-only, no real backend)</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-time">21:02 UTC</div>
+        <div class="tl-text"><strong>Discovered Cloudflare Worker</strong> at <code style="font-family:var(--mono);font-size:12px;">SweepNspect-Hub/worker/</code> &mdash; Tawk.to webhook handler with KV storage, not yet deployed</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-time">21:05 UTC</div>
+        <div class="tl-text"><strong>Added /api/founding endpoint</strong> to worker &mdash; POST stores applications in KV, GET lists them, auto-creates HQ dashboard events</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-time">21:07 UTC</div>
+        <div class="tl-text"><strong>Rewired founding.html</strong> &mdash; replaced mailto with fetch POST to worker, kept mailto as fallback, updated thank-you message</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-time">21:09 UTC</div>
+        <div class="tl-text"><strong>Retrieved Cloudflare API token</strong> from Vaultwarden &mdash; deployed worker to production</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-time">21:10 UTC</div>
+        <div class="tl-text"><strong>Worker deployed</strong> &mdash; <code style="font-family:var(--mono);font-size:12px;">sweepnspect-webhook.sweepnspect.workers.dev</code> responding, health check passing</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-time">21:10 UTC</div>
+        <div class="tl-text"><strong>E2E test passed</strong> &mdash; cURL + browser form submission both stored in KV, thank-you displayed</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-time">21:11 UTC</div>
+        <div class="tl-text"><strong>Website pushed to GitHub Pages</strong> &mdash; build completed, live site confirmed with new form handler</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Changes Made ── -->
+  <section class="section">
+    <div class="section-label">Files Changed</div>
+
+    <div class="code-block">
+<span class="comment"># Cloudflare Worker — added founding application endpoints</span>
+<span class="key">Modified:</span> <span class="val">SweepNspect-Hub/worker/src/index.js</span>
+  + POST /api/founding  &mdash; validate, store in KV, create event
+  + GET  /api/founding  &mdash; list all applications
+  + getApplicationsList() helper
+
+<span class="comment"># Website — rewired form submission</span>
+<span class="key">Modified:</span> <span class="val">SweepNspect-Website/founding.html</span>
+  - Removed mailto-only handler
+  + fetch POST to worker with JSON payload
+  + mailtoFallback() if worker unreachable
+  + "Submitting..." button state
+  + Updated thank-you copy
+    </div>
+  </section>
+
+  <!-- ── What's Next ── -->
+  <section class="section">
+    <div class="section-label">Action Items &mdash; Today</div>
+    <h2>Campaign launch checklist</h2>
+
+    <ul class="action-list">
+      <li>
+        <span class="action-num">1</span>
+        <div class="action-content">
+          <strong>Write DM / message pitch template</strong>
+          <div class="action-context">Adapt the 30-second elevator pitch for text and DM. Personal, not copy-paste. +15 XP</div>
+        </div>
+      </li>
+      <li>
+        <span class="action-num">2</span>
+        <div class="action-content">
+          <strong>Post in FB chimney community groups</strong>
+          <div class="action-context">NCSG convention is happening NOW. "While chimney pros gather this week..." &mdash; ride the buzz. +15 XP</div>
+        </div>
+      </li>
+      <li>
+        <span class="action-num">3</span>
+        <div class="action-content">
+          <strong>Record 2-minute screen recording demo</strong>
+          <div class="action-context">CRITICAL per evaluator: "No video = most prospects bounce." Show: inspection flow &rarr; PDF &rarr; share to homeowner. +20 XP</div>
+        </div>
+      </li>
+      <li>
+        <span class="action-num">4</span>
+        <div class="action-content">
+          <strong>Direct message 20+ sweeps with personal pitch</strong>
+          <div class="action-context">People you know, know of, or can find online. Not copy-paste &mdash; mention something specific. +25 XP</div>
+        </div>
+      </li>
+      <li>
+        <span class="action-num">5</span>
+        <div class="action-content">
+          <strong>Post founding opportunity on Facebook Page</strong>
+          <div class="action-context">The curated pitch: "25 sweeps, hand-picked, lifetime free." Link to sweepnspect.com/founding.html. +10 XP</div>
+        </div>
+      </li>
+      <li>
+        <span class="action-num">6</span>
+        <div class="action-content">
+          <strong>Test founding form on mobile</strong>
+          <div class="action-context">Verify the form works on phone browsers &mdash; most sweeps will click from a Facebook DM on their phone.</div>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ── Architecture Reference ── -->
+  <section class="section">
+    <div class="section-label">Architecture Reference</div>
+    <h2>System map</h2>
+
+    <div class="status-grid">
+      <div class="status-card info full">
+        <div class="card-header">
+          <span class="card-title">Repositories</span>
+        </div>
+        <div class="code-block" style="margin: 8px 0 0; border: none; background: var(--bg); padding: 12px;">
+<span class="key">sweepnspect-dev/sweepnspect-website</span>  <span class="comment">&mdash; GitHub Pages, sweepnspect.com</span>
+<span class="key">sweepnspect-dev/sweepnspect-hub</span>      <span class="comment">&mdash; HQ server + Cloudflare Worker</span>
+<span class="key">sweepnspect-dev/android-mvp</span>          <span class="comment">&mdash; Android app source</span>
+        </div>
+      </div>
+
+      <div class="status-card info">
+        <div class="card-header">
+          <span class="card-title">Cloudflare</span>
+        </div>
+        <div class="card-detail">
+          Account: sweepnspect@gmail.com<br>
+          Worker: sweepnspect-webhook<br>
+          KV: EVENTS (41db36a7...)
+        </div>
+      </div>
+
+      <div class="status-card info">
+        <div class="card-header">
+          <span class="card-title">Email</span>
+        </div>
+        <div class="card-detail">
+          contact@sweepnspect.com<br>
+          IMAP: mail.privateemail.com:993<br>
+          Poller: 30s interval
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <span>Generated by Cody &mdash; SweepNspect HQ</span>
+    <span>2026-02-25T21:15:00Z</span>
+  </footer>
+
+</div>
+</body>
+</html>

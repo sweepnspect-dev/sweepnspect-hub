@@ -82,5 +82,5 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`\n  AI Proxy listening on port ${PORT}`);
-  console.log(`  VM endpoint: http://10.0.2.2:${PORT}\n`);
+  console.log(`  Local endpoint: http://127.0.0.1:${PORT}\n`);
 });

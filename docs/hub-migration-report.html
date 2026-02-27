@@ -27,7 +27,7 @@
   }
   .hero {
     background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 50%, #1e2440 100%);
-    border-bottom: 3px solid var(--brick);
+    border-bottom: 3px solid var(--green);
     padding: 60px 40px 40px;
     text-align: center;
   }
@@ -47,6 +47,22 @@
     font-size: 0.9em;
     color: var(--brass);
     font-weight: 600;
+  }
+  .hero .live-badge {
+    display: inline-block;
+    background: var(--green);
+    color: #fff;
+    padding: 6px 20px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 1em;
+    letter-spacing: 0.05em;
+    margin-top: 16px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.4); }
+    50% { box-shadow: 0 0 0 12px rgba(39, 174, 96, 0); }
   }
   .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
 
@@ -120,6 +136,7 @@
   }
   .badge.live { background: var(--green); color: #fff; }
   .badge.done { background: var(--green); color: #fff; }
+  .badge.blocked { background: var(--brick); color: #fff; }
   .badge.planned { background: var(--orange); color: #000; }
   .badge.next { background: var(--blue); color: #fff; }
   .badge.deferred { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.5); }
@@ -193,7 +210,7 @@
     top: 4px;
     bottom: 4px;
     width: 2px;
-    background: var(--brick);
+    background: var(--green);
     opacity: 0.4;
   }
   .timeline-item {
@@ -238,6 +255,12 @@
     font-weight: 600;
     min-width: 70px;
   }
+  .commit .repo {
+    font-size: 0.8em;
+    opacity: 0.5;
+    margin-left: auto;
+    white-space: nowrap;
+  }
 
   .checklist {
     list-style: none;
@@ -265,6 +288,32 @@
   .checklist .check.yes { background: var(--green); color: #fff; }
   .checklist .check.no { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.3); }
   .checklist .check.wip { background: var(--orange); color: #000; }
+  .checklist .check.blocked { background: var(--brick); color: #fff; }
+
+  .url-box {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--green);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .url-box .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .url-box a {
+    color: var(--brass);
+    text-decoration: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.95em;
+  }
+  .url-box a:hover { text-decoration: underline; }
 
   .footer {
     text-align: center;
@@ -286,171 +335,223 @@
 
 <div class="hero">
   <h1>SweepNspect <span>HQ</span> — Migration Report</h1>
-  <div class="subtitle">Node.js Server → JAMstack (GitHub Pages + Cloudflare Workers + KV)</div>
-  <div class="date">February 25-26, 2026 — Build Session</div>
+  <div class="subtitle">Node.js Server &rarr; JAMstack (GitHub Pages + Cloudflare Workers + KV)</div>
+  <div class="date">February 25&ndash;26, 2026 &mdash; Build Session</div>
+  <div class="live-badge">DASHBOARD LIVE</div>
 </div>
 
 <div class="container">
 
+  <!-- ═══ LIVE URLS ═══ -->
+  <div class="section">
+    <h2><span class="icon">&#127760;</span> Live URLs</h2>
+    <div class="url-box">
+      <div class="dot"></div>
+      <a href="https://sweepnspect.com/hub/" target="_blank">sweepnspect.com/hub/</a>
+      &mdash; Dashboard (GitHub Pages)
+    </div>
+    <div class="url-box">
+      <div class="dot"></div>
+      <a href="https://sweepnspect-webhook.sweepnspect.workers.dev/health" target="_blank">sweepnspect-webhook.sweepnspect.workers.dev</a>
+      &mdash; Worker API (Cloudflare)
+    </div>
+    <div class="url-box">
+      <div class="dot"></div>
+      <a href="https://sweepnspect.com/" target="_blank">sweepnspect.com</a>
+      &mdash; Website + Analytics (GitHub Pages + CF Web Analytics)
+    </div>
+  </div>
+
   <!-- ═══ STATUS OVERVIEW ═══ -->
   <div class="section">
-    <h2><span class="icon">&#9889;</span> Current Status</h2>
+    <h2><span class="icon">&#9889;</span> Migration Status</h2>
     <div class="status-grid">
       <div class="status-card green">
-        <div class="label">Worker API</div>
-        <div class="value">LIVE</div>
-        <div class="detail">Full CRUD deployed</div>
+        <div class="label">Phase 1: KV API</div>
+        <div class="value">DONE</div>
+        <div class="detail">25+ CRUD endpoints deployed</div>
       </div>
       <div class="status-card green">
-        <div class="label">Tawk Notifications</div>
-        <div class="value">LIVE</div>
-        <div class="detail">Edge + Hub dual-path</div>
+        <div class="label">Phase 2: Dashboard</div>
+        <div class="value">DONE</div>
+        <div class="detail">GitHub Pages SPA live</div>
+      </div>
+      <div class="status-card brick">
+        <div class="label">Phase 3: Email</div>
+        <div class="value">BLOCKED</div>
+        <div class="detail">DNS on Namecheap, not CF</div>
       </div>
       <div class="status-card green">
-        <div class="label">Web Analytics</div>
+        <div class="label">Phase 4: Analytics</div>
+        <div class="value">DONE</div>
+        <div class="detail">CF Web Analytics proxied</div>
+      </div>
+      <div class="status-card green">
+        <div class="label">Notifications</div>
         <div class="value">LIVE</div>
-        <div class="detail">CF beacon tracking</div>
+        <div class="detail">Resend &rarr; Tawk 24/7</div>
       </div>
       <div class="status-card green">
         <div class="label">Webhooks</div>
         <div class="value">LIVE</div>
         <div class="detail">FB + Tawk + Founding</div>
       </div>
-      <div class="status-card orange">
-        <div class="label">Dashboard</div>
-        <div class="value">NEXT</div>
-        <div class="detail">GitHub Pages SPA</div>
-      </div>
-      <div class="status-card blue">
-        <div class="label">Email Workers</div>
-        <div class="value">PLAN</div>
-        <div class="detail">Replace IMAP polling</div>
-      </div>
     </div>
   </div>
 
   <!-- ═══ WHAT WE BUILT ═══ -->
   <div class="section">
-    <h2><span class="icon">&#128295;</span> What We Built This Session</h2>
+    <h2><span class="icon">&#128295;</span> Build Timeline</h2>
 
     <div class="timeline">
       <div class="timeline-item done">
         <div class="time">Session Start</div>
-        <div class="desc"><strong>Tawk.to Notification Bridge (Hub-side)</strong> — <code>lib/tawk-notifier.js</code>: Nodemailer email-to-ticket bridge for high-priority alerts. Integrated into AlertRouter.</div>
-      </div>
-      <div class="timeline-item done">
-        <div class="time">Commit 9b8eab1</div>
-        <div class="desc"><strong>Hub-side Tawk bridge pushed</strong> — tawk-notifier.js + alert-router.js + server.js changes</div>
-      </div>
-      <div class="timeline-item done">
-        <div class="time">Edge Notification</div>
-        <div class="desc"><strong>Edge-side Tawk notifications</strong> — <code>notifyTawk()</code> added to Worker using Resend API. Per-type cooldowns via KV. Non-blocking with <code>ctx.waitUntil()</code>.</div>
-      </div>
-      <div class="timeline-item done">
-        <div class="time">Commit 2f7b021</div>
-        <div class="desc"><strong>Worker deployed</strong> — Resend API key as secret, Tawk email in vars. Live on Cloudflare edge.</div>
-      </div>
-      <div class="timeline-item done">
-        <div class="time">Analytics</div>
-        <div class="desc"><strong>Cloudflare Web Analytics</strong> — Beacon added to sweepnspect.com index.html. Tracking pageviews, referrers, browsers, countries.</div>
+        <div class="desc"><strong>Tawk.to Notification Bridge</strong> &mdash; Hub-side (<code>tawk-notifier.js</code>, nodemailer) + Edge-side (<code>notifyTawk()</code>, Resend API). Dual-path: always-on edge + backup hub.</div>
       </div>
       <div class="timeline-item done">
         <div class="time">Commit 043b4e6</div>
-        <div class="desc"><strong>Analytics pushed to GitHub Pages</strong> — Live on sweepnspect.com</div>
+        <div class="desc"><strong>Cloudflare Web Analytics</strong> &mdash; Beacon added to sweepnspect.com. Tracking pageviews, referrers, browsers, countries.</div>
       </div>
       <div class="timeline-item done">
         <div class="time">Design</div>
-        <div class="desc"><strong>JAMstack Migration Design</strong> — Full architecture doc with KV schema, component mapping, migration sequence. Written to <code>docs/plans/</code>.</div>
+        <div class="desc"><strong>JAMstack Migration Design</strong> &mdash; Architecture doc with KV schema, 5 phases, component mapping. Written to <code>docs/plans/</code>.</div>
       </div>
       <div class="timeline-item done">
-        <div class="time">Worker Expansion</div>
-        <div class="desc"><strong>Full CRUD API in Worker</strong> — Tickets, subscribers, alerts, revenue, commands, stats, marketing, inbox. 25+ endpoints. Auth via bearer token.</div>
+        <div class="time">Phase 1 &mdash; Commit 87b2c41</div>
+        <div class="desc"><strong>Full CRUD Worker API</strong> &mdash; Tickets, subscribers, alerts, revenue, commands, stats, marketing, inbox. 25+ endpoints. KV index pattern. Bearer auth. Deployed to Cloudflare edge.</div>
+      </div>
+      <div class="timeline-item done">
+        <div class="time">Data Seeding</div>
+        <div class="desc"><strong>KV seeded</strong> via <code>seed-kv.js</code> &mdash; 6 subscribers, 4 tickets, 4 revenue entries, 5 alerts. Stats verified: 3 open, $177 MRR.</div>
+      </div>
+      <div class="timeline-item done">
+        <div class="time">Phase 2 &mdash; Commit ba08389</div>
+        <div class="desc"><strong>Dashboard SPA on GitHub Pages</strong> &mdash; 15 files, 3909 lines. Token auth prompt, 5s polling, all 7 views. Deployed to sweepnspect.com/hub/.</div>
+      </div>
+      <div class="timeline-item done">
+        <div class="time">Bugfix &mdash; Commit 4a7140b</div>
+        <div class="desc"><strong>Dashboard timing fix</strong> &mdash; Needs Review + Recent Alerts sections were empty on first load (API called before auth). Fixed with <code>onStats()</code> retry.</div>
+      </div>
+      <div class="timeline-item done">
+        <div class="time">Phase 4 &mdash; Commit 0a7534e</div>
+        <div class="desc"><strong>CF Web Analytics proxy</strong> &mdash; Marketing endpoint now queries CF GraphQL API for real pageview/visitor/referrer/path data. Cached 5 min in KV.</div>
       </div>
     </div>
   </div>
 
   <!-- ═══ ARCHITECTURE ═══ -->
   <div class="section">
-    <h2><span class="icon">&#127959;</span> Target Architecture</h2>
-    <div class="arch-diagram">┌─────────────────────┐     ┌──────────────────────────────────┐
-│   GitHub Pages      │     │   Cloudflare Worker              │
-│   (Static SPA)      │────▶│   sweepnspect-webhook            │
-│                     │     │                                  │
-│   Dashboard HTML    │     │   Tickets     CRUD → KV          │
-│   + JS views        │     │   Subscribers CRUD → KV          │
-│   + CSS             │     │   Alerts      CRUD → KV          │
-│                     │     │   Revenue     CRUD → KV          │
-│   Polls /api/stats  │     │   Commands    CRUD → KV          │
-│   every 5 seconds   │     │   Stats       computed → KV      │
-│                     │     │   Webhooks    FB/Tawk/Founding    │
-│   Always up even    │     │   Notifications  Resend → Tawk   │
-│   if CF is down     │     │   Auth        Bearer token       │
-└─────────────────────┘     └──────────┬───────────────────────┘
-                                       │
-┌─────────────────────┐     ┌──────────▼───────────┐
-│   External Sources  │     │   Cloudflare KV      │
-│   Facebook webhooks │────▶│   Namespace: EVENTS  │
-│   Tawk.to webhooks  │     │                      │
-│   Founding form     │     │   tickets:{id}       │
-│   Website chat      │     │   subs:{id}          │
-│   (future) Email    │     │   alerts:{id}        │
-└─────────────────────┘     │   revenue:{id}       │
-                            │   commands:_data     │
-┌─────────────────────┐     │   stats:latest       │
-│   Cloudflare Web    │     │   *:_index            │
-│   Analytics         │     └──────────────────────┘
-│   (already live)    │
-└─────────────────────┘</div>
+    <h2><span class="icon">&#127959;</span> Live Architecture</h2>
+    <div class="arch-diagram">&#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;     &#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;
+&#9474;   GitHub Pages      &#9474;     &#9474;   Cloudflare Worker              &#9474;
+&#9474;   sweepnspect.com   &#9474;&#9472;&#9472;&#9472;&#9472;&#9654;&#9474;   sweepnspect-webhook            &#9474;
+&#9474;   /hub/             &#9474;     &#9474;                                  &#9474;
+&#9474;                     &#9474;     &#9474;   Tickets     CRUD &#8594; KV          &#9474;
+&#9474;   15 files, 3909 LOC&#9474;     &#9474;   Subscribers CRUD &#8594; KV          &#9474;
+&#9474;   Token auth prompt &#9474;     &#9474;   Alerts      CRUD &#8594; KV          &#9474;
+&#9474;   5s polling cycle   &#9474;     &#9474;   Revenue     CRUD &#8594; KV          &#9474;
+&#9474;   7 view modules     &#9474;     &#9474;   Commands    CRUD &#8594; KV          &#9474;
+&#9474;                     &#9474;     &#9474;   Stats       computed &#8594; cache   &#9474;
+&#9474;   Dashboard         &#9474;     &#9474;   Marketing   CF GraphQL &#8594; KV   &#9474;
+&#9474;   Tickets           &#9474;     &#9474;   Webhooks    FB/Tawk/Founding    &#9474;
+&#9474;   Subscribers       &#9474;     &#9474;   Notify      Resend &#8594; Tawk      &#9474;
+&#9474;   Revenue           &#9474;     &#9474;   Auth        Bearer token        &#9474;
+&#9474;   Commands          &#9474;     &#9474;                                  &#9474;
+&#9474;   Marketing         &#9474;     &#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9516;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;
+&#9474;   Inbox             &#9474;                &#9474;
+&#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;     &#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9524;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;
+                            &#9474;   Cloudflare KV          &#9474;
+&#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;     &#9474;   Namespace: EVENTS      &#9474;
+&#9474;   External Sources  &#9474;&#9472;&#9472;&#9472;&#9472;&#9654;&#9474;                          &#9474;
+&#9474;   Facebook webhooks &#9474;     &#9474;   tickets:{id}           &#9474;
+&#9474;   Tawk.to JS API    &#9474;     &#9474;   subs:{id}              &#9474;
+&#9474;   Founding form     &#9474;     &#9474;   alerts:{id}            &#9474;
+&#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;     &#9474;   revenue:{id}           &#9474;
+                            &#9474;   marketing:_cache       &#9474;
+&#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;     &#9474;   stats:latest           &#9474;
+&#9474;   CF Web Analytics  &#9474;     &#9474;   *:_index               &#9474;
+&#9474;   (beacon on site)  &#9474;     &#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;
+&#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;</div>
+  </div>
+
+  <!-- ═══ DASHBOARD VIEWS ═══ -->
+  <div class="section">
+    <h2><span class="icon">&#128187;</span> Dashboard Views (7 Total)</h2>
+    <div class="status-grid">
+      <div class="status-card green">
+        <div class="label">Dashboard</div>
+        <div class="value">&#9632;</div>
+        <div class="detail">Stats, alerts, review queue</div>
+      </div>
+      <div class="status-card green">
+        <div class="label">Tickets</div>
+        <div class="value">&#9998;</div>
+        <div class="detail">CRUD + thread messages</div>
+      </div>
+      <div class="status-card green">
+        <div class="label">Subscribers</div>
+        <div class="value">&#9679;</div>
+        <div class="detail">CRUD + plan management</div>
+      </div>
+      <div class="status-card green">
+        <div class="label">Revenue</div>
+        <div class="value">$</div>
+        <div class="detail">MRR, entries, trends</div>
+      </div>
+      <div class="status-card green">
+        <div class="label">Commands</div>
+        <div class="value">&#9881;</div>
+        <div class="detail">Tasks + schedule</div>
+      </div>
+      <div class="status-card green">
+        <div class="label">Marketing</div>
+        <div class="value">&#9776;</div>
+        <div class="detail">Live CF analytics data</div>
+      </div>
+      <div class="status-card green">
+        <div class="label">Inbox</div>
+        <div class="value">&#9993;</div>
+        <div class="detail">Edge mode (email pending)</div>
+      </div>
+    </div>
   </div>
 
   <!-- ═══ WORKER API ENDPOINTS ═══ -->
   <div class="section">
-    <h2><span class="icon">&#128268;</span> Worker API — Full Endpoint Map</h2>
+    <h2><span class="icon">&#128268;</span> Worker API &mdash; Full Endpoint Map</h2>
 
     <h3>Public Endpoints (No Auth)</h3>
     <table>
       <tr><th>Method</th><th>Path</th><th>Purpose</th><th>Status</th></tr>
-      <tr><td><code>POST</code></td><td><code>/api/founding</code></td><td>Submit founding application → KV + subscriber + alert</td><td><span class="badge live">LIVE</span></td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/founding</code></td><td>Submit founding application &rarr; KV + subscriber + alert</td><td><span class="badge live">LIVE</span></td></tr>
       <tr><td><code>GET</code></td><td><code>/api/founding</code></td><td>List all applications</td><td><span class="badge live">LIVE</span></td></tr>
       <tr><td><code>POST</code></td><td><code>/api/webhooks/tawk</code></td><td>Tawk.to chat events</td><td><span class="badge live">LIVE</span></td></tr>
       <tr><td><code>GET</code></td><td><code>/api/webhooks/facebook</code></td><td>FB verify challenge</td><td><span class="badge live">LIVE</span></td></tr>
       <tr><td><code>POST</code></td><td><code>/api/webhooks/facebook</code></td><td>FB messages, comments, reactions</td><td><span class="badge live">LIVE</span></td></tr>
-      <tr><td><code>POST</code></td><td><code>/api/webhooks/ticket</code></td><td>External ticket creation</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/webhooks/ticket</code></td><td>External ticket creation</td><td><span class="badge live">LIVE</span></td></tr>
       <tr><td><code>GET</code></td><td><code>/health</code></td><td>Health check</td><td><span class="badge live">LIVE</span></td></tr>
     </table>
 
-    <h3>Dashboard API (Auth Required)</h3>
+    <h3>Dashboard API (Auth Required &mdash; 25+ Endpoints)</h3>
     <table>
-      <tr><th>Method</th><th>Path</th><th>Purpose</th><th>Status</th></tr>
-      <tr><td><code>GET</code></td><td><code>/api/tickets</code></td><td>List tickets (?status=, ?priority=)</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>POST</code></td><td><code>/api/tickets</code></td><td>Create ticket</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>GET</code></td><td><code>/api/tickets/:id</code></td><td>Get ticket detail</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>PUT</code></td><td><code>/api/tickets/:id</code></td><td>Update ticket (status, priority, etc)</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>DELETE</code></td><td><code>/api/tickets/:id</code></td><td>Delete ticket</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>POST</code></td><td><code>/api/tickets/:id/messages</code></td><td>Add message to thread</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>GET</code></td><td><code>/api/subscribers</code></td><td>List subscribers (?status=, ?plan=)</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>POST</code></td><td><code>/api/subscribers</code></td><td>Create subscriber</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>GET</code></td><td><code>/api/subscribers/:id</code></td><td>Get subscriber detail</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>PUT</code></td><td><code>/api/subscribers/:id</code></td><td>Update subscriber</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>DELETE</code></td><td><code>/api/subscribers/:id</code></td><td>Delete subscriber</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>GET</code></td><td><code>/api/alerts</code></td><td>List alerts (?limit=)</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>POST</code></td><td><code>/api/alerts/:id/acknowledge</code></td><td>Acknowledge alert</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>GET</code></td><td><code>/api/alerts/config</code></td><td>Get alert config</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>PUT</code></td><td><code>/api/alerts/config</code></td><td>Update alert config</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>GET</code></td><td><code>/api/revenue</code></td><td>List revenue (?type=, ?month=)</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>POST</code></td><td><code>/api/revenue</code></td><td>Create revenue entry</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>PUT</code></td><td><code>/api/revenue/:id</code></td><td>Update revenue entry</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>DELETE</code></td><td><code>/api/revenue/:id</code></td><td>Delete revenue entry</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>GET</code></td><td><code>/api/commands</code></td><td>Get tasks + schedule</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>POST</code></td><td><code>/api/commands/tasks</code></td><td>Create task</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>PUT</code></td><td><code>/api/commands/tasks/:id</code></td><td>Update task</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>DELETE</code></td><td><code>/api/commands/tasks/:id</code></td><td>Delete task</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>POST</code></td><td><code>/api/commands/schedule</code></td><td>Create schedule entry</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>DELETE</code></td><td><code>/api/commands/schedule/:id</code></td><td>Delete schedule entry</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>GET</code></td><td><code>/api/stats</code></td><td>Computed stats (cached 10s)</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>GET</code></td><td><code>/api/marketing</code></td><td>Marketing data</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>GET</code></td><td><code>/api/inbox</code></td><td>Email events from KV</td><td><span class="badge done">NEW</span></td></tr>
-      <tr><td><code>GET</code></td><td><code>/api/tawk/status</code></td><td>Tawk notification status</td><td><span class="badge done">NEW</span></td></tr>
+      <tr><th>Method</th><th>Path</th><th>Purpose</th></tr>
+      <tr><td><code>GET/POST</code></td><td><code>/api/tickets</code></td><td>List (?status=, ?priority=) / Create ticket</td></tr>
+      <tr><td><code>GET/PUT/DELETE</code></td><td><code>/api/tickets/:id</code></td><td>Read / Update / Delete ticket</td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/tickets/:id/messages</code></td><td>Add message to thread</td></tr>
+      <tr><td><code>GET/POST</code></td><td><code>/api/subscribers</code></td><td>List (?status=, ?plan=) / Create subscriber</td></tr>
+      <tr><td><code>GET/PUT/DELETE</code></td><td><code>/api/subscribers/:id</code></td><td>Read / Update / Delete subscriber</td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/alerts</code></td><td>List alerts (?limit=)</td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/alerts/:id/acknowledge</code></td><td>Acknowledge alert</td></tr>
+      <tr><td><code>GET/PUT</code></td><td><code>/api/alerts/config</code></td><td>Alert configuration</td></tr>
+      <tr><td><code>GET/POST</code></td><td><code>/api/revenue</code></td><td>List (?type=, ?month=) / Create entry</td></tr>
+      <tr><td><code>PUT/DELETE</code></td><td><code>/api/revenue/:id</code></td><td>Update / Delete entry</td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/commands</code></td><td>Tasks + schedule</td></tr>
+      <tr><td><code>POST/PUT/DELETE</code></td><td><code>/api/commands/tasks[/:id]</code></td><td>Task CRUD</td></tr>
+      <tr><td><code>POST/DELETE</code></td><td><code>/api/commands/schedule[/:id]</code></td><td>Schedule CRUD</td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/stats</code></td><td>Computed stats (cached 10s)</td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/marketing</code></td><td>CF Web Analytics proxy (cached 5m)</td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/inbox</code></td><td>Email events from KV</td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/tawk/status</code></td><td>Tawk notification cooldowns</td></tr>
     </table>
   </div>
 
@@ -470,168 +571,181 @@
       <tr><td><code>revenue:_index</code></td><td>Lightweight list [{id, type, amount, date}]</td><td>None</td></tr>
       <tr><td><code>commands:_data</code></td><td>Tasks + schedule combined object</td><td>None</td></tr>
       <tr><td><code>stats:latest</code></td><td>Computed stats snapshot (updated on writes)</td><td>None</td></tr>
+      <tr><td><code>marketing:_cache</code></td><td>CF Web Analytics GraphQL response</td><td>5 min</td></tr>
+      <tr><td><code>marketing:_data</code></td><td>Static marketing data (fallback)</td><td>None</td></tr>
       <tr><td><code>inbox:_latest</code></td><td>Last 50 email events</td><td>None</td></tr>
-      <tr><td><code>marketing:_data</code></td><td>Marketing analytics data</td><td>None</td></tr>
-      <tr><td><code>_cooldown:{type}</code></td><td>Notification cooldown timestamp</td><td>10 min</td></tr>
-      <tr><td><code>app-{id}</code></td><td>Founding application (legacy)</td><td>90 days</td></tr>
-      <tr><td><code>evt-{id}</code></td><td>Webhook event (legacy)</td><td>30 days</td></tr>
+      <tr><td><code>_cooldown:{type}</code></td><td>Notification cooldown</td><td>10 min</td></tr>
     </table>
   </div>
 
   <!-- ═══ NOTIFICATION SYSTEM ═══ -->
   <div class="section">
-    <h2><span class="icon">&#128276;</span> Notification System — Dual Path</h2>
+    <h2><span class="icon">&#128276;</span> Notification System &mdash; Dual Path</h2>
     <div class="status-grid">
       <div class="status-card green">
-        <div class="label">Edge Path</div>
-        <div class="value">24/7</div>
-        <div class="detail">Cloudflare Worker → Resend → Tawk</div>
+        <div class="label">Edge Path (24/7)</div>
+        <div class="value">Resend</div>
+        <div class="detail">Worker &rarr; Resend API &rarr; Tawk ticket &rarr; phone push</div>
       </div>
       <div class="status-card blue">
-        <div class="label">Hub Path</div>
-        <div class="value">Backup</div>
-        <div class="detail">Node.js → Nodemailer → Tawk</div>
+        <div class="label">Hub Path (backup)</div>
+        <div class="value">SMTP</div>
+        <div class="detail">Node.js &rarr; Nodemailer &rarr; Tawk ticket</div>
       </div>
     </div>
 
     <h3>Flow</h3>
     <pre>Event arrives (FB/Tawk/Form/Ticket)
-  │
-  ├── Worker classifies priority (critical/high/normal/low)
-  │
-  ├── If critical or high:
-  │   ├── Check KV cooldown (_cooldown:{type}, 5 min)
-  │   ├── Build email (emoji + label + context)
-  │   ├── POST to Resend API (Bearer token)
-  │   ├── Resend sends to tickets@sweepnspect.p.tawk.email
-  │   ├── Tawk creates ticket → push notification on phone
-  │   └── Store cooldown in KV (10 min TTL)
-  │
-  └── All events stored in KV alerts + legacy events</pre>
-
-    <h3>Credentials</h3>
-    <table>
-      <tr><th>Secret</th><th>Storage</th><th>Used By</th></tr>
-      <tr><td><code>RESEND_API_KEY</code></td><td>Worker secret (wrangler)</td><td>notifyTawk() on edge</td></tr>
-      <tr><td><code>TAWK_TICKET_EMAIL</code></td><td>wrangler.toml vars</td><td>Email destination</td></tr>
-      <tr><td><code>HUB_API_TOKEN</code></td><td>Worker secret (to set)</td><td>Dashboard auth</td></tr>
-      <tr><td><code>FB_VERIFY_TOKEN</code></td><td>wrangler.toml vars</td><td>Facebook webhook verify</td></tr>
-      <tr><td>Cloudflare API Token</td><td>Vaultwarden</td><td>Deployment</td></tr>
-      <tr><td>Resend API Key</td><td>Vaultwarden ("resend")</td><td>Source of truth</td></tr>
-    </table>
+  |
+  +-- Worker classifies priority (critical/high/normal/low)
+  |
+  +-- If critical or high:
+  |   +-- Check KV cooldown (_cooldown:{type}, 5 min)
+  |   +-- Build email (emoji + label + context)
+  |   +-- POST to Resend API (Bearer token)
+  |   +-- Resend sends to tickets@sweepnspect.p.tawk.email
+  |   +-- Tawk creates ticket -> push notification on phone
+  |   +-- Store cooldown in KV (10 min TTL)
+  |
+  +-- All events stored in KV alerts + legacy events</pre>
   </div>
 
   <!-- ═══ GIT HISTORY ═══ -->
   <div class="section">
     <h2><span class="icon">&#128200;</span> Git Commits</h2>
-    <div class="commit"><span class="hash">9b8eab1</span> Hub-side Tawk notification bridge (tawk-notifier.js + alert-router.js + server.js)</div>
-    <div class="commit"><span class="hash">2f7b021</span> Edge-side Tawk notifications via Resend in Cloudflare Worker</div>
-    <div class="commit"><span class="hash">043b4e6</span> Add Cloudflare Web Analytics tracking to sweepnspect.com</div>
-    <div class="commit"><span class="hash">pending</span> Full CRUD API expansion — 25+ endpoints in Worker</div>
+
+    <h3>Hub Repo (sweepnspect-hub)</h3>
+    <div class="commit"><span class="hash">9b8eab1</span> Hub-side Tawk notification bridge<span class="repo">hub</span></div>
+    <div class="commit"><span class="hash">2f7b021</span> Edge-side Tawk notifications via Resend<span class="repo">hub</span></div>
+    <div class="commit"><span class="hash">87b2c41</span> Full CRUD Worker API — 25+ endpoints, KV storage, auth<span class="repo">hub</span></div>
+    <div class="commit"><span class="hash">0a7534e</span> CF Web Analytics proxy in marketing endpoint<span class="repo">hub</span></div>
+
+    <h3>Website Repo (sweepnspect-website)</h3>
+    <div class="commit"><span class="hash">043b4e6</span> Add Cloudflare Web Analytics beacon<span class="repo">website</span></div>
+    <div class="commit"><span class="hash">ba08389</span> Dashboard SPA on GitHub Pages (15 files, 3909 lines)<span class="repo">website</span></div>
+    <div class="commit"><span class="hash">4a7140b</span> Fix dashboard sections empty on first load<span class="repo">website</span></div>
   </div>
 
   <!-- ═══ MIGRATION CHECKLIST ═══ -->
   <div class="section">
     <h2><span class="icon">&#9745;</span> Migration Checklist</h2>
 
-    <h3>Phase 1: KV Data Layer</h3>
+    <h3>Phase 1: KV Data Layer <span class="badge done">COMPLETE</span></h3>
     <ul class="checklist">
-      <li><span class="check yes">&#10003;</span> KV CRUD helpers (get, put, list, delete with index)</li>
+      <li><span class="check yes">&#10003;</span> KV CRUD helpers (get, put, list, delete with index pattern)</li>
       <li><span class="check yes">&#10003;</span> Ticket endpoints (GET/POST/PUT/DELETE + messages)</li>
       <li><span class="check yes">&#10003;</span> Subscriber endpoints (GET/POST/PUT/DELETE)</li>
       <li><span class="check yes">&#10003;</span> Alert endpoints (list, acknowledge, config)</li>
       <li><span class="check yes">&#10003;</span> Revenue endpoints (GET/POST/PUT/DELETE)</li>
       <li><span class="check yes">&#10003;</span> Commands endpoints (tasks + schedule CRUD)</li>
       <li><span class="check yes">&#10003;</span> Stats computation from KV indexes</li>
-      <li><span class="check yes">&#10003;</span> Auth via bearer token</li>
-      <li><span class="check wip">&#9679;</span> Deploy expanded Worker</li>
-      <li><span class="check wip">&#9679;</span> Set HUB_API_TOKEN secret</li>
-      <li><span class="check no">&#8212;</span> Seed KV with existing JSON data</li>
+      <li><span class="check yes">&#10003;</span> Auth via bearer token (HUB_API_TOKEN secret)</li>
+      <li><span class="check yes">&#10003;</span> Deploy expanded Worker to Cloudflare edge</li>
+      <li><span class="check yes">&#10003;</span> Seed KV with existing data (6 subs, 4 tickets, 4 revenue)</li>
     </ul>
 
-    <h3>Phase 2: Dashboard on GitHub Pages</h3>
+    <h3>Phase 2: Dashboard on GitHub Pages <span class="badge done">COMPLETE</span></h3>
     <ul class="checklist">
-      <li><span class="check no">&#8212;</span> Copy public/ to GitHub Pages (hub/ subfolder or separate repo)</li>
-      <li><span class="check no">&#8212;</span> Add API base URL config + auth token entry</li>
-      <li><span class="check no">&#8212;</span> Replace WebSocket with 5s polling</li>
-      <li><span class="check no">&#8212;</span> Point all fetch() calls to Worker URL</li>
-      <li><span class="check no">&#8212;</span> Deploy and test</li>
+      <li><span class="check yes">&#10003;</span> Dashboard SPA in <code>hub/</code> on sweepnspect-website repo</li>
+      <li><span class="check yes">&#10003;</span> API config + token prompt on first visit (localStorage)</li>
+      <li><span class="check yes">&#10003;</span> WebSocket replaced with 5s polling (hubSocket)</li>
+      <li><span class="check yes">&#10003;</span> All 7 views working: Dashboard, Tickets, Subscribers, Revenue, Commands, Marketing, Inbox</li>
+      <li><span class="check yes">&#10003;</span> Deployed and verified at sweepnspect.com/hub/</li>
+      <li><span class="check yes">&#10003;</span> Dashboard timing bug fixed (auth race condition)</li>
+      <li><span class="check yes">&#10003;</span> API token stored in Vaultwarden</li>
     </ul>
 
-    <h3>Phase 3: Email Workers</h3>
+    <h3>Phase 3: Email Workers <span class="badge blocked">BLOCKED</span></h3>
     <ul class="checklist">
-      <li><span class="check no">&#8212;</span> Configure MX record for sweepnspect.com</li>
-      <li><span class="check no">&#8212;</span> Create Email Worker (parse inbound → KV + alerts)</li>
-      <li><span class="check no">&#8212;</span> Port classification logic from email-router.js</li>
+      <li><span class="check blocked">&#10007;</span> Migrate DNS from Namecheap to Cloudflare nameservers</li>
+      <li><span class="check no">&mdash;</span> Configure MX record for sweepnspect.com on CF</li>
+      <li><span class="check no">&mdash;</span> Create Email Worker (parse inbound &rarr; KV + alerts)</li>
+      <li><span class="check no">&mdash;</span> Port classification logic from email-router.js</li>
       <li><span class="check yes">&#10003;</span> Outbound via Resend API (already working)</li>
     </ul>
+    <p style="font-size:0.85em;opacity:0.6;margin-top:8px">DNS is on Namecheap (registrar-servers.com). MX points to privateemail.com. Email Workers require CF nameservers. Manual DNS migration needed.</p>
 
-    <h3>Phase 4: Polish</h3>
+    <h3>Phase 4: Polish <span class="badge done">COMPLETE</span></h3>
     <ul class="checklist">
-      <li><span class="check yes">&#10003;</span> Cloudflare Web Analytics beacon</li>
-      <li><span class="check no">&#8212;</span> Analytics API proxy in Worker</li>
-      <li><span class="check no">&#8212;</span> Dashboard analytics panel</li>
-      <li><span class="check yes">&#10003;</span> Resend domain verification</li>
+      <li><span class="check yes">&#10003;</span> Cloudflare Web Analytics beacon on sweepnspect.com</li>
+      <li><span class="check yes">&#10003;</span> Analytics GraphQL proxy in Worker (CF_ANALYTICS_TOKEN secret)</li>
+      <li><span class="check yes">&#10003;</span> Marketing dashboard shows live analytics data</li>
+      <li><span class="check wip">&#9679;</span> Resend domain verification (needs Resend dashboard, DNS records)</li>
     </ul>
   </div>
 
-  <!-- ═══ FILES CHANGED ═══ -->
+  <!-- ═══ CREDENTIALS ═══ -->
   <div class="section">
-    <h2><span class="icon">&#128193;</span> Files Created/Modified</h2>
+    <h2><span class="icon">&#128272;</span> Credentials (All in Vaultwarden)</h2>
     <table>
-      <tr><th>File</th><th>Action</th><th>Lines</th><th>Purpose</th></tr>
-      <tr><td><code>worker/src/index.js</code></td><td><span class="badge done">Rewritten</span></td><td>~680</td><td>Full CRUD API with KV storage</td></tr>
-      <tr><td><code>lib/tawk-notifier.js</code></td><td><span class="badge done">Created</span></td><td>138</td><td>Hub-side email-to-ticket bridge</td></tr>
-      <tr><td><code>lib/alert-router.js</code></td><td><span class="badge done">Modified</span></td><td>+15</td><td>Tawk notifier integration</td></tr>
-      <tr><td><code>server.js</code></td><td><span class="badge done">Modified</span></td><td>+12</td><td>TawkNotifier wiring + status endpoint</td></tr>
-      <tr><td><code>worker/wrangler.toml</code></td><td><span class="badge done">Modified</span></td><td>+3</td><td>TAWK_TICKET_EMAIL + RESEND comment</td></tr>
-      <tr><td><code>.env</code></td><td><span class="badge done">Modified</span></td><td>+2</td><td>Tawk email + cooldown config</td></tr>
-      <tr><td><code>docs/plans/...jamstack-design.md</code></td><td><span class="badge done">Created</span></td><td>~280</td><td>Full migration design document</td></tr>
-      <tr><td><code>docs/hub-migration-report.html</code></td><td><span class="badge done">Created</span></td><td>This file</td><td>Session report</td></tr>
+      <tr><th>Vault Item</th><th>Field</th><th>Used By</th></tr>
+      <tr><td><code>SweepNspect HQ API Token</code></td><td>token (custom field)</td><td>Dashboard auth &mdash; Bearer token</td></tr>
+      <tr><td><code>Cloudflare API Token - Workers</code></td><td>token (custom field)</td><td>Wrangler deploy + analytics proxy</td></tr>
+      <tr><td><code>resend</code></td><td>password</td><td>Resend email API key</td></tr>
+      <tr><td><code>Facebook App - SweepNspect HQ</code></td><td>password + notes</td><td>FB webhook integration</td></tr>
+    </table>
+
+    <h3>Worker Secrets (set via <code>wrangler secret put</code>)</h3>
+    <table>
+      <tr><th>Secret</th><th>Purpose</th></tr>
+      <tr><td><code>HUB_API_TOKEN</code></td><td>Dashboard Bearer auth</td></tr>
+      <tr><td><code>RESEND_API_KEY</code></td><td>Edge notification emails</td></tr>
+      <tr><td><code>CF_ANALYTICS_TOKEN</code></td><td>Web Analytics GraphQL API</td></tr>
     </table>
   </div>
 
-  <!-- ═══ NEXT STEPS ═══ -->
+  <!-- ═══ REMAINING WORK ═══ -->
   <div class="section">
-    <h2><span class="icon">&#128640;</span> Next Steps</h2>
+    <h2><span class="icon">&#128640;</span> What's Left</h2>
     <div class="status-grid">
       <div class="status-card brick">
-        <div class="label">Now</div>
-        <div class="value">Deploy</div>
-        <div class="detail">Push expanded Worker to Cloudflare</div>
+        <div class="label">Blocker</div>
+        <div class="value">DNS</div>
+        <div class="detail">Move nameservers to Cloudflare</div>
       </div>
       <div class="status-card orange">
         <div class="label">Then</div>
-        <div class="value">Dashboard</div>
-        <div class="detail">Adapt SPA for GitHub Pages</div>
-      </div>
-      <div class="status-card blue">
-        <div class="label">After</div>
-        <div class="value">Seed</div>
-        <div class="detail">Migrate JSON data → KV</div>
-      </div>
-      <div class="status-card purple">
-        <div class="label">Future</div>
         <div class="value">Email</div>
         <div class="detail">CF Email Workers for inbound</div>
       </div>
+      <div class="status-card blue">
+        <div class="label">Nice to have</div>
+        <div class="value">Resend</div>
+        <div class="detail">Verify domain for branded sends</div>
+      </div>
     </div>
 
-    <h3>Immediate Actions</h3>
+    <h3>To unblock Email Workers</h3>
     <ol style="padding-left: 20px; font-size: 0.9em; line-height: 2;">
-      <li>Deploy expanded Worker: <code>wrangler deploy</code></li>
-      <li>Set auth token: <code>wrangler secret put HUB_API_TOKEN</code></li>
-      <li>Adapt dashboard JS files — replace WS with polling, point to Worker URL</li>
-      <li>Push dashboard to GitHub Pages</li>
-      <li>Seed KV with existing subscribers + tickets from JSON files</li>
-      <li>Verify Resend domain (DNS records on Cloudflare)</li>
+      <li>Log into Namecheap &rarr; Domain List &rarr; sweepnspect.com &rarr; Nameservers</li>
+      <li>Change from <code>registrar-servers.com</code> to Cloudflare nameservers</li>
+      <li>In CF dashboard: add sweepnspect.com &rarr; accept free plan &rarr; get nameservers</li>
+      <li>Re-create existing DNS records (A/CNAME for GitHub Pages, MX, TXT/SPF)</li>
+      <li>Once propagated: enable Email Routing, create Email Worker</li>
     </ol>
+  </div>
+
+  <!-- ═══ FILES ═══ -->
+  <div class="section">
+    <h2><span class="icon">&#128193;</span> Key Files</h2>
+    <table>
+      <tr><th>File</th><th>Lines</th><th>Purpose</th></tr>
+      <tr><td><code>worker/src/index.js</code></td><td>~800</td><td>Full CRUD Worker API + analytics proxy</td></tr>
+      <tr><td><code>worker/wrangler.toml</code></td><td>15</td><td>Worker config (KV, vars, secret docs)</td></tr>
+      <tr><td><code>worker/seed-kv.js</code></td><td>~120</td><td>JSON &rarr; KV migration script</td></tr>
+      <tr><td><code>hub/index.html</code></td><td>~200</td><td>Dashboard entry point</td></tr>
+      <tr><td><code>hub/js/lib/config.js</code></td><td>108</td><td>API config + token auth</td></tr>
+      <tr><td><code>hub/js/lib/ws.js</code></td><td>~80</td><td>Polling replacement for WebSocket</td></tr>
+      <tr><td><code>hub/js/app.js</code></td><td>271</td><td>Router + state management</td></tr>
+      <tr><td><code>hub/js/views/*.js</code></td><td>7 files</td><td>Dashboard, Tickets, Subs, Revenue, Commands, Marketing, Inbox</td></tr>
+      <tr><td><code>hub/css/hub.css</code></td><td>~600</td><td>Dashboard styles</td></tr>
+    </table>
   </div>
 
 </div>
 
 <div class="footer">
-  SweepNspect HQ — Built by Cody (Claude Opus) — February 2026
+  SweepNspect HQ &mdash; Built by Cody (Claude Opus) &mdash; February 25&ndash;26, 2026
 </div>
 
 </body>
