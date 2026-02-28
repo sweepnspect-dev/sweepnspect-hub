@@ -245,6 +245,7 @@
           <button class="snsp-close" onclick="document.getElementById('snsp-chat-window').classList.remove('open')">&times;</button>
         </div>
         <div class="snsp-body" id="snspBody"></div>
+        <div id="snspInputWrap"></div>
         <div class="snsp-footer">Powered by <a href="https://sweepnspect.com" target="_blank">SweepNspect</a></div>
         <div class="snsp-homebar"><div class="snsp-homebar-pill"></div></div>
       </div>
@@ -288,6 +289,8 @@
   function renderChat() {
     document.getElementById('snspBody').innerHTML = `
       <div id="snspMessages" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-bottom:4px"></div>
+    `;
+    document.getElementById('snspInputWrap').innerHTML = `
       <div class="snsp-input-area">
         <input type="text" id="snspInput" placeholder="Message..." onkeydown="if(event.key==='Enter')window._snspSend()">
         <button class="snsp-send-btn" onclick="window._snspSend()">
