@@ -1359,10 +1359,14 @@ async function handleChatReply(request, env, sessionId) {
   session.lastActivity = now;
   await env.EVENTS.put(`chat:${sessionId}`, JSON.stringify(session), { expirationTtl: 86400 });
 
-  // Queue event for note-taking when in agent mode
+  // Queue note extraction in background (survives after response is sent)
   if (isAgent && session.mode === 'agent' && env.ANTHROPIC_API_KEY) {
-    // Fire-and-forget note extraction
-    try { extractAgentNotes(env, sessionId, session); } catch {}
+    console.log(`[AI-NOTES] Starting extraction for ${sessionId} (waitUntil: ${!!env.waitUntil})`);
+    if (env.waitUntil) {
+      env.waitUntil(extractAgentNotes(env, sessionId, session));
+    } else {
+      await extractAgentNotes(env, sessionId, session);
+    }
   }
 
   return json({ ok: true, messageId: msgId });
@@ -1385,7 +1389,7 @@ async function extractAgentNotes(env, sessionId, session) {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 300,
+        max_tokens: 600,
         system: `You analyze customer support conversations. The agent (J) just responded. Extract NEW information that should be added to a knowledgebase for an AI chat assistant about SweepNspect (a chimney inspection app).
 
 Look for:
@@ -1393,20 +1397,41 @@ Look for:
 - Corrections to what the AI previously said
 - Common questions that the AI should handle next time instead of deferring
 
-Return JSON only: { "notes": [{ "type": "new_info"|"correction"|"faq", "text": "...", "confidence": 0.0-1.0 }] }
-If nothing new or noteworthy, return: { "notes": [] }`,
+Return ONLY valid JSON with no markdown formatting, no code blocks, no explanation — just raw JSON:
+{ "notes": [{ "type": "new_info", "text": "...", "confidence": 0.8 }] }
+Type must be one of: "new_info", "correction", "faq". Max 3 notes. Keep text under 100 chars.
+If nothing new, return: { "notes": [] }`,
         messages: [{ role: 'user', content: `CONVERSATION:\n${chatHistory}\n\nExtract any new learnable information from the agent's responses:` }],
       }),
     });
 
-    if (!resp.ok) return;
+    if (!resp.ok) {
+      console.log(`[AI-NOTES] Anthropic error: ${resp.status} ${await resp.text()}`);
+      return;
+    }
     const result = await resp.json();
     const content = result.content?.[0]?.text;
-    if (!content) return;
+    if (!content) { console.log('[AI-NOTES] No content in response'); return; }
+
+    console.log(`[AI-NOTES] Raw response: ${content.substring(0, 300)}`);
+
+    // Strip markdown code blocks and extract JSON object
+    let jsonStr = content.trim();
+    // Remove code fences
+    jsonStr = jsonStr.replace(/^```(?:json)?\s*\n?/g, '').replace(/\n?```\s*$/g, '').trim();
+    // If there's trailing text after the JSON, extract just the JSON object
+    const firstBrace = jsonStr.indexOf('{');
+    const lastBrace = jsonStr.lastIndexOf('}');
+    if (firstBrace >= 0 && lastBrace > firstBrace) {
+      jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+    }
 
     let parsed;
-    try { parsed = JSON.parse(content); } catch { return; }
-    if (!parsed.notes || parsed.notes.length === 0) return;
+    try { parsed = JSON.parse(jsonStr); } catch (e) {
+      console.log(`[AI-NOTES] JSON parse failed: ${e.message} — input: ${jsonStr.substring(0, 200)}`);
+      return;
+    }
+    if (!parsed.notes || parsed.notes.length === 0) { console.log('[AI-NOTES] No notes extracted'); return; }
 
     // Store notes on the session
     const freshRaw = await env.EVENTS.get(`chat:${sessionId}`);
