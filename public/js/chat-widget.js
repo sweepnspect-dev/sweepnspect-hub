@@ -124,21 +124,44 @@
         background: #eaeff4; color: #0f172a;
       }
 
-      /* ── Intro ── */
-      .snsp-intro {
+      /* ── Home Menu ── */
+      .snsp-home {
         display: flex; flex-direction: column; gap: 10px;
         justify-content: center; flex: 1; padding: 0 4px;
       }
-      .snsp-intro h3 { margin: 0; font-size: 16px; color: #1e293b; }
-      .snsp-intro p { margin: 0; font-size: 13px; color: #64748b; line-height: 1.4; }
-      .snsp-intro input {
+      .snsp-home h3 { margin: 0; font-size: 16px; color: #1e293b; }
+      .snsp-home p { margin: 0; font-size: 13px; color: #64748b; line-height: 1.4; }
+      .snsp-menu-card {
+        background: #fff; border: 1px solid #cbd5e1; border-radius: 14px;
+        padding: 14px 16px; cursor: pointer; transition: all 0.15s;
+        display: flex; align-items: center; gap: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      }
+      .snsp-menu-card:hover { border-color: #ea580c; box-shadow: 0 2px 8px rgba(234,88,12,0.12); }
+      .snsp-menu-icon {
+        width: 38px; height: 38px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      }
+      .snsp-menu-icon.kb { background: #eef2ff; }
+      .snsp-menu-icon.chat { background: #fff7ed; }
+      .snsp-menu-label { font-size: 14px; font-weight: 600; color: #1e293b; }
+      .snsp-menu-desc { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+      /* ── Contact Form ── */
+      .snsp-contact {
+        display: flex; flex-direction: column; gap: 10px;
+        justify-content: center; flex: 1; padding: 0 4px;
+      }
+      .snsp-contact h3 { margin: 0; font-size: 16px; color: #1e293b; }
+      .snsp-contact p { margin: 0; font-size: 13px; color: #64748b; line-height: 1.4; }
+      .snsp-contact input {
         background: #fff; border: 1px solid #cbd5e1; color: #1e293b;
         padding: 11px 14px; border-radius: 12px; font-size: 14px;
         outline: none; width: 100%; box-sizing: border-box;
         box-shadow: 0 1px 3px rgba(0,0,0,0.04);
       }
-      .snsp-intro input:focus { border-color: #ea580c; box-shadow: 0 0 0 2px rgba(234,88,12,0.15); }
-      .snsp-intro input::placeholder { color: #94a3b8; }
+      .snsp-contact input:focus { border-color: #ea580c; box-shadow: 0 0 0 2px rgba(234,88,12,0.15); }
+      .snsp-contact input::placeholder { color: #94a3b8; }
       .snsp-start-btn {
         background: #ea580c; color: #fff; border: none; padding: 12px;
         border-radius: 12px; font-size: 14px; font-weight: 600;
@@ -147,6 +170,35 @@
       }
       .snsp-start-btn:hover { background: #c2410c; }
       .snsp-start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+      .snsp-back-link {
+        background: none; border: none; color: #64748b; font-size: 12px;
+        cursor: pointer; padding: 4px 0; text-align: left;
+      }
+      .snsp-back-link:hover { color: #ea580c; }
+
+      /* ── KB View ── */
+      .snsp-kb { display: flex; flex-direction: column; gap: 8px; padding: 0 2px; }
+      .snsp-kb-item {
+        background: #fff; border: 1px solid #cbd5e1; border-radius: 12px;
+        overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      }
+      .snsp-kb-q {
+        padding: 10px 14px; font-size: 13px; font-weight: 600; color: #1e293b;
+        cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+      }
+      .snsp-kb-q:hover { color: #ea580c; }
+      .snsp-kb-q .chevron { font-size: 11px; color: #94a3b8; transition: transform 0.2s; }
+      .snsp-kb-q.open .chevron { transform: rotate(90deg); }
+      .snsp-kb-a {
+        padding: 0 14px 12px; font-size: 12px; color: #475569;
+        line-height: 1.5; display: none;
+      }
+      .snsp-kb-a.open { display: block; }
+
+      /* ── Input Spacer (matches input area height on non-chat screens) ── */
+      .snsp-input-spacer {
+        height: 52px; background: #1e3a5f;
+      }
 
       /* ── Messages (card style) ── */
       .snsp-msg {
@@ -214,6 +266,43 @@
         box-shadow: 0 1px 3px rgba(0,0,0,0.04);
       }
       .snsp-faq-tile:hover { background: #f1f5f9; border-color: #ea580c; color: #ea580c; }
+
+      /* ── Responsive: phone-sized screens ── */
+      @media (max-width: 500px) {
+        #snsp-chat-window {
+          width: 100vw; max-width: 100vw; height: 100vh; max-height: 100vh;
+          bottom: 0; right: 0; border-radius: 0; padding: 0; border: none;
+          box-shadow: none; background: #1e3a5f; z-index: 100000;
+        }
+        #snsp-chat-window::before, #snsp-chat-window::after { display: none; }
+        .snsp-screen { border-radius: 0; }
+        .snsp-camera { display: none; }
+        .snsp-statusbar { padding-top: 12px; }
+        .snsp-header { padding: 10px 16px 14px; }
+        .snsp-header-logo { height: 28px; }
+        .snsp-header-title { font-size: 16px; }
+        .snsp-body { padding: 14px 14px; font-size: 15px; }
+        .snsp-home h3 { font-size: 19px; }
+        .snsp-home p { font-size: 15px; }
+        .snsp-menu-label { font-size: 16px; }
+        .snsp-menu-desc { font-size: 13px; }
+        .snsp-menu-card { padding: 16px 18px; }
+        .snsp-menu-icon { width: 42px; height: 42px; }
+        .snsp-contact h3 { font-size: 19px; }
+        .snsp-contact p { font-size: 15px; }
+        .snsp-contact input { font-size: 16px; padding: 13px 16px; }
+        .snsp-start-btn { font-size: 16px; padding: 14px; }
+        .snsp-back-link { font-size: 14px; }
+        .snsp-kb-q { font-size: 15px; padding: 12px 16px; }
+        .snsp-kb-a { font-size: 14px; padding: 0 16px 14px; }
+        .snsp-msg { font-size: 15px; padding: 12px 16px; max-width: 85%; }
+        .snsp-input-area { padding: 10px 14px; }
+        .snsp-input-area input { font-size: 15px; padding: 11px 16px; }
+        .snsp-send-btn { width: 40px; height: 40px; }
+        .snsp-faq-tile { font-size: 13px; padding: 9px 14px; }
+        .snsp-footer { font-size: 10px; padding: 6px 0 3px; }
+        .snsp-homebar { padding: 6px 0 10px; }
+      }
     `;
     document.head.appendChild(style);
   }
@@ -251,7 +340,7 @@
       </div>
     `;
     document.body.appendChild(win);
-    renderIntro();
+    renderHome();
   }
 
   function toggleChat() {
@@ -260,17 +349,77 @@
     win.classList.toggle('open', state.open);
   }
 
-  function renderIntro() {
+  function renderHome() {
+    document.getElementById('snspInputWrap').innerHTML = '<div class="snsp-input-spacer"></div>';
     document.getElementById('snspBody').innerHTML = `
-      <div class="snsp-intro">
+      <div class="snsp-home">
         <h3>Hi there! \u{1F44B}</h3>
         <p>Have a question about SweepNspect? We're here to help.</p>
+        <div class="snsp-menu-card" onclick="window._snspShowKB()">
+          <div class="snsp-menu-icon kb">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+          </div>
+          <div>
+            <div class="snsp-menu-label">Browse FAQ</div>
+            <div class="snsp-menu-desc">Pricing, features, and more</div>
+          </div>
+        </div>
+        <div class="snsp-menu-card" onclick="window._snspShowContact()">
+          <div class="snsp-menu-icon chat">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          </div>
+          <div>
+            <div class="snsp-menu-label">Chat with us</div>
+            <div class="snsp-menu-desc">Talk to our team or AI assistant</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  var kbData = [
+    { q: 'How much does it cost?', a: 'Solo plan: $49/mo (1 device, unlimited inspections, PDF reports). Pro plan: $149/mo (up to 5 devices + team management). 14-day free trial, no credit card required.' },
+    { q: 'What is the Founding 25?', a: 'The first 25 paying users get the Solo plan at $29/mo locked for life, plus priority support, a direct line to the founder, and their name on the Founding Members page.' },
+    { q: 'Does it work offline?', a: 'Yes! Full offline capability \u2014 inspect, photograph, and generate PDF reports without cell signal. Everything syncs automatically when you\u2019re back online.' },
+    { q: 'What devices are supported?', a: 'Android phones and tablets. Minimum Android 8.0. No iOS at this time.' },
+    { q: 'How do PDF reports work?', a: 'NFPA 211 zone-by-zone reports are generated on-site, branded with your company logo, and can be emailed directly to the customer.' },
+    { q: 'Is my data safe?', a: 'All inspection data stays on your device. No cloud storage of your data \u2014 you own it completely. Syncs only when you choose to.' },
+  ];
+
+  window._snspShowKB = function() {
+    document.getElementById('snspInputWrap').innerHTML = '<div class="snsp-input-spacer"></div>';
+    document.getElementById('snspBody').innerHTML = `
+      <button class="snsp-back-link" onclick="window._snspGoHome()">\u2190 Back</button>
+      <div class="snsp-kb" id="snspKB"></div>
+    `;
+    var kb = document.getElementById('snspKB');
+    kbData.forEach(function(item, i) {
+      var div = document.createElement('div');
+      div.className = 'snsp-kb-item';
+      div.innerHTML = '<div class="snsp-kb-q" data-i="' + i + '">' + esc(item.q) + '<span class="chevron">\u203A</span></div><div class="snsp-kb-a">' + esc(item.a) + '</div>';
+      div.querySelector('.snsp-kb-q').onclick = function() {
+        this.classList.toggle('open');
+        this.nextElementSibling.classList.toggle('open');
+      };
+      kb.appendChild(div);
+    });
+  };
+
+  window._snspShowContact = function() {
+    document.getElementById('snspInputWrap').innerHTML = '<div class="snsp-input-spacer"></div>';
+    document.getElementById('snspBody').innerHTML = `
+      <div class="snsp-contact">
+        <button class="snsp-back-link" onclick="window._snspGoHome()">\u2190 Back</button>
+        <h3>Start a conversation</h3>
+        <p>Enter your name to chat with our team.</p>
         <input type="text" id="snspName" placeholder="Your name" value="${esc(state.visitor.name)}">
         <input type="email" id="snspEmail" placeholder="Email (optional)" value="${esc(state.visitor.email)}">
         <button class="snsp-start-btn" id="snspStartBtn" onclick="window._snspStart()">Start Chat</button>
       </div>
     `;
-  }
+  };
+
+  window._snspGoHome = function() { renderHome(); };
 
   window._snspStart = async function() {
     const nameEl = document.getElementById('snspName'), btn = document.getElementById('snspStartBtn');
