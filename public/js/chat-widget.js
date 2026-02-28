@@ -18,6 +18,7 @@
     lastTs: '1970-01-01T00:00:00.000Z',
     pollTimer: null,
     sending: false,
+    mode: 'ai',
   };
 
   function injectStyles() {
@@ -198,6 +199,18 @@
       /* ── Input Spacer (matches input area height on non-chat screens) ── */
       .snsp-input-spacer {
         height: 52px; background: #1e3a5f;
+      }
+
+      /* ── Transfer Indicator ── */
+      .snsp-transfer-bar {
+        background: #fef3c7; color: #92400e; font-size: 11px;
+        padding: 6px 14px; text-align: center;
+        border-bottom: 1px solid #fcd34d;
+        animation: snsp-pulse 2s ease-in-out infinite;
+      }
+      @keyframes snsp-pulse {
+        0%, 100% { opacity: 0.85; }
+        50% { opacity: 1; }
       }
 
       /* ── Messages (card style) ── */
@@ -481,10 +494,17 @@
     const el = document.getElementById('snspMessages'); if (!el) return;
     el.innerHTML = state.messages.map(m => {
       const cls = m.from === 'visitor' ? 'snsp-msg-visitor' : m.from === 'ai' ? 'snsp-msg-ai' : 'snsp-msg-agent';
-      const label = m.from === 'visitor' ? '' : m.from === 'ai' ? '<div style="font-size:10px;color:#94a3b8;margin-bottom:2px">AI Assistant</div>' : '<div style="font-size:10px;color:#94a3b8;margin-bottom:2px">Support</div>';
+      var label = '';
+      if (m.from === 'visitor') label = '';
+      else if (m.from === 'ai') label = '<div style="font-size:10px;color:#94a3b8;margin-bottom:2px">AI Assistant</div>';
+      else label = '<div style="font-size:10px;color:#94a3b8;margin-bottom:2px">' + (state.mode === 'agent' ? 'J' : 'Support') + '</div>';
       return `<div class="snsp-msg ${cls}">${label}${esc(m.text)}</div>`;
     }).join('');
-    el.scrollTop = el.scrollHeight;
+    // Scroll so the newest message starts at the top of the visible area
+    const allBubbles = el.querySelectorAll('.snsp-msg');
+    if (allBubbles.length > 0) {
+      allBubbles[allBubbles.length - 1].scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }
 
   function startPolling() { if (state.pollTimer) return; state.pollTimer = setInterval(poll, POLL_INTERVAL); }
@@ -500,8 +520,39 @@
         }
         renderMessages();
       }
+      // Update mode from server
+      if (data.mode && data.mode !== state.mode) {
+        state.mode = data.mode;
+        updateModeUI();
+      }
       if (data.status === 'ended') { clearInterval(state.pollTimer); state.pollTimer = null; addLocalMessage('agent', 'Chat ended. Thanks for reaching out!'); }
     } catch {}
+  }
+
+  function updateModeUI() {
+    // Update header title based on mode
+    var titleEl = document.querySelector('.snsp-header-title');
+    if (titleEl) {
+      if (state.mode === 'agent') {
+        titleEl.innerHTML = '<span class="dot"></span> Live Support';
+      } else if (state.mode === 'transferring') {
+        titleEl.innerHTML = '<span class="dot" style="background:#f59e0b"></span> Live Chat';
+      } else {
+        titleEl.innerHTML = '<span class="dot"></span> Live Chat';
+      }
+    }
+    // Show/hide transfer bar
+    var existing = document.getElementById('snspTransferBar');
+    if (state.mode === 'transferring' && !existing) {
+      var bar = document.createElement('div');
+      bar.id = 'snspTransferBar';
+      bar.className = 'snsp-transfer-bar';
+      bar.textContent = 'Connecting you with our team...';
+      var body = document.getElementById('snspBody');
+      if (body) body.parentNode.insertBefore(bar, body);
+    } else if (state.mode !== 'transferring' && existing) {
+      existing.remove();
+    }
   }
 
   async function post(path, body) { const r = await fetch(WORKER_URL + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); return r.json(); }

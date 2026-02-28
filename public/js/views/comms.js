@@ -1,16 +1,17 @@
 // ══════════════════════════════════════════════════════════
 // Comms View — Unified Communications
-// Email (IMAP) + Tawk.to + Facebook + Live Chat + Claude Sync
+// Email (IMAP) + Facebook + Live Chat + SMS + Claude Sync
 // ══════════════════════════════════════════════════════════
 const CommsView = {
   messages: [],
   status: 'loading',
-  activeSource: null,    // null = all, 'email', 'tawk', 'facebook', 'sms', 'sync', 'livechat'
+  activeSource: null,    // null = all, 'email', 'facebook', 'sms', 'livechat', 'sync'
   activeFilter: null,    // email category filter
   emailCategories: null, // cached from /api/inbox/categories
   openId: null,
   showArchived: false,
   livechatSessions: [],  // cached live chat sessions
+  dndEnabled: false,     // DND mode state
 
   render(container, hash) {
     const parts = hash ? hash.split('/') : [];
@@ -26,9 +27,6 @@ const CommsView = {
             <button class="source-btn" data-source="email" onclick="CommsView.setSource('email')">
               <span class="source-badge email"></span> Email
             </button>
-            <button class="source-btn" data-source="tawk" onclick="CommsView.setSource('tawk')">
-              <span class="source-badge tawk"></span> Tawk
-            </button>
             <button class="source-btn" data-source="facebook" onclick="CommsView.setSource('facebook')">
               <span class="source-badge facebook"></span> Facebook
             </button>
@@ -43,6 +41,9 @@ const CommsView = {
             </button>
           </div>
           <div class="comms-toolbar-right">
+            <button class="btn btn-sm btn-ghost comms-dnd-toggle" id="dndToggle" onclick="CommsView.toggleDnd()" title="Do Not Disturb — AI takes messages instead of pinging your phone" style="display:none">
+              DND: Off
+            </button>
             <button class="btn btn-sm btn-ghost" onclick="CommsView.refresh()">Refresh</button>
           </div>
         </div>
@@ -65,6 +66,7 @@ const CommsView = {
 
     this.openId = detailId || null;
     this.load();
+    this.loadDndState();
   },
 
   async load() {
@@ -78,7 +80,6 @@ const CommsView = {
       // Load from all available sources
       const results = await Promise.allSettled([
         App.api('inbox' + qs),
-        App.api('comms/tawk').catch(() => ({ messages: [] })),
         App.api('comms/facebook').catch(() => ({ messages: [] })),
         App.api('comms/sync').catch(() => ({ messages: [] })),
         App.api('comms/sms').catch(() => ({ messages: [] })),
@@ -88,12 +89,11 @@ const CommsView = {
 
       // Merge all streams
       const emailData = results[0].status === 'fulfilled' ? results[0].value : { emails: [], status: 'error' };
-      const tawkData = results[1].status === 'fulfilled' ? results[1].value : { messages: [] };
-      const fbData = results[2].status === 'fulfilled' ? results[2].value : { messages: [] };
-      const syncData = results[3].status === 'fulfilled' ? results[3].value : { messages: [] };
-      const smsData = results[4].status === 'fulfilled' ? results[4].value : { messages: [] };
-      const categories = results[5].status === 'fulfilled' ? results[5].value : null;
-      const livechatData = results[6].status === 'fulfilled' ? results[6].value : { sessions: [] };
+      const fbData = results[1].status === 'fulfilled' ? results[1].value : { messages: [] };
+      const syncData = results[2].status === 'fulfilled' ? results[2].value : { messages: [] };
+      const smsData = results[3].status === 'fulfilled' ? results[3].value : { messages: [] };
+      const categories = results[4].status === 'fulfilled' ? results[4].value : null;
+      const livechatData = results[5].status === 'fulfilled' ? results[5].value : { sessions: [] };
       if (categories) this.emailCategories = categories;
       this.livechatSessions = livechatData.sessions || [];
 
@@ -102,13 +102,12 @@ const CommsView = {
       // Normalize into unified format
       const unified = [];
 
-      // Email messages — cross-route tawk/facebook emails to their source tabs
+      // Email messages — cross-route categorized emails to their source tabs
       (emailData.emails || []).forEach(e => {
         const cat = e.route?.category;
-        // Emails categorized as tawk/facebook belong to those source tabs
         let source = 'email';
-        if (cat === 'tawk') source = 'tawk';
-        else if (cat === 'facebook') source = 'facebook';
+        if (cat === 'facebook') source = 'facebook';
+        else if (cat === 'livechat') source = 'livechat';
 
         unified.push({
           id: 'email-' + e.uid,
@@ -123,21 +122,6 @@ const CommsView = {
           categoryLabel: e.route?.label,
           categoryCls: e.route?.cls,
           raw: e
-        });
-      });
-
-      // Tawk messages
-      (tawkData.messages || []).forEach(t => {
-        unified.push({
-          id: 'tawk-' + (t.id || t.chatId),
-          source: 'tawk',
-          from: t.visitorName || t.name || 'Visitor',
-          fromDetail: t.visitorEmail || t.email || '',
-          subject: t.message ? t.message.slice(0, 60) : 'Chat session',
-          preview: t.message || '',
-          date: t.time || t.timestamp || t.createdAt,
-          unread: t.unread || false,
-          raw: t
         });
       });
 
@@ -231,7 +215,7 @@ const CommsView = {
   },
 
   async refresh() {
-    const btn = document.querySelector('.comms-toolbar-right .btn');
+    const btn = document.querySelector('.comms-toolbar-right .btn:last-child');
     if (btn) { btn.textContent = 'Refreshing...'; btn.disabled = true; }
     try {
       await App.api('inbox/check', { method: 'POST' }).catch(() => {});
@@ -241,12 +225,48 @@ const CommsView = {
     }
   },
 
+  async loadDndState() {
+    try {
+      const data = await App.api('livechat/dnd');
+      this.dndEnabled = !!data.enabled;
+      this.renderDndButton();
+    } catch { /* ignore */ }
+  },
+
+  renderDndButton() {
+    const btn = document.getElementById('dndToggle');
+    if (!btn) return;
+    btn.textContent = this.dndEnabled ? 'DND: On' : 'DND: Off';
+    btn.style.background = this.dndEnabled ? 'var(--brick, #ef4444)' : '';
+    btn.style.color = this.dndEnabled ? '#fff' : '';
+    // Show on livechat or all view
+    btn.style.display = (!this.activeSource || this.activeSource === 'livechat') ? '' : 'none';
+  },
+
+  async toggleDnd() {
+    const btn = document.getElementById('dndToggle');
+    const newState = !this.dndEnabled;
+    if (btn) { btn.textContent = 'Saving...'; btn.disabled = true; }
+    try {
+      await App.api('livechat/dnd', { method: 'POST', body: { enabled: newState } });
+      this.dndEnabled = newState;
+      this.renderDndButton();
+    } catch (err) {
+      console.error('DND toggle failed:', err);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  },
+
   setSource(source) {
     this.activeSource = source;
     // Update button states
     document.querySelectorAll('.source-btn').forEach(btn => {
       btn.classList.toggle('active', (btn.dataset.source || '') === (source || ''));
     });
+    // Show DND toggle only on Live Chat or All view
+    const dndBtn = document.getElementById('dndToggle');
+    if (dndBtn) dndBtn.style.display = (!source || source === 'livechat') ? '' : 'none';
     this.load();
   },
 
@@ -336,7 +356,8 @@ const CommsView = {
     const detail = document.getElementById('commsDetail');
     if (!detail) return;
 
-    detail.style.display = '';
+    detail.style.display = 'block';
+    detail.classList.add('mobile-open');
     detail.innerHTML = '<div class="comms-loading">Loading...</div>';
 
     // Highlight in stream
@@ -363,8 +384,6 @@ const CommsView = {
 
     if (msg.source === 'email') {
       await this.renderEmailDetail(detail, msg);
-    } else if (msg.source === 'tawk') {
-      this.renderTawkDetail(detail, msg);
     } else if (msg.source === 'facebook') {
       this.renderFbDetail(detail, msg);
     } else if (msg.source === 'sms') {
@@ -423,32 +442,6 @@ const CommsView = {
     } catch (err) {
       detail.innerHTML = `<div class="comms-loading">Error: ${App.esc(err.message)}</div>`;
     }
-  },
-
-  renderTawkDetail(detail, msg) {
-    const t = msg.raw;
-    detail.innerHTML = `
-      <div class="comms-detail-header">
-        <button class="comms-back" onclick="CommsView.closeDetail()">&larr; Back</button>
-        <span class="source-badge tawk"></span>
-        <div class="comms-detail-meta">
-          <div class="comms-detail-subject">Chat with ${App.esc(msg.from)}</div>
-          <div class="comms-detail-from">${App.esc(msg.fromDetail || 'No email provided')}</div>
-          <div class="comms-detail-info">${App.timeAgo(msg.date)} &middot; Tawk.to Live Chat</div>
-        </div>
-      </div>
-      <div class="comms-detail-body">
-        <div class="comms-chat-thread">
-          ${(t.messages || [t]).map(m => `
-            <div class="comms-chat-msg ${m.type === 'visitor' || m.sender === 'visitor' ? 'from-visitor' : 'from-agent'}">
-              <div class="comms-chat-sender">${App.esc(m.senderName || m.sender || msg.from)}</div>
-              <div class="comms-chat-text">${App.esc(m.text || m.message || m.msg || '')}</div>
-              <div class="comms-chat-time">${m.time ? App.timeAgo(m.time) : ''}</div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `;
   },
 
   renderFbDetail(detail, msg) {
@@ -514,40 +507,95 @@ const CommsView = {
     const statusColor = lc.status === 'active' ? '#4ade80' : lc.status === 'ended' ? '#888' : '#f59e0b';
     const statusLabel = lc.status === 'active' ? 'Active' : lc.status === 'ended' ? 'Ended' : 'Waiting';
 
+    detail.style.display = 'flex';
+    detail.style.flexDirection = 'column';
+
     detail.innerHTML = `
-      <div class="comms-detail-header">
-        <button class="comms-back" onclick="CommsView.closeDetail()">&larr; Back</button>
+      <div class="comms-detail-header" style="flex-shrink:0;padding:10px 16px">
+        <button class="comms-back" onclick="CommsView.closeDetail()">&larr;</button>
         <span class="source-badge livechat" style="background:${statusColor}"></span>
         <div class="comms-detail-meta">
-          <div class="comms-detail-subject">Chat with ${App.esc(msg.from)} <span style="color:${statusColor};font-size:12px">(${statusLabel})</span></div>
-          <div class="comms-detail-from">${App.esc(msg.fromDetail || 'No email provided')}</div>
-          <div class="comms-detail-info">Started ${App.timeAgo(lc.startedAt)} &middot; ${lc.messages?.length || 0} messages</div>
+          <div class="comms-detail-subject" style="font-size:14px">Chat with ${App.esc(msg.from)} <span style="color:${statusColor};font-size:11px">(${statusLabel})</span></div>
+          <div class="comms-detail-info">${lc.messages?.length || 0} msgs &middot; ${App.timeAgo(lc.startedAt)}</div>
         </div>
       </div>
-      <div class="comms-detail-body">
-        <div class="comms-chat-thread" id="livechatThread">
-          ${(lc.messages || []).map(m => `
-            <div class="comms-chat-msg ${m.from === 'visitor' ? 'from-visitor' : 'from-agent'}">
-              <div class="comms-chat-sender">${App.esc(m.from === 'visitor' ? (lc.visitor?.name || 'Visitor') : m.from === 'ai' ? 'AI' : 'J')}</div>
-              <div class="comms-chat-text">${App.esc(m.text || '')}</div>
-              <div class="comms-chat-time">${m.ts ? App.timeAgo(m.ts) : ''}</div>
-            </div>
-          `).join('')}
-        </div>
+      <div class="comms-chat-thread" id="livechatThread" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px">
+        ${(lc.messages || []).map(m => `
+          <div class="comms-chat-msg ${m.from === 'visitor' ? 'from-visitor' : 'from-agent'}">
+            <div class="comms-chat-sender">${App.esc(m.from === 'visitor' ? (lc.visitor?.name || 'Visitor') : m.from === 'ai' ? 'AI' : 'J')}</div>
+            <div class="comms-chat-text">${App.esc(m.text || '')}</div>
+            <div class="comms-chat-time">${m.ts ? App.timeAgo(m.ts) : ''}</div>
+          </div>
+        `).join('')}
       </div>
       ${lc.status === 'active' ? `
-        <div class="comms-reply">
-          <div class="comms-reply-label">Reply to ${App.esc(msg.from)}:</div>
-          <textarea class="comms-reply-input" id="livechatReplyInput" rows="3" placeholder="Type your reply..."></textarea>
+        <div class="comms-reply" style="flex-shrink:0;padding:10px 12px;border-top:1px solid var(--border)">
+          <textarea class="comms-reply-input" id="livechatReplyInput" rows="2" placeholder="Reply to ${App.esc(msg.from)}..." style="margin-bottom:8px"></textarea>
           <div class="comms-reply-actions">
             <button class="btn btn-primary" onclick="CommsView.sendLivechatReply('${lc.id}')">Send</button>
             <button class="btn btn-ghost" onclick="CommsView.sendLivechatAiReply('${lc.id}')">AI Reply</button>
-            <button class="btn btn-ghost btn-sm" onclick="CommsView.endLivechatSession('${lc.id}')" style="margin-left:auto;color:var(--brick)">End Chat</button>
+            <button class="btn btn-ghost btn-sm" onclick="CommsView.endLivechatSession('${lc.id}')" style="margin-left:auto;color:var(--brick)">End</button>
             <span class="comms-reply-status" id="livechatReplyStatus"></span>
           </div>
         </div>
       ` : ''}
+      ${this._renderNotesPanel(lc)}
     `;
+
+    // Scroll thread to bottom so latest messages are visible
+    const thread = document.getElementById('livechatThread');
+    if (thread) thread.scrollTop = thread.scrollHeight;
+  },
+
+  _renderNotesPanel(lc) {
+    const notes = lc.agentNotes || [];
+    const pending = notes.filter(n => n.status === 'pending');
+    const approved = notes.filter(n => n.status === 'approved');
+    if (notes.length === 0) return '';
+
+    const modeLabel = (lc.mode === 'agent') ? '<span style="color:var(--green);font-size:10px">Agent mode</span>' : '';
+
+    return `
+      <div id="livechatNotesPanel" style="flex-shrink:0;border-top:1px solid var(--border);padding:10px 12px;max-height:200px;overflow-y:auto;background:var(--bg-alt,#f8fafc)">
+        <div style="font-size:12px;font-weight:600;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
+          AI Notes ${modeLabel}
+        </div>
+        ${pending.map(n => `
+          <div class="note-item" style="font-size:12px;padding:6px 8px;margin-bottom:4px;background:var(--bg,#fff);border:1px solid var(--border);border-radius:6px;display:flex;align-items:flex-start;gap:8px">
+            <span style="flex:1">
+              <span style="color:${n.type === 'correction' ? 'var(--brick)' : n.type === 'faq' ? '#6366f1' : 'var(--green)'};font-size:10px;font-weight:600;text-transform:uppercase">${App.esc(n.type)}</span>
+              ${App.esc(n.text)}
+              ${n.confidence < 0.7 ? '<span style="color:#94a3b8;font-size:10px">(low confidence)</span>' : ''}
+            </span>
+            <button class="btn btn-sm" style="font-size:10px;padding:2px 6px;color:var(--green)" onclick="CommsView.approveNote('${lc.id}','${n.id}')">&#10003;</button>
+            <button class="btn btn-sm" style="font-size:10px;padding:2px 6px;color:var(--brick)" onclick="CommsView.dismissNote('${lc.id}','${n.id}')">&#10005;</button>
+          </div>
+        `).join('')}
+        ${approved.length > 0 ? `
+          <div style="font-size:10px;color:#94a3b8;margin-top:4px">${approved.length} note${approved.length !== 1 ? 's' : ''} approved &amp; added to KB</div>
+        ` : ''}
+      </div>
+    `;
+  },
+
+  async approveNote(sessionId, noteId) {
+    try {
+      await App.api(`livechat/sessions/${sessionId}/notes/${noteId}/approve`, { method: 'POST' });
+      // Refresh detail
+      if (this.openId) this.openMessage(this.openId);
+    } catch (err) {
+      console.error('Failed to approve note:', err);
+    }
+  },
+
+  async dismissNote(sessionId, noteId) {
+    try {
+      await App.api(`livechat/sessions/${sessionId}/notes/${noteId}/dismiss`, { method: 'POST' });
+      // Refresh detail
+      if (this.openId) this.openMessage(this.openId);
+    } catch (err) {
+      console.error('Failed to dismiss note:', err);
+    }
   },
 
   async sendLivechatReply(sessionId) {
@@ -633,7 +681,7 @@ const CommsView = {
   closeDetail() {
     this.openId = null;
     const detail = document.getElementById('commsDetail');
-    if (detail) { detail.style.display = 'none'; detail.innerHTML = ''; }
+    if (detail) { detail.style.display = 'none'; detail.style.flexDirection = ''; detail.classList.remove('mobile-open'); detail.innerHTML = ''; }
     document.querySelectorAll('.comms-item').forEach(el => el.classList.remove('active'));
   },
 
@@ -643,10 +691,62 @@ const CommsView = {
   },
 
   onWsMessage(type, data) {
-    if (type === 'email:new' || type === 'tawk:message' || type === 'facebook:message' || type === 'sms:message' || type === 'relay:message' ||
-        type === 'livechat:start' || type === 'livechat:message' || type === 'livechat:reply' || type === 'livechat:end') {
+    // DND state change
+    if (type === 'livechat:dnd') {
+      this.dndEnabled = !!data.enabled;
+      this.renderDndButton();
+      return;
+    }
+
+    // Real-time append for livechat messages when viewing that session
+    if (type === 'livechat:message' || type === 'livechat:reply') {
+      const sid = data.sessionId;
+      if (this.openId === 'livechat-' + sid && data.message) {
+        this.appendLivechatMessage(sid, data.message);
+        return;
+      }
+    }
+
+    // Real-time notes update
+    if (type === 'livechat:notes') {
+      const sid = data.sessionId;
+      if (this.openId === 'livechat-' + sid) {
+        // Refresh to show new notes
+        this.openMessage(this.openId);
+      }
+      return;
+    }
+
+    // For structural changes or other sources, reload
+    if (['email:new', 'facebook:message', 'sms:message', 'relay:message',
+         'livechat:start', 'livechat:message', 'livechat:reply', 'livechat:end'].includes(type)) {
       this.load();
     }
+  },
+
+  appendLivechatMessage(sessionId, message) {
+    const thread = document.getElementById('livechatThread');
+    if (!thread) return;
+
+    // Update session cache
+    const session = this.livechatSessions.find(s => s.id === sessionId);
+    if (session && !session.messages.find(m => m.id === message.id)) {
+      session.messages.push(message);
+    }
+
+    // Append DOM element
+    const div = document.createElement('div');
+    const cls = message.from === 'visitor' ? 'from-visitor' : 'from-agent';
+    const sender = message.from === 'visitor' ? (session?.visitor?.name || 'Visitor')
+      : message.from === 'ai' ? 'AI' : 'J';
+    div.className = `comms-chat-msg ${cls}`;
+    div.innerHTML = `
+      <div class="comms-chat-sender">${App.esc(sender)}</div>
+      <div class="comms-chat-text">${App.esc(message.text || '')}</div>
+      <div class="comms-chat-time">just now</div>
+    `;
+    thread.appendChild(div);
+    thread.scrollTop = thread.scrollHeight;
   },
 
   onStats(stats) {

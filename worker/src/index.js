@@ -71,7 +71,8 @@ export default {
     if (path === '/api/chat/start' && method === 'POST') return handleChatStart(request, env);
     if (path === '/api/chat/message' && method === 'POST') return handleChatMessage(request, env);
     if (path === '/api/chat/messages' && method === 'GET') return handleChatPoll(request, env);
-    // Chat reply is auth-required (Hub pushes replies) — handled below
+    if (path === '/api/chat/dnd' && method === 'GET') return handleGetDnd(env);
+    // Chat reply + DND toggle are auth-required — handled below
 
     // ── Legacy event polling (for Hub server compatibility) ──
     if (path === '/api/events' && method === 'GET') return handleGetEvents(request, env);
@@ -117,6 +118,8 @@ export default {
     if (path.match(/^\/api\/commands\/schedule\/[^/]+$/) && method === 'DELETE') return handleDeleteSchedule(env, pathId(path, 4));
 
     // Live Chat (auth required — Hub pushes replies)
+    if (path === '/api/chat/dnd' && method === 'POST') return handleSetDnd(request, env);
+    if (path === '/api/chat/kb-sync' && method === 'POST') return handleKbSync(request, env);
     if (path.match(/^\/api\/chat\/[^/]+\/reply$/) && method === 'POST') return handleChatReply(request, env, path.split('/')[3]);
 
     // Stats & Status
@@ -1002,6 +1005,7 @@ async function handleChatStart(request, env) {
     },
     messages: [],
     status: 'active',
+    mode: 'ai',
     startedAt: now,
     lastActivity: now,
   };
@@ -1067,7 +1071,235 @@ async function handleChatMessage(request, env) {
   unacked.push(evtId);
   await env.EVENTS.put('_unacked', JSON.stringify(unacked));
 
+  // Generate AI reply inline — skip when agent has taken over
+  if (env.ANTHROPIC_API_KEY && session.mode !== 'agent') {
+    await generateAiReply(env, sessionId, session);
+  }
+
   return json({ ok: true, messageId: msgId });
+}
+
+// ── DND (Do Not Disturb) Mode ─────────────────────────────
+async function handleGetDnd(env) {
+  const raw = await env.EVENTS.get('chat:dnd');
+  return json({ enabled: raw === 'true' });
+}
+
+async function handleSetDnd(request, env) {
+  let body;
+  try { body = await request.json(); }
+  catch { return json({ error: 'Invalid JSON' }, 400); }
+  const enabled = !!body.enabled;
+  await env.EVENTS.put('chat:dnd', String(enabled));
+  console.log(`[DND] Mode ${enabled ? 'ENABLED' : 'DISABLED'}`);
+  return json({ ok: true, enabled });
+}
+
+const CHAT_SYSTEM_PROMPT = `You are SweepNspect's chat assistant on sweepnspect.com. You help chimney professionals learn about the app and answer their questions. You talk like a real person — direct, knowledgeable, no fluff. You understand the chimney trade because SweepNspect was built by someone who does this work.
+
+RESPONSE FORMAT — NON-NEGOTIABLE:
+- 1-3 sentences max. This is a phone chat bubble.
+- Plain text only. NO markdown, NO bold, NO asterisks, NO bullets, NO emojis.
+- Sound like a coworker texting back — direct, confident, not salesy.
+- Only answer what was asked. Do NOT volunteer extra info unprompted.
+
+WHAT SWEEPNSPECT IS:
+Professional chimney inspection documentation app for Android. Built by a working sweep with 20 yrs experience. Zone-by-zone NFPA 211 workflow, branded PDF reports generated on-site, works fully offline. Scheduling, invoicing, customer management built in. Android only.
+
+What it is NOT: not inspection training, not a safety determination tool, not a code compliance judge, not a generic field service app, not available on iPhone.
+
+PRICING:
+Trial: Free 14 days, up to 5 inspections, no credit card needed.
+Solo: $49/mo — unlimited inspections, PDF reports, booking, scheduling, invoicing, offline-first, full data ownership.
+Pro: $149/mo (coming soon) — everything in Solo plus customer portal, online booking, client report viewer, analytics, priority support.
+
+FOUNDING 25:
+25 working sweeps get Solo plan FREE FOR LIFE. Not a discount — completely free forever. In exchange: install the app, use it on a real inspection, give honest feedback. Also get: name in app credits, direct line to developer, first access to new features. Apply at sweepnspect.com/founding. Every application reviewed by hand.
+
+KEY FEATURES:
+9 inspection zones: Exterior, Attic, Appliance ID, Firebox, Smoke Chamber, Flue, Connector/Venting, Findings. Dynamic questions that adapt based on findings. Photo documentation and annotation per zone. PDF reports: professional, branded, NFPA 211 structure, emailed to customer from the field. Offline-first: every feature works without cell service, syncs when back online. Data stays on device, no vendor lock-in, export anytime.
+
+DIFFERENTIATOR:
+Built by a sweep, not a tech company. Chimney-specific NFPA 211 workflow, not a generic form builder. Offline-first by design. On-site PDF reports before leaving the job. Your data stays yours.
+
+SUPPORT: Live chat (that's you), email contact@sweepnspect.com, Founding 25 members get direct line to developer.
+
+WHEN YOU DON'T KNOW: Say "Good question — let me get J (our founder) to help with that one." Don't make things up.
+
+HAND OFF TO FOUNDER: custom integrations, enterprise pricing, partnerships, detailed technical internals, anything not covered here.
+
+NEVER DISCUSS: competitor pricing/features, specific future dates for features, legal/liability advice, code compliance determinations, anything outside SweepNspect.`;
+
+async function generateAiReply(env, sessionId, session) {
+  try {
+    // Check DND mode
+    const dndRaw = await env.EVENTS.get('chat:dnd');
+    const dndEnabled = dndRaw === 'true';
+
+    // Re-read session from KV to check if AI already replied (prevents duplicates)
+    // Add a small delay to let any concurrent writes settle
+    await new Promise(r => setTimeout(r, 500));
+    const freshRaw = await env.EVENTS.get(`chat:${sessionId}`);
+    if (!freshRaw) return;
+    const freshSession = JSON.parse(freshRaw);
+    const msgs = freshSession.messages;
+    if (msgs.length === 0 || msgs[msgs.length - 1].from !== 'visitor') {
+      console.log(`[AI] Skipping — last message is not from visitor (${msgs[msgs.length-1]?.from})`);
+      return;
+    }
+
+    const chatHistory = freshSession.messages
+      .slice(-10)
+      .map(m => `${m.from === 'visitor' ? 'Visitor' : m.from === 'ai' ? 'AI' : 'Agent'}: ${m.text}`)
+      .join('\n');
+
+    const visitorName = session.visitor?.name || 'a visitor';
+
+    // Check if session is in transferring mode — modify system prompt accordingly
+    const sessionMode = freshSession.mode || 'ai';
+
+    // Load learned KB entries to enhance AI knowledge
+    let learnedKbSection = '';
+    try {
+      const kbRaw = await env.EVENTS.get('kb:learned');
+      if (kbRaw) {
+        const kbEntries = JSON.parse(kbRaw);
+        if (kbEntries.length > 0) {
+          learnedKbSection = '\n\nLEARNED FROM PREVIOUS CONVERSATIONS:\n' +
+            kbEntries.map(e => `- ${e.text}`).join('\n');
+        }
+      }
+    } catch {}
+
+    // When DND is on, modify the system prompt to take messages instead of deferring
+    let systemPrompt = CHAT_SYSTEM_PROMPT + learnedKbSection + `\n\nYou are chatting with ${visitorName}.`;
+
+    if (sessionMode === 'transferring') {
+      systemPrompt += `\n\nIMPORTANT — TRANSFER MODE:
+J (the founder) has been notified and is on the way. If the visitor asks about wait times or seems impatient, reassure them: "J is joining shortly — hang tight!" Continue answering knowledgebase questions normally. Do NOT say "let me get J" again — he's already been pinged.`;
+    }
+
+    if (dndEnabled) {
+      systemPrompt += `\n\nIMPORTANT — DND MODE IS ON (founder is offline):
+When you don't know the answer or would normally hand off to J, DO NOT say "let me get J" or anything about connecting with the founder.
+Instead say something like: "Great question — J will want to get back to you on that personally. Can I grab your name and best number so he can reach out?"
+If they already gave contact info, say: "Got it, I'll make sure J sees your question and gets back to you."
+Continue answering knowledgebase questions normally.`;
+    }
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 150,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: `CONVERSATION SO FAR:\n${chatHistory}\n\nReply to the visitor's last message:` }],
+      }),
+    });
+
+    if (!resp.ok) {
+      console.log(`[AI] Anthropic error: ${resp.status} ${await resp.text()}`);
+      return;
+    }
+
+    const result = await resp.json();
+    let aiText = result.content?.[0]?.text;
+    if (!aiText) return;
+    // Strip any markdown bold/italic that Sonnet likes to add
+    aiText = aiText.replace(/\*\*/g, '').replace(/\*/g, '').replace(/__/g, '').replace(/_/g, ' ').replace(/  +/g, ' ').trim();
+
+    // Save AI reply to session
+    const now = new Date().toISOString();
+    const aiMsg = {
+      id: `m-${Date.now().toString(36)}-ai`,
+      from: 'ai',
+      text: aiText,
+      ts: now,
+    };
+
+    // Re-read session (may have changed)
+    const raw = await env.EVENTS.get(`chat:${sessionId}`);
+    if (!raw) return;
+    const fresh = JSON.parse(raw);
+    fresh.messages.push(aiMsg);
+    fresh.lastActivity = now;
+    await env.EVENTS.put(`chat:${sessionId}`, JSON.stringify(fresh), { expirationTtl: 86400 });
+
+    // Queue event so Hub sees the AI reply
+    const evtId = `evt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const evt = {
+      id: evtId,
+      event: 'livechat:message',
+      receivedAt: now,
+      summary: `AI replied to ${visitorName}: ${aiText.substring(0, 80)}`,
+      priority: 'normal',
+      sessionId,
+      message: aiMsg,
+      visitor: session.visitor,
+    };
+    await env.EVENTS.put(evtId, JSON.stringify(evt), { expirationTtl: 2592000 });
+    const unacked = await getUnackedList(env);
+    unacked.push(evtId);
+    await env.EVENTS.put('_unacked', JSON.stringify(unacked));
+
+    console.log(`[AI] Auto-replied to ${sessionId}: ${aiText.substring(0, 60)}`);
+
+    // Detect AI deferring to founder — queue urgent notification (only when DND is OFF)
+    const deferPhrases = ['let me get j', 'get j (our founder)', 'connect you with j', 'grab j'];
+    const takeMessagePhrases = ['can i grab your name', 'grab your name', 'best number', 'reach out', 'gets back to you', 'j sees your question'];
+    const isDefer = deferPhrases.some(p => aiText.toLowerCase().includes(p));
+    const isTakeMessage = takeMessagePhrases.some(p => aiText.toLowerCase().includes(p));
+
+    if (isDefer && !dndEnabled) {
+      // Normal mode: notify J immediately + set mode to transferring
+      fresh.mode = 'transferring';
+      await env.EVENTS.put(`chat:${sessionId}`, JSON.stringify(fresh), { expirationTtl: 86400 });
+
+      const deferEvtId = `evt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const lastVisitorMsg = fresh.messages.filter(m => m.from === 'visitor').pop();
+      const deferEvt = {
+        id: deferEvtId,
+        event: 'livechat:defer',
+        receivedAt: now,
+        summary: `AI deferred to founder — ${visitorName} asked: "${(lastVisitorMsg?.text || '').substring(0, 80)}"`,
+        priority: 'high',
+        sessionId,
+        visitor: session.visitor,
+        question: lastVisitorMsg?.text || '',
+      };
+      await env.EVENTS.put(deferEvtId, JSON.stringify(deferEvt), { expirationTtl: 2592000 });
+      const deferUnacked = await getUnackedList(env);
+      deferUnacked.push(deferEvtId);
+      await env.EVENTS.put('_unacked', JSON.stringify(deferUnacked));
+      console.log(`[AI] DEFER — ${visitorName} needs founder for: ${lastVisitorMsg?.text?.substring(0, 60)}`);
+    } else if (isTakeMessage && dndEnabled) {
+      // DND mode: store the message quietly (normal priority, no phone ping)
+      const dndEvtId = `evt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const lastVisitorMsg = fresh.messages.filter(m => m.from === 'visitor').pop();
+      const dndEvt = {
+        id: dndEvtId,
+        event: 'livechat:dnd-message',
+        receivedAt: now,
+        summary: `[DND] AI took message from ${visitorName}: "${(lastVisitorMsg?.text || '').substring(0, 80)}"`,
+        priority: 'normal',
+        sessionId,
+        visitor: session.visitor,
+        question: lastVisitorMsg?.text || '',
+      };
+      await env.EVENTS.put(dndEvtId, JSON.stringify(dndEvt), { expirationTtl: 2592000 });
+      const dndUnacked = await getUnackedList(env);
+      dndUnacked.push(dndEvtId);
+      await env.EVENTS.put('_unacked', JSON.stringify(dndUnacked));
+      console.log(`[AI] DND — took message from ${visitorName}: ${lastVisitorMsg?.text?.substring(0, 60)}`);
+    }
+  } catch (err) {
+    console.log(`[AI] Auto-reply error: ${err.message}`);
+  }
 }
 
 async function handleChatPoll(request, env) {
@@ -1086,6 +1318,7 @@ async function handleChatPoll(request, env) {
   return json({
     sessionId,
     status: session.status,
+    mode: session.mode || 'ai',
     messages: newMessages,
     visitor: session.visitor,
   });
@@ -1104,6 +1337,21 @@ async function handleChatReply(request, env, sessionId) {
 
   const session = JSON.parse(raw);
   const now = new Date().toISOString();
+
+  // Handoff: first agent reply transitions mode to 'agent'
+  const isAgent = (from || 'agent') === 'agent';
+  if (isAgent && session.mode !== 'agent') {
+    // Inject handoff message from AI before J's reply
+    const handoffMsg = {
+      id: `m-${Date.now().toString(36)}-handoff`,
+      from: 'ai',
+      text: "Here's J now — you're in good hands!",
+      ts: now,
+    };
+    session.messages.push(handoffMsg);
+    session.mode = 'agent';
+  }
+
   const msgId = `m-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 4)}`;
   const message = { id: msgId, from: from || 'agent', text, ts: now };
 
@@ -1111,7 +1359,100 @@ async function handleChatReply(request, env, sessionId) {
   session.lastActivity = now;
   await env.EVENTS.put(`chat:${sessionId}`, JSON.stringify(session), { expirationTtl: 86400 });
 
+  // Queue event for note-taking when in agent mode
+  if (isAgent && session.mode === 'agent' && env.ANTHROPIC_API_KEY) {
+    // Fire-and-forget note extraction
+    try { extractAgentNotes(env, sessionId, session); } catch {}
+  }
+
   return json({ ok: true, messageId: msgId });
+}
+
+// ── AI Note-Taking — extracts learnable info from agent replies ──
+async function extractAgentNotes(env, sessionId, session) {
+  try {
+    const chatHistory = session.messages
+      .slice(-15)
+      .map(m => `${m.from === 'visitor' ? 'Visitor' : m.from === 'ai' ? 'AI' : 'Agent (J)'}: ${m.text}`)
+      .join('\n');
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 300,
+        system: `You analyze customer support conversations. The agent (J) just responded. Extract NEW information that should be added to a knowledgebase for an AI chat assistant about SweepNspect (a chimney inspection app).
+
+Look for:
+- New product details, pricing changes, feature info the agent shared
+- Corrections to what the AI previously said
+- Common questions that the AI should handle next time instead of deferring
+
+Return JSON only: { "notes": [{ "type": "new_info"|"correction"|"faq", "text": "...", "confidence": 0.0-1.0 }] }
+If nothing new or noteworthy, return: { "notes": [] }`,
+        messages: [{ role: 'user', content: `CONVERSATION:\n${chatHistory}\n\nExtract any new learnable information from the agent's responses:` }],
+      }),
+    });
+
+    if (!resp.ok) return;
+    const result = await resp.json();
+    const content = result.content?.[0]?.text;
+    if (!content) return;
+
+    let parsed;
+    try { parsed = JSON.parse(content); } catch { return; }
+    if (!parsed.notes || parsed.notes.length === 0) return;
+
+    // Store notes on the session
+    const freshRaw = await env.EVENTS.get(`chat:${sessionId}`);
+    if (!freshRaw) return;
+    const fresh = JSON.parse(freshRaw);
+    if (!fresh.agentNotes) fresh.agentNotes = [];
+    for (const note of parsed.notes) {
+      note.id = `note-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 4)}`;
+      note.status = 'pending';
+      note.extractedAt = new Date().toISOString();
+      fresh.agentNotes.push(note);
+    }
+    await env.EVENTS.put(`chat:${sessionId}`, JSON.stringify(fresh), { expirationTtl: 86400 });
+
+    // Queue event so Hub gets the notes
+    const noteEvtId = `evt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const noteEvt = {
+      id: noteEvtId,
+      event: 'livechat:notes',
+      receivedAt: new Date().toISOString(),
+      summary: `AI extracted ${parsed.notes.length} notes from agent conversation`,
+      priority: 'normal',
+      sessionId,
+      notes: parsed.notes,
+    };
+    await env.EVENTS.put(noteEvtId, JSON.stringify(noteEvt), { expirationTtl: 2592000 });
+    const unacked = await getUnackedList(env);
+    unacked.push(noteEvtId);
+    await env.EVENTS.put('_unacked', JSON.stringify(unacked));
+
+    console.log(`[AI-NOTES] Extracted ${parsed.notes.length} notes from session ${sessionId}`);
+  } catch (err) {
+    console.log(`[AI-NOTES] Error: ${err.message}`);
+  }
+}
+
+// ── KB Sync — Hub pushes approved learned entries ──
+async function handleKbSync(request, env) {
+  let body;
+  try { body = await request.json(); }
+  catch { return json({ error: 'Invalid JSON' }, 400); }
+
+  const entries = body.entries || [];
+  await env.EVENTS.put('kb:learned', JSON.stringify(entries));
+  console.log(`[KB] Synced ${entries.length} learned entries`);
+  return json({ ok: true, count: entries.length });
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1300,7 +1641,7 @@ function serveChatWidget() {
   // Serve the readable source file directly from the Hub or fall back to inline
   // For now, redirect to the readable file served by the Hub
   // This avoids hand-minification drift — the worker just proxies the source
-  const JS = `(function(){'use strict';var W='https://sweepnspect-webhook.sweepnspect.workers.dev',P=4000,s={open:false,phase:'intro',sid:null,v:{name:'',email:''},msgs:[],lastTs:'1970-01-01T00:00:00.000Z',pt:null,sending:false};function inj(){var st=document.createElement('style');st.textContent='#snsp-chat-bubble{position:fixed;bottom:20px;right:20px;z-index:99999;width:60px;height:60px;border-radius:50%;background:#ea580c;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(234,88,12,0.45);transition:transform .2s,box-shadow .2s,background .2s}#snsp-chat-bubble:hover{transform:scale(1.08);background:#c2410c;box-shadow:0 6px 28px rgba(234,88,12,0.55)}#snsp-chat-bubble .badge{position:absolute;top:-4px;right:-4px;background:#dc2626;color:#fff;font-size:11px;width:20px;height:20px;border-radius:50%;display:none;align-items:center;justify-content:center}#snsp-chat-window{position:fixed;bottom:92px;right:20px;z-index:99998;width:310px;max-width:calc(100vw - 32px);height:560px;max-height:calc(100vh - 120px);background:linear-gradient(165deg,#28282e 0%,#1a1a1e 12%,#101012 35%,#0c0c0e 65%,#141416 88%,#222226 100%);border-radius:40px;padding:6px;border:3px solid;border-color:#606068 #48484e #2a2a30 #48484e;box-shadow:-12px 16px 45px rgba(0,0,0,0.6),0 8px 30px rgba(0,0,0,0.4),0 0 0 1px rgba(140,140,150,0.2),inset 2px 2px 0 rgba(255,255,255,0.12),inset 0 2px 6px rgba(255,255,255,0.06),inset -2px -2px 0 rgba(0,0,0,0.6),inset 0 -3px 8px rgba(0,0,0,0.3);display:none;flex-direction:column;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif}#snsp-chat-window.open{display:flex}#snsp-chat-window::before{content:\\'\\';position:absolute;right:-5px;top:100px;width:3px;height:40px;background:linear-gradient(180deg,#5a5a62 0%,#3c3c42 40%,#3c3c42 60%,#5a5a62 100%);border-radius:0 3px 3px 0;box-shadow:1px 0 3px rgba(0,0,0,0.5)}#snsp-chat-window::after{content:\\'\\';position:absolute;left:-5px;top:80px;width:3px;height:28px;background:linear-gradient(180deg,#5a5a62 0%,#3c3c42 40%,#3c3c42 60%,#5a5a62 100%);border-radius:3px 0 0 3px;box-shadow:-1px 0 3px rgba(0,0,0,0.5)}.snsp-screen{flex:1;display:flex;flex-direction:column;background:#1e3a5f;border-radius:34px;overflow:hidden;position:relative}.snsp-camera{width:10px;height:10px;background:#06060a;border-radius:50%;position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:10;border:1.5px solid #1c1c22;box-shadow:inset 0 1px 3px rgba(0,0,0,0.9),0 0 3px rgba(0,0,0,0.4)}.snsp-statusbar{display:flex;align-items:center;justify-content:space-between;padding:8px 20px 2px;font-size:10px;color:#cbd5e1;background:#1e3a5f;min-height:26px}.snsp-statusbar-time{font-weight:600;color:#fff}.snsp-statusbar-icons{display:flex;gap:4px;align-items:center}.snsp-statusbar-icons svg{opacity:.8}.snsp-header{background:#1e3a5f;padding:8px 14px 12px;display:flex;align-items:center;justify-content:space-between}.snsp-header-left{display:flex;align-items:center;gap:8px}.snsp-header-logo{height:24px;width:auto;display:block}.snsp-header-title{font-weight:600;font-size:14px;color:#fff;display:flex;align-items:center;gap:6px}.snsp-header-title .dot{width:7px;height:7px;border-radius:50%;background:#4ade80}.snsp-close{background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;padding:2px 6px;border-radius:6px;line-height:1}.snsp-close:hover{color:#fff;background:rgba(255,255,255,.1)}.snsp-body{flex:1;overflow-y:auto;padding:12px 10px;display:flex;flex-direction:column;gap:8px;background:#eaeff4;color:#0f172a}.snsp-home{display:flex;flex-direction:column;gap:10px;justify-content:center;flex:1;padding:0 4px}.snsp-home h3{margin:0;font-size:16px;color:#1e293b}.snsp-home p{margin:0;font-size:13px;color:#64748b;line-height:1.4}.snsp-menu-card{background:#fff;border:1px solid #cbd5e1;border-radius:14px;padding:14px 16px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}.snsp-menu-card:hover{border-color:#ea580c;box-shadow:0 2px 8px rgba(234,88,12,0.12)}.snsp-menu-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}.snsp-menu-icon.kb{background:#eef2ff}.snsp-menu-icon.chat{background:#fff7ed}.snsp-menu-label{font-size:14px;font-weight:600;color:#1e293b}.snsp-menu-desc{font-size:11px;color:#64748b;margin-top:2px}.snsp-contact{display:flex;flex-direction:column;gap:10px;justify-content:center;flex:1;padding:0 4px}.snsp-contact h3{margin:0;font-size:16px;color:#1e293b}.snsp-contact p{margin:0;font-size:13px;color:#64748b;line-height:1.4}.snsp-contact input{background:#fff;border:1px solid #cbd5e1;color:#1e293b;padding:11px 14px;border-radius:12px;font-size:14px;outline:none;width:100%;box-sizing:border-box;box-shadow:0 1px 3px rgba(0,0,0,0.04)}.snsp-contact input:focus{border-color:#ea580c;box-shadow:0 0 0 2px rgba(234,88,12,0.15)}.snsp-contact input::placeholder{color:#94a3b8}.snsp-start-btn{background:#ea580c;color:#fff;border:none;padding:12px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s;box-shadow:0 2px 8px rgba(234,88,12,0.25)}.snsp-start-btn:hover{background:#c2410c}.snsp-start-btn:disabled{opacity:.5;cursor:not-allowed}.snsp-back-link{background:none;border:none;color:#64748b;font-size:12px;cursor:pointer;padding:4px 0;text-align:left}.snsp-back-link:hover{color:#ea580c}.snsp-kb{display:flex;flex-direction:column;gap:8px;padding:0 2px}.snsp-kb-item{background:#fff;border:1px solid #cbd5e1;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04)}.snsp-kb-q{padding:10px 14px;font-size:13px;font-weight:600;color:#1e293b;cursor:pointer;display:flex;justify-content:space-between;align-items:center}.snsp-kb-q:hover{color:#ea580c}.snsp-kb-q .chevron{font-size:11px;color:#94a3b8;transition:transform .2s}.snsp-kb-q.open .chevron{transform:rotate(90deg)}.snsp-kb-a{padding:0 14px 12px;font-size:12px;color:#475569;line-height:1.5;display:none}.snsp-kb-a.open{display:block}.snsp-input-spacer{height:52px;background:#1e3a5f}.snsp-msg{max-width:82%;padding:10px 14px;font-size:13px;line-height:1.5;word-wrap:break-word}.snsp-msg-visitor{align-self:flex-end;background:#ea580c;color:#fff;border-radius:16px 16px 4px 16px;box-shadow:0 1px 4px rgba(234,88,12,0.2)}.snsp-msg-agent,.snsp-msg-ai{align-self:flex-start;background:#fff;color:#1e293b;border-radius:16px 16px 16px 4px;box-shadow:0 1px 4px rgba(0,0,0,0.06)}.snsp-input-area{padding:8px 10px;background:#1e3a5f;display:flex;gap:8px;align-items:center}.snsp-input-area input{flex:1;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);color:#fff;padding:9px 14px;border-radius:20px;font-size:13px;outline:none}.snsp-input-area input:focus{border-color:#ea580c;background:rgba(255,255,255,0.18)}.snsp-input-area input::placeholder{color:rgba(255,255,255,0.5)}.snsp-send-btn{background:#ea580c;border:none;color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s;flex-shrink:0;box-shadow:0 2px 6px rgba(234,88,12,0.3)}.snsp-send-btn:hover{background:#c2410c}.snsp-send-btn:disabled{opacity:.4;cursor:not-allowed}.snsp-footer{background:#1e3a5f;text-align:center;padding:4px 0 2px;font-size:9px;color:rgba(255,255,255,0.35)}.snsp-footer a{color:rgba(255,255,255,0.5);text-decoration:none}.snsp-footer a:hover{color:rgba(255,255,255,0.7)}.snsp-homebar{display:flex;justify-content:center;padding:4px 0 8px;background:#1e3a5f}.snsp-homebar-pill{width:90px;height:4px;border-radius:2px;background:rgba(255,255,255,0.2)}.snsp-faq-tiles{display:flex;flex-wrap:wrap;gap:6px;padding:2px 0}.snsp-faq-tile{background:#fff;color:#334155;border:1px solid #cbd5e1;padding:7px 12px;border-radius:20px;font-size:11px;cursor:pointer;transition:all .15s;line-height:1.3;box-shadow:0 1px 3px rgba(0,0,0,0.04)}.snsp-faq-tile:hover{background:#f1f5f9;border-color:#ea580c;color:#ea580c}@media(max-width:500px){#snsp-chat-window{width:100vw;max-width:100vw;height:100vh;max-height:100vh;bottom:0;right:0;border-radius:0;padding:0;border:none;box-shadow:none;background:#1e3a5f;z-index:100000}#snsp-chat-window::before,#snsp-chat-window::after{display:none}.snsp-screen{border-radius:0}.snsp-camera{display:none}.snsp-statusbar{padding-top:12px}.snsp-header{padding:10px 16px 14px}.snsp-header-logo{height:28px}.snsp-header-title{font-size:16px}.snsp-body{padding:14px 14px;font-size:15px}.snsp-home h3{font-size:19px}.snsp-home p{font-size:15px}.snsp-menu-label{font-size:16px}.snsp-menu-desc{font-size:13px}.snsp-menu-card{padding:16px 18px}.snsp-menu-icon{width:42px;height:42px}.snsp-contact h3{font-size:19px}.snsp-contact p{font-size:15px}.snsp-contact input{font-size:16px;padding:13px 16px}.snsp-start-btn{font-size:16px;padding:14px}.snsp-back-link{font-size:14px}.snsp-kb-q{font-size:15px;padding:12px 16px}.snsp-kb-a{font-size:14px;padding:0 16px 14px}.snsp-msg{font-size:15px;padding:12px 16px;max-width:85%}.snsp-input-area{padding:10px 14px}.snsp-input-area input{font-size:15px;padding:11px 16px}.snsp-send-btn{width:40px;height:40px}.snsp-faq-tile{font-size:13px;padding:9px 14px}.snsp-footer{font-size:10px;padding:6px 0 3px}.snsp-homebar{padding:6px 0 10px}}';document.head.appendChild(st)}function esc(t){var d=document.createElement('div');d.textContent=t||'';return d.innerHTML}function create(){var b=document.createElement('div');b.id='snsp-chat-bubble';b.innerHTML='<svg viewBox="0 0 24 24" width="28" height="28" fill="#fff"><path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.837 1.37 5.378 3.527 7.09L4 22l4.322-2.16C9.478 20.27 10.707 20.486 12 20.486c5.523 0 10-4.145 10-9.243S17.523 2 12 2z"/></svg><span class="badge" id="snspBadge">0</span>';b.onclick=function(){var w=document.getElementById('snsp-chat-window');s.open=!w.classList.contains('open');w.classList.toggle('open',s.open)};document.body.appendChild(b);var w=document.createElement('div');w.id='snsp-chat-window';w.innerHTML='<div class="snsp-screen"><div class="snsp-camera"></div><div class="snsp-statusbar"><span class="snsp-statusbar-time">9:41</span><span class="snsp-statusbar-icons"><svg width="12" height="12" fill="#cbd5e1" viewBox="0 0 24 24"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3a4.237 4.237 0 00-6 0zm-4-4l2 2a7.074 7.074 0 0110 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg><svg width="12" height="12" fill="#cbd5e1" viewBox="0 0 24 24"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/></svg></span></div><div class="snsp-header"><div class="snsp-header-left"><img src="https://sweepnspect.com/images/sweepnspect-logo-TransBG.png" alt="" class="snsp-header-logo"><div class="snsp-header-title"><span class="dot"></span> Live Chat</div></div><button class="snsp-close" onclick="document.getElementById(\\'snsp-chat-window\\').classList.remove(\\'open\\')">&times;</button></div><div class="snsp-body" id="snspBody"></div><div id="snspInputWrap"></div><div class="snsp-footer">Powered by <a href="https://sweepnspect.com" target="_blank">SweepNspect</a></div><div class="snsp-homebar"><div class="snsp-homebar-pill"></div></div></div>';document.body.appendChild(w);homeUI()}var KB=[{q:'How much does it cost?',a:'Solo plan: $49/mo (1 device, unlimited inspections, PDF reports). Pro plan: $149/mo (up to 5 devices + team management). 14-day free trial, no credit card required.'},{q:'What is the Founding 25?',a:'The first 25 paying users get the Solo plan at $29/mo locked for life, plus priority support, a direct line to the founder, and their name on the Founding Members page.'},{q:'Does it work offline?',a:'Yes! Full offline capability \\u2014 inspect, photograph, and generate PDF reports without cell signal. Everything syncs automatically when you\\u2019re back online.'},{q:'What devices are supported?',a:'Android phones and tablets. Minimum Android 8.0. No iOS at this time.'},{q:'How do PDF reports work?',a:'NFPA 211 zone-by-zone reports are generated on-site, branded with your company logo, and can be emailed directly to the customer.'},{q:'Is my data safe?',a:'All inspection data stays on your device. No cloud storage of your data \\u2014 you own it completely. Syncs only when you choose to.'}];function spc(){document.getElementById('snspInputWrap').innerHTML='<div class="snsp-input-spacer"></div>'}function homeUI(){spc();document.getElementById('snspBody').innerHTML='<div class="snsp-home"><h3>Hi there! \\u{1F44B}</h3><p>Have a question about SweepNspect? We\\u2019re here to help.</p><div class="snsp-menu-card" onclick="window._snspShowKB()"><div class="snsp-menu-icon kb"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div><div><div class="snsp-menu-label">Browse FAQ</div><div class="snsp-menu-desc">Pricing, features, and more</div></div></div><div class="snsp-menu-card" onclick="window._snspShowContact()"><div class="snsp-menu-icon chat"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div><div><div class="snsp-menu-label">Chat with us</div><div class="snsp-menu-desc">Talk to our team or AI assistant</div></div></div></div>'}window._snspShowKB=function(){spc();document.getElementById('snspBody').innerHTML='<button class="snsp-back-link" onclick="window._snspGoHome()">\\u2190 Back</button><div class="snsp-kb" id="snspKB"></div>';var kb=document.getElementById('snspKB');KB.forEach(function(item,i){var div=document.createElement('div');div.className='snsp-kb-item';div.innerHTML='<div class="snsp-kb-q" data-i="'+i+'">'+esc(item.q)+'<span class="chevron">\\u203A</span></div><div class="snsp-kb-a">'+esc(item.a)+'</div>';div.querySelector('.snsp-kb-q').onclick=function(){this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')};kb.appendChild(div)})};window._snspShowContact=function(){spc();document.getElementById('snspBody').innerHTML='<div class="snsp-contact"><button class="snsp-back-link" onclick="window._snspGoHome()">\\u2190 Back</button><h3>Start a conversation</h3><p>Enter your name to chat with our team.</p><input type="text" id="snspName" placeholder="Your name"><input type="email" id="snspEmail" placeholder="Email (optional)"><button class="snsp-start-btn" id="snspStartBtn" onclick="window._snspStart()">Start Chat</button></div>'};window._snspGoHome=function(){homeUI()};window._snspStart=async function(){var n=document.getElementById('snspName'),b=document.getElementById('snspStartBtn');var name=(n.value||'').trim();if(!name){n.style.borderColor='#ea580c';n.focus();return}s.v.name=name;s.v.email=(document.getElementById('snspEmail').value||'').trim();b.disabled=true;b.textContent='Connecting...';try{var r=await post('/api/chat/start',{name:s.v.name,email:s.v.email});if(r.ok&&r.sessionId){s.sid=r.sessionId;s.phase='chat';chatUI();startPoll()}else{b.textContent='Error - retry';b.disabled=false}}catch(x){b.textContent='Connection failed - retry';b.disabled=false}};function chatUI(){document.getElementById('snspBody').innerHTML='<div id="snspMessages" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-bottom:4px"></div>';document.getElementById('snspInputWrap').innerHTML='<div class="snsp-input-area"><input type="text" id="snspInput" placeholder="Message..." onkeydown="if(event.key===\\'Enter\\')window._snspSend()"><button class="snsp-send-btn" onclick="window._snspSend()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button></div>';addMsg('agent','Hi '+esc(s.v.name)+'! How can we help you today?');showFaq();document.getElementById('snspInput').focus()}function showFaq(){var ms=document.getElementById('snspMessages');if(!ms)return;var t=document.createElement('div');t.className='snsp-faq-tiles';t.id='snspFaqTiles';['How much does it cost?','What is the Founding 25?','Does it work offline?','What devices supported?'].forEach(function(q){var ti=document.createElement('span');ti.className='snsp-faq-tile';ti.textContent=q;ti.onclick=function(){var inp=document.getElementById('snspInput');if(inp)inp.value=q;window._snspSend()};t.appendChild(ti)});ms.appendChild(t)}window._snspSend=async function(){var i=document.getElementById('snspInput');if(!i||s.sending)return;var t=i.value.trim();if(!t)return;i.value='';s.sending=true;addMsg('visitor',t);try{await post('/api/chat/message',{sessionId:s.sid,text:t})}catch(x){}s.sending=false;i.focus()};function addMsg(f,t){s.msgs.push({from:f,text:t,ts:new Date().toISOString()});renderMsgs()}function renderMsgs(){var el=document.getElementById('snspMessages');if(!el)return;el.innerHTML=s.msgs.map(function(m){var c=m.from==='visitor'?'snsp-msg-visitor':m.from==='ai'?'snsp-msg-ai':'snsp-msg-agent';var l=m.from==='visitor'?'':m.from==='ai'?'<div style="font-size:10px;color:#94a3b8;margin-bottom:2px">AI Assistant</div>':'<div style="font-size:10px;color:#94a3b8;margin-bottom:2px">Support</div>';return'<div class="snsp-msg '+c+'">'+l+esc(m.text)+'</div>'}).join('');el.scrollTop=el.scrollHeight}function startPoll(){if(s.pt)return;s.pt=setInterval(poll,P)}async function poll(){if(!s.sid)return;try{var d=await get('/api/chat/messages?session='+s.sid+'&after='+encodeURIComponent(s.lastTs));if(d.messages&&d.messages.length>0){for(var i=0;i<d.messages.length;i++){var m=d.messages[i];if(m.from==='visitor'){if(m.ts>s.lastTs)s.lastTs=m.ts;continue}if(!s.msgs.find(function(x){return x.id===m.id}))s.msgs.push(m);if(m.ts>s.lastTs)s.lastTs=m.ts}renderMsgs()}if(d.status==='ended'){clearInterval(s.pt);s.pt=null;addMsg('agent','Chat ended. Thanks for reaching out!')}}catch(x){}}async function post(p,b){var r=await fetch(W+p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});return r.json()}async function get(p){var r=await fetch(W+p);return r.json()}function init(){inj();create()}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init()})();`;
+  const JS = `(function(){'use strict';var W='https://sweepnspect-webhook.sweepnspect.workers.dev',P=4000,s={open:false,phase:'intro',sid:null,v:{name:'',email:''},msgs:[],lastTs:'1970-01-01T00:00:00.000Z',pt:null,sending:false};function inj(){var st=document.createElement('style');st.textContent='#snsp-chat-bubble{position:fixed;bottom:20px;right:20px;z-index:99999;width:60px;height:60px;border-radius:50%;background:#ea580c;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(234,88,12,0.45);transition:transform .2s,box-shadow .2s,background .2s}#snsp-chat-bubble:hover{transform:scale(1.08);background:#c2410c;box-shadow:0 6px 28px rgba(234,88,12,0.55)}#snsp-chat-bubble .badge{position:absolute;top:-4px;right:-4px;background:#dc2626;color:#fff;font-size:11px;width:20px;height:20px;border-radius:50%;display:none;align-items:center;justify-content:center}#snsp-chat-window{position:fixed;bottom:92px;right:20px;z-index:99998;width:310px;max-width:calc(100vw - 32px);height:560px;max-height:calc(100vh - 120px);background:linear-gradient(165deg,#28282e 0%,#1a1a1e 12%,#101012 35%,#0c0c0e 65%,#141416 88%,#222226 100%);border-radius:40px;padding:6px;border:3px solid;border-color:#606068 #48484e #2a2a30 #48484e;box-shadow:-12px 16px 45px rgba(0,0,0,0.6),0 8px 30px rgba(0,0,0,0.4),0 0 0 1px rgba(140,140,150,0.2),inset 2px 2px 0 rgba(255,255,255,0.12),inset 0 2px 6px rgba(255,255,255,0.06),inset -2px -2px 0 rgba(0,0,0,0.6),inset 0 -3px 8px rgba(0,0,0,0.3);display:none;flex-direction:column;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif}#snsp-chat-window.open{display:flex}#snsp-chat-window::before{content:\\'\\';position:absolute;right:-5px;top:100px;width:3px;height:40px;background:linear-gradient(180deg,#5a5a62 0%,#3c3c42 40%,#3c3c42 60%,#5a5a62 100%);border-radius:0 3px 3px 0;box-shadow:1px 0 3px rgba(0,0,0,0.5)}#snsp-chat-window::after{content:\\'\\';position:absolute;left:-5px;top:80px;width:3px;height:28px;background:linear-gradient(180deg,#5a5a62 0%,#3c3c42 40%,#3c3c42 60%,#5a5a62 100%);border-radius:3px 0 0 3px;box-shadow:-1px 0 3px rgba(0,0,0,0.5)}.snsp-screen{flex:1;display:flex;flex-direction:column;background:#1e3a5f;border-radius:34px;overflow:hidden;position:relative}.snsp-camera{width:10px;height:10px;background:#06060a;border-radius:50%;position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:10;border:1.5px solid #1c1c22;box-shadow:inset 0 1px 3px rgba(0,0,0,0.9),0 0 3px rgba(0,0,0,0.4)}.snsp-statusbar{display:flex;align-items:center;justify-content:space-between;padding:8px 20px 2px;font-size:10px;color:#cbd5e1;background:#1e3a5f;min-height:26px}.snsp-statusbar-time{font-weight:600;color:#fff}.snsp-statusbar-icons{display:flex;gap:4px;align-items:center}.snsp-statusbar-icons svg{opacity:.8}.snsp-header{background:#1e3a5f;padding:8px 14px 12px;display:flex;align-items:center;justify-content:space-between}.snsp-header-left{display:flex;align-items:center;gap:8px}.snsp-header-logo{height:24px;width:auto;display:block}.snsp-header-title{font-weight:600;font-size:14px;color:#fff;display:flex;align-items:center;gap:6px}.snsp-header-title .dot{width:7px;height:7px;border-radius:50%;background:#4ade80}.snsp-close{background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;padding:2px 6px;border-radius:6px;line-height:1}.snsp-close:hover{color:#fff;background:rgba(255,255,255,.1)}.snsp-body{flex:1;overflow-y:auto;padding:12px 10px;display:flex;flex-direction:column;gap:8px;background:#eaeff4;color:#0f172a}.snsp-home{display:flex;flex-direction:column;gap:10px;justify-content:center;flex:1;padding:0 4px}.snsp-home h3{margin:0;font-size:16px;color:#1e293b}.snsp-home p{margin:0;font-size:13px;color:#64748b;line-height:1.4}.snsp-menu-card{background:#fff;border:1px solid #cbd5e1;border-radius:14px;padding:14px 16px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}.snsp-menu-card:hover{border-color:#ea580c;box-shadow:0 2px 8px rgba(234,88,12,0.12)}.snsp-menu-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}.snsp-menu-icon.kb{background:#eef2ff}.snsp-menu-icon.chat{background:#fff7ed}.snsp-menu-label{font-size:14px;font-weight:600;color:#1e293b}.snsp-menu-desc{font-size:11px;color:#64748b;margin-top:2px}.snsp-contact{display:flex;flex-direction:column;gap:10px;justify-content:center;flex:1;padding:0 4px}.snsp-contact h3{margin:0;font-size:16px;color:#1e293b}.snsp-contact p{margin:0;font-size:13px;color:#64748b;line-height:1.4}.snsp-contact input{background:#fff;border:1px solid #cbd5e1;color:#1e293b;padding:11px 14px;border-radius:12px;font-size:14px;outline:none;width:100%;box-sizing:border-box;box-shadow:0 1px 3px rgba(0,0,0,0.04)}.snsp-contact input:focus{border-color:#ea580c;box-shadow:0 0 0 2px rgba(234,88,12,0.15)}.snsp-contact input::placeholder{color:#94a3b8}.snsp-start-btn{background:#ea580c;color:#fff;border:none;padding:12px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s;box-shadow:0 2px 8px rgba(234,88,12,0.25)}.snsp-start-btn:hover{background:#c2410c}.snsp-start-btn:disabled{opacity:.5;cursor:not-allowed}.snsp-back-link{background:none;border:none;color:#64748b;font-size:12px;cursor:pointer;padding:4px 0;text-align:left}.snsp-back-link:hover{color:#ea580c}.snsp-kb{display:flex;flex-direction:column;gap:8px;padding:0 2px}.snsp-kb-item{background:#fff;border:1px solid #cbd5e1;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04)}.snsp-kb-q{padding:10px 14px;font-size:13px;font-weight:600;color:#1e293b;cursor:pointer;display:flex;justify-content:space-between;align-items:center}.snsp-kb-q:hover{color:#ea580c}.snsp-kb-q .chevron{font-size:11px;color:#94a3b8;transition:transform .2s}.snsp-kb-q.open .chevron{transform:rotate(90deg)}.snsp-kb-a{padding:0 14px 12px;font-size:12px;color:#475569;line-height:1.5;display:none}.snsp-kb-a.open{display:block}.snsp-input-spacer{height:52px;background:#1e3a5f}.snsp-msg{max-width:82%;padding:10px 14px;font-size:13px;line-height:1.5;word-wrap:break-word}.snsp-msg-visitor{align-self:flex-end;background:#ea580c;color:#fff;border-radius:16px 16px 4px 16px;box-shadow:0 1px 4px rgba(234,88,12,0.2)}.snsp-msg-agent,.snsp-msg-ai{align-self:flex-start;background:#fff;color:#1e293b;border-radius:16px 16px 16px 4px;box-shadow:0 1px 4px rgba(0,0,0,0.06)}.snsp-input-area{padding:8px 10px;background:#1e3a5f;display:flex;gap:8px;align-items:center}.snsp-input-area input{flex:1;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);color:#fff;padding:9px 14px;border-radius:20px;font-size:13px;outline:none}.snsp-input-area input:focus{border-color:#ea580c;background:rgba(255,255,255,0.18)}.snsp-input-area input::placeholder{color:rgba(255,255,255,0.5)}.snsp-send-btn{background:#ea580c;border:none;color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s;flex-shrink:0;box-shadow:0 2px 6px rgba(234,88,12,0.3)}.snsp-send-btn:hover{background:#c2410c}.snsp-send-btn:disabled{opacity:.4;cursor:not-allowed}.snsp-footer{background:#1e3a5f;text-align:center;padding:4px 0 2px;font-size:9px;color:rgba(255,255,255,0.35)}.snsp-footer a{color:rgba(255,255,255,0.5);text-decoration:none}.snsp-footer a:hover{color:rgba(255,255,255,0.7)}.snsp-homebar{display:flex;justify-content:center;padding:4px 0 8px;background:#1e3a5f}.snsp-homebar-pill{width:90px;height:4px;border-radius:2px;background:rgba(255,255,255,0.2)}.snsp-faq-tiles{display:flex;flex-wrap:wrap;gap:6px;padding:2px 0}.snsp-faq-tile{background:#fff;color:#334155;border:1px solid #cbd5e1;padding:7px 12px;border-radius:20px;font-size:11px;cursor:pointer;transition:all .15s;line-height:1.3;box-shadow:0 1px 3px rgba(0,0,0,0.04)}.snsp-faq-tile:hover{background:#f1f5f9;border-color:#ea580c;color:#ea580c}@media(max-width:500px){#snsp-chat-window{width:100vw;max-width:100vw;height:100vh;max-height:100vh;bottom:0;right:0;border-radius:0;padding:0;border:none;box-shadow:none;background:#1e3a5f;z-index:100000}#snsp-chat-window::before,#snsp-chat-window::after{display:none}.snsp-screen{border-radius:0}.snsp-camera{display:none}.snsp-statusbar{padding-top:12px}.snsp-header{padding:10px 16px 14px}.snsp-header-logo{height:28px}.snsp-header-title{font-size:16px}.snsp-body{padding:14px 14px;font-size:15px}.snsp-home h3{font-size:19px}.snsp-home p{font-size:15px}.snsp-menu-label{font-size:16px}.snsp-menu-desc{font-size:13px}.snsp-menu-card{padding:16px 18px}.snsp-menu-icon{width:42px;height:42px}.snsp-contact h3{font-size:19px}.snsp-contact p{font-size:15px}.snsp-contact input{font-size:16px;padding:13px 16px}.snsp-start-btn{font-size:16px;padding:14px}.snsp-back-link{font-size:14px}.snsp-kb-q{font-size:15px;padding:12px 16px}.snsp-kb-a{font-size:14px;padding:0 16px 14px}.snsp-msg{font-size:15px;padding:12px 16px;max-width:85%}.snsp-input-area{padding:10px 14px}.snsp-input-area input{font-size:15px;padding:11px 16px}.snsp-send-btn{width:40px;height:40px}.snsp-faq-tile{font-size:13px;padding:9px 14px}.snsp-footer{font-size:10px;padding:6px 0 3px}.snsp-homebar{padding:6px 0 10px}}';document.head.appendChild(st)}function esc(t){var d=document.createElement('div');d.textContent=t||'';return d.innerHTML}function create(){var b=document.createElement('div');b.id='snsp-chat-bubble';b.innerHTML='<svg viewBox="0 0 24 24" width="28" height="28" fill="#fff"><path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.837 1.37 5.378 3.527 7.09L4 22l4.322-2.16C9.478 20.27 10.707 20.486 12 20.486c5.523 0 10-4.145 10-9.243S17.523 2 12 2z"/></svg><span class="badge" id="snspBadge">0</span>';b.onclick=function(){var w=document.getElementById('snsp-chat-window');s.open=!w.classList.contains('open');w.classList.toggle('open',s.open)};document.body.appendChild(b);var w=document.createElement('div');w.id='snsp-chat-window';w.innerHTML='<div class="snsp-screen"><div class="snsp-camera"></div><div class="snsp-statusbar"><span class="snsp-statusbar-time">9:41</span><span class="snsp-statusbar-icons"><svg width="12" height="12" fill="#cbd5e1" viewBox="0 0 24 24"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3a4.237 4.237 0 00-6 0zm-4-4l2 2a7.074 7.074 0 0110 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg><svg width="12" height="12" fill="#cbd5e1" viewBox="0 0 24 24"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/></svg></span></div><div class="snsp-header"><div class="snsp-header-left"><img src="https://sweepnspect.com/images/sweepnspect-logo-TransBG.png" alt="" class="snsp-header-logo"><div class="snsp-header-title"><span class="dot"></span> Live Chat</div></div><button class="snsp-close" onclick="document.getElementById(\\'snsp-chat-window\\').classList.remove(\\'open\\')">&times;</button></div><div class="snsp-body" id="snspBody"></div><div id="snspInputWrap"></div><div class="snsp-footer">Powered by <a href="https://sweepnspect.com" target="_blank">SweepNspect</a></div><div class="snsp-homebar"><div class="snsp-homebar-pill"></div></div></div>';document.body.appendChild(w);homeUI()}var KB=[{q:'How much does it cost?',a:'Solo plan: $49/mo (1 device, unlimited inspections, PDF reports). Pro plan: $149/mo (up to 5 devices + team management). 14-day free trial, no credit card required.'},{q:'What is the Founding 25?',a:'The first 25 paying users get the Solo plan at $29/mo locked for life, plus priority support, a direct line to the founder, and their name on the Founding Members page.'},{q:'Does it work offline?',a:'Yes! Full offline capability \\u2014 inspect, photograph, and generate PDF reports without cell signal. Everything syncs automatically when you\\u2019re back online.'},{q:'What devices are supported?',a:'Android phones and tablets. Minimum Android 8.0. No iOS at this time.'},{q:'How do PDF reports work?',a:'NFPA 211 zone-by-zone reports are generated on-site, branded with your company logo, and can be emailed directly to the customer.'},{q:'Is my data safe?',a:'All inspection data stays on your device. No cloud storage of your data \\u2014 you own it completely. Syncs only when you choose to.'}];function spc(){document.getElementById('snspInputWrap').innerHTML='<div class="snsp-input-spacer"></div>'}function homeUI(){spc();document.getElementById('snspBody').innerHTML='<div class="snsp-home"><h3>Hi there! \\u{1F44B}</h3><p>Have a question about SweepNspect? We\\u2019re here to help.</p><div class="snsp-menu-card" onclick="window._snspShowKB()"><div class="snsp-menu-icon kb"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div><div><div class="snsp-menu-label">Browse FAQ</div><div class="snsp-menu-desc">Pricing, features, and more</div></div></div><div class="snsp-menu-card" onclick="window._snspShowContact()"><div class="snsp-menu-icon chat"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div><div><div class="snsp-menu-label">Chat with us</div><div class="snsp-menu-desc">Talk to our team or AI assistant</div></div></div></div>'}window._snspShowKB=function(){spc();document.getElementById('snspBody').innerHTML='<button class="snsp-back-link" onclick="window._snspGoHome()">\\u2190 Back</button><div class="snsp-kb" id="snspKB"></div>';var kb=document.getElementById('snspKB');KB.forEach(function(item,i){var div=document.createElement('div');div.className='snsp-kb-item';div.innerHTML='<div class="snsp-kb-q" data-i="'+i+'">'+esc(item.q)+'<span class="chevron">\\u203A</span></div><div class="snsp-kb-a">'+esc(item.a)+'</div>';div.querySelector('.snsp-kb-q').onclick=function(){this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')};kb.appendChild(div)})};window._snspShowContact=function(){spc();document.getElementById('snspBody').innerHTML='<div class="snsp-contact"><button class="snsp-back-link" onclick="window._snspGoHome()">\\u2190 Back</button><h3>Start a conversation</h3><p>Enter your name to chat with our team.</p><input type="text" id="snspName" placeholder="Your name"><input type="email" id="snspEmail" placeholder="Email (optional)"><button class="snsp-start-btn" id="snspStartBtn" onclick="window._snspStart()">Start Chat</button></div>'};window._snspGoHome=function(){homeUI()};window._snspStart=async function(){var n=document.getElementById('snspName'),b=document.getElementById('snspStartBtn');var name=(n.value||'').trim();if(!name){n.style.borderColor='#ea580c';n.focus();return}s.v.name=name;s.v.email=(document.getElementById('snspEmail').value||'').trim();b.disabled=true;b.textContent='Connecting...';try{var r=await post('/api/chat/start',{name:s.v.name,email:s.v.email});if(r.ok&&r.sessionId){s.sid=r.sessionId;s.phase='chat';chatUI();startPoll()}else{b.textContent='Error - retry';b.disabled=false}}catch(x){b.textContent='Connection failed - retry';b.disabled=false}};function chatUI(){document.getElementById('snspBody').innerHTML='<div id="snspMessages" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-bottom:4px"></div>';document.getElementById('snspInputWrap').innerHTML='<div class="snsp-input-area"><input type="text" id="snspInput" placeholder="Message..." onkeydown="if(event.key===\\'Enter\\')window._snspSend()"><button class="snsp-send-btn" onclick="window._snspSend()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button></div>';addMsg('agent','Hi '+esc(s.v.name)+'! How can we help you today?');showFaq();document.getElementById('snspInput').focus()}function showFaq(){var ms=document.getElementById('snspMessages');if(!ms)return;var t=document.createElement('div');t.className='snsp-faq-tiles';t.id='snspFaqTiles';['How much does it cost?','What is the Founding 25?','Does it work offline?','What devices supported?'].forEach(function(q){var ti=document.createElement('span');ti.className='snsp-faq-tile';ti.textContent=q;ti.onclick=function(){var inp=document.getElementById('snspInput');if(inp)inp.value=q;window._snspSend()};t.appendChild(ti)});ms.appendChild(t)}window._snspSend=async function(){var i=document.getElementById('snspInput');if(!i||s.sending)return;var t=i.value.trim();if(!t)return;i.value='';s.sending=true;addMsg('visitor',t);try{await post('/api/chat/message',{sessionId:s.sid,text:t})}catch(x){}s.sending=false;i.focus()};function addMsg(f,t){s.msgs.push({from:f,text:t,ts:new Date().toISOString()});renderMsgs()}function renderMsgs(){var el=document.getElementById('snspMessages');if(!el)return;el.innerHTML=s.msgs.map(function(m){var c=m.from==='visitor'?'snsp-msg-visitor':m.from==='ai'?'snsp-msg-ai':'snsp-msg-agent';var l=m.from==='visitor'?'':m.from==='ai'?'<div style="font-size:10px;color:#94a3b8;margin-bottom:2px">AI Assistant</div>':'<div style="font-size:10px;color:#94a3b8;margin-bottom:2px">Support</div>';return'<div class="snsp-msg '+c+'">'+l+esc(m.text)+'</div>'}).join('');var bs=el.querySelectorAll('.snsp-msg');if(bs.length>0)bs[bs.length-1].scrollIntoView({behavior:'smooth',block:'start'})}function startPoll(){if(s.pt)return;s.pt=setInterval(poll,P)}async function poll(){if(!s.sid)return;try{var d=await get('/api/chat/messages?session='+s.sid+'&after='+encodeURIComponent(s.lastTs));if(d.messages&&d.messages.length>0){for(var i=0;i<d.messages.length;i++){var m=d.messages[i];if(m.from==='visitor'){if(m.ts>s.lastTs)s.lastTs=m.ts;continue}if(!s.msgs.find(function(x){return x.id===m.id}))s.msgs.push(m);if(m.ts>s.lastTs)s.lastTs=m.ts}renderMsgs()}if(d.status==='ended'){clearInterval(s.pt);s.pt=null;addMsg('agent','Chat ended. Thanks for reaching out!')}}catch(x){}}async function post(p,b){var r=await fetch(W+p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});return r.json()}async function get(p){var r=await fetch(W+p);return r.json()}function init(){inj();create()}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init()})();`;
 
   return new Response(JS, {
     status: 200,

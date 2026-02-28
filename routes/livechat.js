@@ -31,6 +31,19 @@ router.post('/sessions/:id/reply', async (req, res) => {
   if (!session) return res.status(404).json({ error: 'Session not found' });
 
   const now = new Date().toISOString();
+
+  // Handoff: first agent reply transitions mode to 'agent'
+  if (session.mode !== 'agent') {
+    // Inject handoff message locally (mirrors what the CF Worker does)
+    session.messages.push({
+      id: `m-${Date.now().toString(36)}-handoff`,
+      from: 'ai',
+      text: "Here's J now — you're in good hands!",
+      ts: now,
+    });
+    session.mode = 'agent';
+  }
+
   const message = {
     id: `m-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 4)}`,
     from: 'agent',
@@ -81,7 +94,7 @@ router.post('/sessions/:id/ai-reply', async (req, res) => {
     .map(m => `${m.from === 'visitor' ? 'Visitor' : m.from === 'ai' ? 'AI' : 'Agent'}: ${m.text}`)
     .join('\n');
 
-  const prompt = `You are a friendly customer support AI for SweepNspect, a chimney inspection app. You're chatting with a website visitor named ${session.visitor.name || 'a visitor'}.
+  const system = `You are a friendly customer support AI for SweepNspect, a chimney inspection app. You're chatting with a website visitor named ${session.visitor.name || 'a visitor'}.
 
 KNOWLEDGEBASE:
 - What: Chimney inspection app for Android, built by a sweep with 20 yrs experience.
@@ -100,16 +113,13 @@ RULES:
 - Answer ONLY from the KNOWLEDGEBASE above for product questions. Be helpful, professional, and concise.
 - If the visitor asks something not covered in the knowledgebase, say "That's a great question! Let me connect you with J (the founder) who can help with that." Do NOT guess or make up information.
 - Keep replies short (1-3 sentences) and conversational — this is live chat, not an essay.
-- Do NOT use the <<<DISPLAY>>> format. Just respond with plain text suitable for a chat bubble.
+- Do NOT use the <<<DISPLAY>>> format. Just respond with plain text suitable for a chat bubble.`;
 
-CONVERSATION SO FAR:
-${chatHistory}
-
-Reply to the visitor's last message:`;
+  const prompt = `CONVERSATION SO FAR:\n${chatHistory}\n\nReply to the visitor's last message:`;
 
   try {
     const answer = await new Promise((resolve, reject) => {
-      const postData = JSON.stringify({ prompt });
+      const postData = JSON.stringify({ prompt, system });
       const options = {
         hostname: PROXY_HOST, port: PROXY_PORT, path: '/ask', method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) },
@@ -125,7 +135,7 @@ Reply to the visitor's last message:`;
         });
       });
       r.on('error', (e) => reject(e));
-      r.setTimeout(30000, () => { r.destroy(); reject(new Error('timeout')); });
+      r.setTimeout(90000, () => { r.destroy(); reject(new Error('timeout')); });
       r.write(postData);
       r.end();
     });
@@ -184,6 +194,138 @@ router.post('/sessions/:id/end', (req, res) => {
 
   const broadcast = req.app.locals.broadcast;
   broadcast({ type: 'livechat:end', data: { sessionId: req.params.id } });
+
+  res.json({ ok: true });
+});
+
+// GET /api/livechat/dnd — check DND state from CF Worker
+router.get('/dnd', async (req, res) => {
+  const workerUrl = req.app.locals.workerPoller?.config?.workerUrl;
+  if (!workerUrl) return res.json({ enabled: false, source: 'default' });
+  try {
+    const resp = await fetch(`${workerUrl}/api/chat/dnd`);
+    const data = await resp.json();
+    res.json(data);
+  } catch (err) {
+    console.error('[LIVECHAT] Failed to get DND state:', err.message);
+    res.json({ enabled: false, source: 'error' });
+  }
+});
+
+// POST /api/livechat/dnd — toggle DND on CF Worker
+router.post('/dnd', async (req, res) => {
+  const { enabled } = req.body;
+  if (typeof enabled !== 'boolean') return res.status(400).json({ error: 'enabled (boolean) required' });
+
+  const workerUrl = req.app.locals.workerPoller?.config?.workerUrl;
+  if (!workerUrl) return res.status(503).json({ error: 'Worker URL not configured' });
+
+  try {
+    const resp = await fetch(`${workerUrl}/api/chat/dnd`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.HUB_API_TOKEN || ''}`,
+      },
+      body: JSON.stringify({ enabled }),
+    });
+    const data = await resp.json();
+    console.log(`[LIVECHAT] DND ${enabled ? 'ENABLED' : 'DISABLED'}`);
+
+    // Broadcast DND state change to dashboard clients
+    const broadcast = req.app.locals.broadcast;
+    broadcast({ type: 'livechat:dnd', data: { enabled } });
+
+    res.json(data);
+  } catch (err) {
+    console.error('[LIVECHAT] Failed to set DND:', err.message);
+    res.status(500).json({ error: 'Failed to set DND: ' + err.message });
+  }
+});
+
+// GET /api/livechat/sessions/:id/notes — get AI-extracted notes for a session
+router.get('/sessions/:id/notes', async (req, res) => {
+  const workerUrl = req.app.locals.workerPoller?.config?.workerUrl;
+  if (!workerUrl) return res.json({ notes: [] });
+
+  try {
+    // Fetch session from CF Worker to get agentNotes
+    const resp = await fetch(`${workerUrl}/api/chat/messages?session=${req.params.id}&after=1970-01-01T00:00:00.000Z`);
+    // Notes are on the session in KV, but we can't query KV directly from Hub.
+    // Instead, check local session data + any notes stored locally
+    const store = req.app.locals.jsonStore('livechat-sessions.json');
+    const sessions = store.read();
+    const session = sessions.find(s => s.id === req.params.id);
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+
+    res.json({ notes: session.agentNotes || [] });
+  } catch (err) {
+    res.json({ notes: [] });
+  }
+});
+
+// POST /api/livechat/sessions/:id/notes/:noteId/approve — approve a note, add to learned KB
+router.post('/sessions/:id/notes/:noteId/approve', (req, res) => {
+  const store = req.app.locals.jsonStore('livechat-sessions.json');
+  const sessions = store.read();
+  const session = sessions.find(s => s.id === req.params.id);
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+
+  const notes = session.agentNotes || [];
+  const note = notes.find(n => n.id === req.params.noteId);
+  if (!note) return res.status(404).json({ error: 'Note not found' });
+
+  note.status = 'approved';
+  store.write(sessions);
+
+  // Append to kb-learned.json
+  const kbStore = req.app.locals.jsonStore('kb-learned.json');
+  const kb = kbStore.read();
+  kb.push({
+    id: note.id,
+    type: note.type,
+    text: note.text,
+    confidence: note.confidence,
+    sessionId: req.params.id,
+    approvedAt: new Date().toISOString(),
+  });
+  kbStore.write(kb);
+
+  // Push learned KB to CF Worker KV (async, fire-and-forget)
+  const workerUrl = req.app.locals.workerPoller?.config?.workerUrl;
+  if (workerUrl) {
+    // We push the full learned KB as a chat reply with special from='system' — but actually
+    // we need a dedicated endpoint. For now, store in local file and sync on next deploy.
+    // The worker reads kb:learned from KV, so we push it there.
+    fetch(`${workerUrl}/api/chat/kb-sync`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.HUB_API_TOKEN || ''}`,
+      },
+      body: JSON.stringify({ entries: kb }),
+    }).catch(() => {}); // Best-effort
+  }
+
+  const broadcast = req.app.locals.broadcast;
+  broadcast({ type: 'livechat:note-approved', data: { sessionId: req.params.id, noteId: note.id, text: note.text } });
+
+  res.json({ ok: true, note });
+});
+
+// POST /api/livechat/sessions/:id/notes/:noteId/dismiss — dismiss a note
+router.post('/sessions/:id/notes/:noteId/dismiss', (req, res) => {
+  const store = req.app.locals.jsonStore('livechat-sessions.json');
+  const sessions = store.read();
+  const session = sessions.find(s => s.id === req.params.id);
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+
+  const notes = session.agentNotes || [];
+  const note = notes.find(n => n.id === req.params.noteId);
+  if (!note) return res.status(404).json({ error: 'Note not found' });
+
+  note.status = 'dismissed';
+  store.write(sessions);
 
   res.json({ ok: true });
 });
