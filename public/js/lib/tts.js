@@ -205,6 +205,20 @@ const HubTTS = {
         }
         break;
 
+      case 'livechat:start':
+        this.speak(`New chat from ${data.visitor?.name || 'visitor'}`);
+        break;
+
+      case 'livechat:message': {
+        // Only speak if not currently viewing this chat
+        const viewing = typeof CommsView !== 'undefined' &&
+          CommsView.openId === 'livechat-' + data.sessionId;
+        if (!viewing) {
+          this.speak(`New message from ${data.visitor?.name || data.message?.from || 'visitor'}`);
+        }
+        break;
+      }
+
       case 'clauser:activity':
         if (data.text && data.text.includes('Churn risk')) {
           this.speak(data.text);

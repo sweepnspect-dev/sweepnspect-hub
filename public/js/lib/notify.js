@@ -61,6 +61,51 @@ const HubNotify = {
     }, 5000);
   },
 
+  // Play notification sound via Web Audio API
+  playSound(type = 'alert') {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (type === 'chat') {
+        // Friendly double-beep
+        [0, 0.15].forEach(offset => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.frequency.value = 880;
+          osc.type = 'sine';
+          gain.gain.setValueAtTime(0.3, ctx.currentTime + offset);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + offset + 0.12);
+          osc.start(ctx.currentTime + offset);
+          osc.stop(ctx.currentTime + offset + 0.12);
+        });
+      } else {
+        // Single attention tone
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 660;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.25);
+      }
+      setTimeout(() => ctx.close(), 1000);
+    } catch (e) {
+      console.warn('[Notify] Sound failed:', e.message);
+    }
+  },
+
+  // Chat-specific notification: sound + desktop + toast
+  chatNotify(session) {
+    const name = session?.visitor?.name || 'Visitor';
+    this.playSound('chat');
+    this.toast(`New chat from ${name}`, 'info');
+    this.send('New Live Chat', `${name} started a chat`, '/assets/icon.png');
+  },
+
   // Desktop notification for critical alerts
   alertDesktop(alert) {
     if (!this.enabled) return;

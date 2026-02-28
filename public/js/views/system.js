@@ -176,7 +176,6 @@ const SystemView = {
       { name: 'HQ Server',        ...svc.hq },
       { name: 'WebSocket',        ...svc.ws },
       { name: 'Email Poller',     ...svc.email },
-      { name: 'Tawk.to Bridge',   ...svc.tawk },
       { name: 'Facebook Hooks',   ...svc.facebook },
       { name: 'Clauser Agent',    ...svc.clauser },
       { name: 'AI Proxy',         ...svc.ai },

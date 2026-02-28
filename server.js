@@ -114,7 +114,6 @@ app.use('/api/clauser', require('./routes/clauser'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/webhooks', require('./routes/webhooks'));
 app.use('/api/marketing', require('./routes/marketing'));
-app.use('/api/webhooks/tawk', require('./routes/tawk'));
 app.use('/api/inbox', require('./routes/inbox'));
 app.use('/api/comms', require('./routes/comms'));
 app.use('/api/livechat', require('./routes/livechat'));
@@ -143,10 +142,6 @@ app.put('/api/alerts/config', (req, res) => {
 
 app.get('/api/sms/status', (req, res) => {
   res.json(smsService.getStatus());
-});
-
-app.get('/api/tawk/status', (req, res) => {
-  res.json({ configured: false, status: 'removed', note: 'Replaced by custom live chat' });
 });
 
 app.get('/api/worker/status', (req, res) => {
@@ -313,7 +308,6 @@ const DATA_STORES = {
   revenue:       { file: 'revenue.json',         empty: [],  label: 'Revenue' },
   alerts:        { file: 'alerts.json',          empty: [],  label: 'Alerts' },
   commands:      { file: 'commands.json',        empty: { tasks: [], schedule: [] }, label: 'Tasks & Schedule' },
-  'comms-tawk':  { file: 'comms-tawk.json',      empty: [],  label: 'Tawk Messages' },
   'comms-fb':    { file: 'comms-facebook.json',   empty: [],  label: 'Facebook Messages' },
   'comms-sms':   { file: 'comms-sms.json',       empty: [],  label: 'SMS Messages' },
   marketing:     { file: 'marketing.json',        empty: [],  label: 'Marketing' },
@@ -413,8 +407,12 @@ function getStats() {
 
   const inbox = emailPoller.getInbox();
 
+  const lcSessions = jsonStore('livechat-sessions.json').read();
+  const activeLc = lcSessions.filter(s => s.status === 'active');
+
   return {
     timestamp: Date.now(),
+    livechat: { active: activeLc.length, total: lcSessions.length },
     inbox: {
       unread: inbox.unread,
       total: inbox.total,

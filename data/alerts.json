@@ -1,1 +1,504 @@
-[]
+[
+  {
+    "id": "alert-mm6vb0s2-zhh8",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: jon",
+    "data": {
+      "sessionId": "chat-mm6vaxmv-6ysd"
+    },
+    "timestamp": "2026-02-28T22:03:20.882Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm6jcrrf-nf68",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Visitor",
+    "data": {
+      "sessionId": "chat-mm6jcll2-vl1o"
+    },
+    "timestamp": "2026-02-28T16:28:47.115Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm6jax53-a707",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Visitor",
+    "data": {
+      "sessionId": "chat-mm6jaqjr-yjae"
+    },
+    "timestamp": "2026-02-28T16:27:20.775Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm6izej9-xbjx",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Norm",
+    "data": {
+      "sessionId": "chat-mm6izb2r-5sd2"
+    },
+    "timestamp": "2026-02-28T16:18:23.445Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5vc6ro-363s",
+    "type": "clauser-offline",
+    "severity": "high",
+    "message": "Clauser AI agent went offline",
+    "data": {
+      "lastStatus": {
+        "status": "offline",
+        "currentTask": null,
+        "ticketsProcessed": 24,
+        "uptime": 0,
+        "lastHeartbeat": 1772255653926,
+        "activities": []
+      }
+    },
+    "timestamp": "2026-02-28T05:16:29.124Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5ujfgb-66qf",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Visitor",
+    "data": {
+      "sessionId": "chat-mm5ujcfh-p0bm"
+    },
+    "timestamp": "2026-02-28T04:54:07.355Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5u45jx-feyi",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Visitor",
+    "data": {
+      "sessionId": "chat-mm5u43zr-jg0k"
+    },
+    "timestamp": "2026-02-28T04:42:14.685Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5u3amt-f2yl",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Visitor",
+    "data": {
+      "sessionId": "chat-mm5u38jo-7ixe"
+    },
+    "timestamp": "2026-02-28T04:41:34.613Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5u1x73-pu7z",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Visitor",
+    "data": {
+      "sessionId": "chat-mm5u1uga-muti"
+    },
+    "timestamp": "2026-02-28T04:40:30.543Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5tzv3u-1xpl",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Visitor",
+    "data": {
+      "sessionId": "chat-mm5tzrmb-3zyo"
+    },
+    "timestamp": "2026-02-28T04:38:54.522Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5tyhmg-2e9y",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Visitor",
+    "data": {
+      "sessionId": "chat-mm5tybzo-izvd"
+    },
+    "timestamp": "2026-02-28T04:37:50.392Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5twlm2-rnmv",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Visitor",
+    "data": {
+      "sessionId": "chat-mm5twic0-dtuq"
+    },
+    "timestamp": "2026-02-28T04:36:22.250Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5tvwwp-33ks",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Visitor",
+    "data": {
+      "sessionId": "chat-mm5tvtz1-h3u0"
+    },
+    "timestamp": "2026-02-28T04:35:50.233Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5tupn8-rqpv",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Visitor",
+    "data": {
+      "sessionId": "chat-mm5tul94-tryw"
+    },
+    "timestamp": "2026-02-28T04:34:54.164Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5ttolg-owwb",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Visitor",
+    "data": {
+      "sessionId": "chat-mm5ttmbo-53s1"
+    },
+    "timestamp": "2026-02-28T04:34:06.148Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5tszw3-a2d6",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Visitor",
+    "data": {
+      "sessionId": "chat-mm5tstpd-0ujt"
+    },
+    "timestamp": "2026-02-28T04:33:34.131Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5tryt0-2ns5",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Visitor",
+    "data": {
+      "sessionId": "chat-mm5trvq0-ui97"
+    },
+    "timestamp": "2026-02-28T04:32:46.068Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5tqxrd-dyeo",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Visitor",
+    "data": {
+      "sessionId": "chat-mm5tqrce-e5vg"
+    },
+    "timestamp": "2026-02-28T04:31:58.057Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5tpwm6-8ue7",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Visitor",
+    "data": {
+      "sessionId": "chat-mm5tpts8-1475"
+    },
+    "timestamp": "2026-02-28T04:31:09.918Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5tpef5-dxiq",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Visitor",
+    "data": {
+      "sessionId": "chat-mm5tp9bp-jvwn"
+    },
+    "timestamp": "2026-02-28T04:30:46.337Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5tnbta-e5d5",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Visitor",
+    "data": {
+      "sessionId": "chat-mm5tnagz-ssu1"
+    },
+    "timestamp": "2026-02-28T04:29:09.646Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5tcurs-8jvi",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Gary",
+    "data": {
+      "sessionId": "chat-mm5tctq3-ha8c"
+    },
+    "timestamp": "2026-02-28T04:21:01.000Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5tbb3g-uele",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Visitor",
+    "data": {
+      "sessionId": "chat-mm5tb9ej-jjqs"
+    },
+    "timestamp": "2026-02-28T04:19:48.844Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5ta3vw-idsu",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Visitor",
+    "data": {
+      "sessionId": "chat-mm5ta0rz-yxxz"
+    },
+    "timestamp": "2026-02-28T04:18:52.844Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5smgv9-lt14",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Bob",
+    "data": {
+      "sessionId": "chat-mm5smay9-mrij"
+    },
+    "timestamp": "2026-02-28T04:00:29.925Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5slm0m-wb49",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: B o b",
+    "data": {
+      "sessionId": "chat-mm5sli79-oqf0"
+    },
+    "timestamp": "2026-02-28T03:59:49.942Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5si088-0dj8",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Mike from Ohio",
+    "data": {
+      "sessionId": "chat-mm5shykk-42hz"
+    },
+    "timestamp": "2026-02-28T03:57:01.736Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5rgj73-xmad",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Dan",
+    "data": {
+      "sessionId": "chat-mm5rghqy-a1w7"
+    },
+    "timestamp": "2026-02-28T03:27:53.392Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5r6x7j-ge5k",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: E2E Test User",
+    "data": {
+      "sessionId": "chat-mm5r6stm-ok6o"
+    },
+    "timestamp": "2026-02-28T03:20:24.991Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5qfie1-uce3",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: TestBot Claude",
+    "data": {
+      "sessionId": "chat-mm5qfbrz-vehn"
+    },
+    "timestamp": "2026-02-28T02:59:06.073Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5n4q9j-jrlw",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Freddy",
+    "data": {
+      "sessionId": "chat-mm5n43ky-dy58"
+    },
+    "timestamp": "2026-02-28T01:26:44.215Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5mcwfy-zx2w",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Chim",
+    "data": {
+      "sessionId": "chat-mm5mc9cc-aaw1"
+    },
+    "timestamp": "2026-02-28T01:05:05.854Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5lroau-p66f",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: bob",
+    "data": {
+      "sessionId": "chat-mm5lrc7m-bdoz"
+    },
+    "timestamp": "2026-02-28T00:48:35.526Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5l38hp-utef",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Test User",
+    "data": {
+      "sessionId": "chat-mm5l379x-i2p9"
+    },
+    "timestamp": "2026-02-28T00:29:35.293Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5kw5s9-cqyh",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Sal",
+    "data": {
+      "sessionId": "chat-mm5kvu54-9myi"
+    },
+    "timestamp": "2026-02-28T00:24:05.193Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5kvimg-z8n3",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: k",
+    "data": {
+      "sessionId": "chat-mm5kvbv0-d6uw"
+    },
+    "timestamp": "2026-02-28T00:23:35.176Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5ku8bj-7zzr",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Test User",
+    "data": {
+      "sessionId": "chat-mm5ktlr4-k4eb"
+    },
+    "timestamp": "2026-02-28T00:22:35.167Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5kr0lp-mviz",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: mike",
+    "data": {
+      "sessionId": "chat-mm5kqe0b-inr9"
+    },
+    "timestamp": "2026-02-28T00:20:05.197Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5izc9n-9q71",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Frank",
+    "data": {
+      "sessionId": "chat-mm5iz88x-ih2r"
+    },
+    "timestamp": "2026-02-27T23:30:34.331Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5ixesa-o89r",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Benny",
+    "data": {
+      "sessionId": "chat-mm5ixcri-bt9n"
+    },
+    "timestamp": "2026-02-27T23:29:04.282Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5iuu6f-0znu",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: billy",
+    "data": {
+      "sessionId": "chat-mm5iu9h0-woeu"
+    },
+    "timestamp": "2026-02-27T23:27:04.263Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5hxe6i-fv8y",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Arrow",
+    "data": {
+      "sessionId": "chat-mm5hx2rk-3ny6"
+    },
+    "timestamp": "2026-02-27T23:01:03.882Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5hu6ci-v97w",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Billy",
+    "data": {
+      "sessionId": "chat-mm5htz76-ct7m"
+    },
+    "timestamp": "2026-02-27T22:58:33.762Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5gynrv-bug6",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Mark",
+    "data": {
+      "sessionId": "chat-mm5gyc7z-3oma"
+    },
+    "timestamp": "2026-02-27T22:34:03.355Z",
+    "acknowledged": false
+  },
+  {
+    "id": "alert-mm5ffck9-bjf2",
+    "type": "livechat-start",
+    "severity": "high",
+    "message": "Live chat started: Mike",
+    "data": {
+      "sessionId": "chat-mm5ferkl-21fx"
+    },
+    "timestamp": "2026-02-27T21:51:02.745Z",
+    "acknowledged": false
+  }
+]

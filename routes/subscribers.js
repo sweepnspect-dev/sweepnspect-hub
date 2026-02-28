@@ -64,13 +64,14 @@ router.get('/:id/care', (req, res) => {
     });
   } catch {}
 
-  // Tawk
+  // Live Chat
   try {
-    const tawk = jsonStore('comms-tawk.json').read();
-    tawk.forEach(m => {
-      const mEmail = (m.visitorEmail || '').toLowerCase();
-      if (email && mEmail === email) {
-        comms.push({ channel: 'tawk', id: m.id, subject: m.message, from: m.visitorName, date: m.time, ticketId: m.ticketId, unread: m.unread });
+    const lc = jsonStore('livechat-sessions.json').read();
+    lc.forEach(s => {
+      const sEmail = (s.visitor?.email || '').toLowerCase();
+      if (email && sEmail === email) {
+        const lastMsg = s.messages?.length > 0 ? s.messages[s.messages.length - 1] : null;
+        comms.push({ channel: 'livechat', id: s.id, subject: lastMsg?.text || 'Chat session', from: s.visitor?.name || 'Visitor', date: s.lastActivity || s.startedAt, status: s.status });
       }
     });
   } catch {}

@@ -1,20 +1,5 @@
-// ── Comms API — Tawk, Facebook, Sync, SMS ─────────────────
+// ── Comms API — Facebook, Sync, SMS ─────────────────
 const router = require('express').Router();
-
-// ── Tawk.to messages ────────────────────────────────────────
-router.get('/tawk', (req, res) => {
-  const store = req.app.locals.jsonStore('comms-tawk.json');
-  const messages = store.read();
-  res.json({ messages });
-});
-
-router.get('/tawk/:id', (req, res) => {
-  const store = req.app.locals.jsonStore('comms-tawk.json');
-  const messages = store.read();
-  const msg = messages.find(m => m.id === req.params.id || m.chatId === req.params.id);
-  if (!msg) return res.status(404).json({ error: 'Message not found' });
-  res.json(msg);
-});
 
 // ── Facebook messages ───────────────────────────────────────
 router.get('/facebook', (req, res) => {
@@ -86,34 +71,6 @@ router.get('/sync', async (req, res) => {
 
 // ── POST endpoints for ingesting messages ───────────────────
 
-// Ingest a Tawk message (used by webhook routes or test)
-router.post('/tawk', (req, res) => {
-  const store = req.app.locals.jsonStore('comms-tawk.json');
-  const messages = store.read();
-
-  const msg = {
-    id: req.body.chatId || 'tawk-' + Date.now(),
-    chatId: req.body.chatId || '',
-    visitorName: req.body.visitorName || req.body.name || 'Visitor',
-    visitorEmail: req.body.visitorEmail || req.body.email || '',
-    message: req.body.message || '',
-    time: req.body.time || new Date().toISOString(),
-    unread: true,
-    type: req.body.type || 'chat',
-    messages: req.body.messages || [],
-  };
-
-  messages.unshift(msg);
-  // Keep last 500
-  if (messages.length > 500) messages.length = 500;
-  store.write(messages);
-
-  const broadcast = req.app.locals.broadcast;
-  broadcast({ type: 'tawk:message', data: msg });
-
-  res.json({ ok: true, message: msg });
-});
-
 // Ingest a Facebook message
 router.post('/facebook', (req, res) => {
   const store = req.app.locals.jsonStore('comms-facebook.json');
@@ -173,14 +130,15 @@ router.post('/sms', (req, res) => {
 // ── Channel stats ───────────────────────────────────────────
 router.get('/stats', (req, res) => {
   const jsonStore = req.app.locals.jsonStore;
-  const tawk = jsonStore('comms-tawk.json').read();
   const fb = jsonStore('comms-facebook.json').read();
   const sms = jsonStore('comms-sms.json').read();
+  const lc = jsonStore('livechat-sessions.json').read();
+  const activeLc = lc.filter(s => s.status === 'active');
 
   res.json({
-    tawk: { total: tawk.length, unread: tawk.filter(m => m.unread).length },
     facebook: { total: fb.length, unread: fb.filter(m => m.unread).length },
     sms: { total: sms.length, unread: sms.filter(m => m.unread).length },
+    livechat: { total: lc.length, active: activeLc.length },
   });
 });
 

@@ -70,6 +70,12 @@ const App = {
       if (view?.onWsMessage) view.onWsMessage(type, data);
       // Route to TTS engine
       HubTTS.onEvent(type, data);
+      // Livechat notification routing
+      if (type === 'livechat:start') {
+        HubNotify.chatNotify(data);
+      } else if (type === 'livechat:message') {
+        HubNotify.playSound('chat');
+      }
     });
 
     hubSocket.on('alert', (data) => {
@@ -295,7 +301,8 @@ const App = {
     if (!s) return;
 
     const ticketCount = s.tickets?.open || 0;
-    const commsCount = s.inbox?.unread || 0;
+    const livechatActive = s.livechat?.active || 0;
+    const commsCount = (s.inbox?.unread || 0) + livechatActive;
 
     this.state.badges = { tickets: ticketCount, comms: commsCount };
 

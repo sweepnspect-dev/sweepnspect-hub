@@ -17,7 +17,7 @@ You receive LIVE HUB DATA with every message. This includes:
 - **Tickets**: full list with status, priority, customer, dates
 - **Subscribers**: all customers with plan, MRR, status, history
 - **Revenue**: MRR, MTD, all-time, individual entries
-- **Communications**: unread counts across Tawk, Facebook, SMS channels
+- **Communications**: unread counts across Live Chat, Facebook, SMS channels
 - **Marketing**: recent posts, engagement, scheduled content
 - **Alerts**: unacknowledged alerts, recent critical/high events
 - **System**: service status (worker-poller, email, facebook, SMS, AI, relay)
@@ -150,15 +150,15 @@ function getOpsContext(req) {
     }
 
     // ── Comms (unread counts) ──
-    const tawkMsgs = jsonStore('comms-tawk.json').read();
     const fbMsgs = jsonStore('comms-facebook.json').read();
     const smsMsgs = jsonStore('comms-sms.json').read();
-    const tawkUnread = tawkMsgs.filter(m => m.unread).length;
+    const lcSessions = jsonStore('livechat-sessions.json').read();
     const fbUnread = fbMsgs.filter(m => m.unread).length;
     const smsUnread = smsMsgs.filter(m => m.unread).length;
+    const lcActive = lcSessions.filter(s => s.status === 'active').length;
 
     sections.push(`\nCOMMUNICATIONS:`);
-    sections.push(`  Tawk: ${tawkMsgs.length} total, ${tawkUnread} unread`);
+    sections.push(`  Live Chat: ${lcSessions.length} total, ${lcActive} active`);
     sections.push(`  Facebook: ${fbMsgs.length} total, ${fbUnread} unread`);
     sections.push(`  SMS: ${smsMsgs.length} total, ${smsUnread} unread`);
 
