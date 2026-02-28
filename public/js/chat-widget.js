@@ -245,6 +245,8 @@
           <button class="snsp-close" onclick="document.getElementById('snsp-chat-window').classList.remove('open')">&times;</button>
         </div>
         <div class="snsp-body" id="snspBody"></div>
+        <div class="snsp-footer">Powered by <a href="https://sweepnspect.com" target="_blank">SweepNspect</a></div>
+        <div class="snsp-homebar"><div class="snsp-homebar-pill"></div></div>
       </div>
     `;
     document.body.appendChild(win);
@@ -292,8 +294,6 @@
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
       </div>
-      <div class="snsp-footer">Powered by <a href="https://sweepnspect.com" target="_blank">SweepNspect</a></div>
-      <div class="snsp-homebar"><div class="snsp-homebar-pill"></div></div>
     `;
     addLocalMessage('agent', 'Hi ' + esc(state.visitor.name) + '! How can we help you today?');
     showFaqTiles();
