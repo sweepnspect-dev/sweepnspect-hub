@@ -84,97 +84,42 @@ router.post('/sessions/:id/ai-reply', async (req, res) => {
   const session = sessions.find(s => s.id === req.params.id);
   if (!session) return res.status(404).json({ error: 'Session not found' });
 
-  // Build context for AI
-  const http = require('http');
-  const PROXY_HOST = process.env.AI_PROXY_HOST || '127.0.0.1';
-  const PROXY_PORT = process.env.AI_PROXY_PORT || 8889;
+  // Optional: J can provide context/instructions for the AI reply
+  const { context } = req.body || {};
 
-  const chatHistory = session.messages
-    .slice(-10)
-    .map(m => `${m.from === 'visitor' ? 'Visitor' : m.from === 'ai' ? 'AI' : 'Agent'}: ${m.text}`)
-    .join('\n');
-
-  const system = `You are a friendly customer support AI for SweepNspect, a chimney inspection app. You're chatting with a website visitor named ${session.visitor.name || 'a visitor'}.
-
-KNOWLEDGEBASE:
-- What: Chimney inspection app for Android, built by a sweep with 20 yrs experience.
-- Pricing: Solo $49/mo (1 device, unlimited inspections, PDF reports). Pro $149/mo (up to 5 devices + team management). 14-day free trial, no credit card required.
-- Founding 25: First 25 paying users get Solo at $29/mo locked for life, priority support, direct line to founder, name on Founding Members page. Limited spots remain.
-- Offline: Full offline capability — inspect, photograph, generate PDF without cell signal. Syncs when back online.
-- PDF Reports: NFPA 211 zone-by-zone reports generated on-site, branded with company logo, emailed to customer.
-- Devices: Android only (phones + tablets). No iOS. Minimum Android 8.0.
-- Data: All data stays on device. No cloud storage of inspection data. User owns their data.
-- Workflow: NFPA 211 zone-by-zone inspection (exterior, interior, attic, roof, firebox, smoke chamber, flue, cleanout). Photo capture per zone. Deficiency flagging. PDF generation.
-- Support: Email contact@sweepnspect.com, live chat on website, Facebook page.
-- NFPA 211: Built around the Standard for Chimneys, Fireplaces, Vents, and Solid Fuel-Burning Appliances. Zone-by-zone approach ensures nothing is missed.
-- Differentiation: Built by an actual chimney sweep, not a tech company. Offline-first. No subscription lock-in on data.
-
-RULES:
-- Answer ONLY from the KNOWLEDGEBASE above for product questions. Be helpful, professional, and concise.
-- If the visitor asks something not covered in the knowledgebase, say "That's a great question! Let me connect you with J (the founder) who can help with that." Do NOT guess or make up information.
-- Keep replies short (1-3 sentences) and conversational — this is live chat, not an essay.
-- Do NOT use the <<<DISPLAY>>> format. Just respond with plain text suitable for a chat bubble.`;
-
-  const prompt = `CONVERSATION SO FAR:\n${chatHistory}\n\nReply to the visitor's last message:`;
+  // Call CF Worker to generate AI reply (it has the full knowledgebase + system prompt)
+  const workerUrl = req.app.locals.workerPoller?.config?.workerUrl;
+  if (!workerUrl) return res.status(500).json({ error: 'Worker URL not configured' });
 
   try {
-    const answer = await new Promise((resolve, reject) => {
-      const postData = JSON.stringify({ prompt, system });
-      const options = {
-        hostname: PROXY_HOST, port: PROXY_PORT, path: '/ask', method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) },
-      };
-      const r = http.request(options, (resp) => {
-        let data = '';
-        resp.on('data', chunk => { data += chunk; });
-        resp.on('end', () => {
-          try {
-            const parsed = JSON.parse(data);
-            resolve(parsed.answer || 'Sorry, I couldn\'t generate a response.');
-          } catch { reject(new Error('Invalid proxy response')); }
-        });
-      });
-      r.on('error', (e) => reject(e));
-      r.setTimeout(90000, () => { r.destroy(); reject(new Error('timeout')); });
-      r.write(postData);
-      r.end();
+    // Temporarily set mode to 'ai' so worker generates a reply, then restore
+    const prevMode = session.mode;
+    const resp = await fetch(`${workerUrl}/api/chat/${req.params.id}/ai-draft`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.HUB_API_TOKEN || ''}`,
+      },
+      body: JSON.stringify({ context }),
     });
 
-    // Strip any <<<DISPLAY>>> markers if the AI included them
-    const cleanAnswer = answer.split('<<<DISPLAY>>>')[0].trim() || answer;
-
-    const now = new Date().toISOString();
-    const message = {
-      id: `m-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 4)}`,
-      from: 'ai',
-      text: cleanAnswer,
-      ts: now,
-    };
-    session.messages.push(message);
-    session.lastActivity = now;
-    store.write(sessions);
-
-    // Push to CF Worker
-    const workerUrl = req.app.locals.workerPoller?.config?.workerUrl;
-    if (workerUrl) {
-      try {
-        await fetch(`${workerUrl}/api/chat/${req.params.id}/reply`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.HUB_API_TOKEN || ''}`,
-          },
-          body: JSON.stringify({ text: cleanAnswer, from: 'ai' }),
-        });
-      } catch (err) {
-        console.error('[LIVECHAT] Failed to push AI reply to worker:', err.message);
-      }
+    if (!resp.ok) {
+      const errText = await resp.text();
+      return res.status(500).json({ error: `Worker error: ${errText}` });
     }
 
-    const broadcast = req.app.locals.broadcast;
-    broadcast({ type: 'livechat:reply', data: { sessionId: req.params.id, message } });
+    const result = await resp.json();
+    if (!result.message) return res.status(500).json({ error: 'No AI reply generated' });
 
-    res.json({ ok: true, message });
+    // Sync reply to local session
+    session.messages.push(result.message);
+    session.lastActivity = result.message.ts;
+    store.write(sessions);
+
+    const broadcast = req.app.locals.broadcast;
+    broadcast({ type: 'livechat:reply', data: { sessionId: req.params.id, message: result.message } });
+
+    res.json({ ok: true, message: result.message });
   } catch (err) {
     console.error('[LIVECHAT] AI reply error:', err.message);
     res.status(500).json({ error: 'AI unavailable: ' + err.message });

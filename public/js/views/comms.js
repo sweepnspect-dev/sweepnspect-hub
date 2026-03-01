@@ -509,6 +509,7 @@ const CommsView = {
 
     detail.style.display = 'flex';
     detail.style.flexDirection = 'column';
+    detail.style.overflow = 'hidden';
 
     detail.innerHTML = `
       <div class="comms-detail-header" style="flex-shrink:0;padding:10px 16px">
@@ -529,13 +530,16 @@ const CommsView = {
         `).join('')}
       </div>
       ${lc.status === 'active' ? `
-        <div class="comms-reply" style="flex-shrink:0;padding:10px 12px;border-top:1px solid var(--border)">
-          <textarea class="comms-reply-input" id="livechatReplyInput" rows="2" placeholder="Reply to ${App.esc(msg.from)}..." style="margin-bottom:8px"></textarea>
-          <div class="comms-reply-actions">
-            <button class="btn btn-primary" onclick="CommsView.sendLivechatReply('${lc.id}')">Send</button>
-            <button class="btn btn-ghost" onclick="CommsView.sendLivechatAiReply('${lc.id}')">AI Reply</button>
-            <button class="btn btn-ghost btn-sm" onclick="CommsView.endLivechatSession('${lc.id}')" style="margin-left:auto;color:var(--brick)">End</button>
-            <span class="comms-reply-status" id="livechatReplyStatus"></span>
+        <div class="comms-reply livechat-reply" style="flex-shrink:0;padding:8px 10px;border-top:1px solid var(--border)">
+          <div style="display:flex;gap:6px;align-items:flex-end">
+            <textarea class="comms-reply-input" id="livechatReplyInput" rows="1" placeholder="Reply..." style="margin:0;min-height:38px;flex:1;resize:none"></textarea>
+            <button class="btn btn-primary" onclick="CommsView.sendLivechatReply('${lc.id}')" style="height:38px;padding:0 14px;flex-shrink:0">Send</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:6px">
+            <button class="btn btn-ghost btn-sm" onclick="CommsView.sendLivechatAiReply('${lc.id}')" title="Let AI draft a reply">AI Reply</button>
+            <button class="btn btn-ghost btn-sm" id="voiceModeBtn" onclick="CommsView.toggleVoiceMode('${lc.id}')" title="Voice mode — dictate replies">&#127908;</button>
+            <span class="comms-reply-status" id="livechatReplyStatus" style="flex:1"></span>
+            <button class="btn btn-ghost btn-sm" onclick="CommsView.endLivechatSession('${lc.id}')" style="color:var(--brick)">End</button>
           </div>
         </div>
       ` : ''}
@@ -674,6 +678,126 @@ const CommsView = {
     }
   },
 
+  // ── Voice Mode ──
+  voiceMode: false,
+  voiceRecognition: null,
+
+  toggleVoiceMode(sessionId) {
+    this.voiceMode = !this.voiceMode;
+    const btn = document.getElementById('voiceModeBtn');
+    const status = document.getElementById('livechatReplyStatus');
+
+    if (this.voiceMode) {
+      if (btn) btn.style.background = 'var(--green)';
+      if (status) { status.textContent = 'Voice mode ON — speak to reply'; status.style.color = 'var(--green)'; }
+      this._startVoiceListening(sessionId);
+      // Enable TTS for incoming messages
+      this._voiceSessionId = sessionId;
+    } else {
+      if (btn) btn.style.background = '';
+      if (status) { status.textContent = 'Voice mode OFF'; status.style.color = ''; }
+      this._stopVoiceListening();
+      this._voiceSessionId = null;
+    }
+  },
+
+  _startVoiceListening(sessionId) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      const status = document.getElementById('livechatReplyStatus');
+      if (status) { status.textContent = 'Speech recognition not supported'; status.style.color = 'var(--brick)'; }
+      this.voiceMode = false;
+      return;
+    }
+
+    this.voiceRecognition = new SpeechRecognition();
+    this.voiceRecognition.continuous = true;
+    this.voiceRecognition.interimResults = true;
+    this.voiceRecognition.lang = 'en-US';
+
+    let finalTranscript = '';
+    let silenceTimer = null;
+
+    this.voiceRecognition.onresult = (event) => {
+      let interim = '';
+      finalTranscript = '';
+      for (let i = 0; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        } else {
+          interim += event.results[i][0].transcript;
+        }
+      }
+      const input = document.getElementById('livechatReplyInput');
+      if (input) input.value = finalTranscript + interim;
+
+      // Reset silence timer — send after 3s of silence
+      clearTimeout(silenceTimer);
+      if (finalTranscript.trim()) {
+        silenceTimer = setTimeout(() => {
+          this._sendVoiceReply(sessionId, finalTranscript.trim());
+          finalTranscript = '';
+          if (this.voiceRecognition) {
+            this.voiceRecognition.stop();
+            setTimeout(() => { if (this.voiceMode) this._startVoiceListening(sessionId); }, 500);
+          }
+        }, 3000);
+      }
+    };
+
+    this.voiceRecognition.onerror = (event) => {
+      console.log('Voice error:', event.error);
+      if (event.error === 'no-speech' && this.voiceMode) {
+        // Restart listening
+        setTimeout(() => { if (this.voiceMode) this._startVoiceListening(sessionId); }, 500);
+      }
+    };
+
+    this.voiceRecognition.onend = () => {
+      // Auto-restart if voice mode still on
+      if (this.voiceMode && !silenceTimer) {
+        setTimeout(() => { if (this.voiceMode) this._startVoiceListening(sessionId); }, 500);
+      }
+    };
+
+    this.voiceRecognition.start();
+  },
+
+  _stopVoiceListening() {
+    if (this.voiceRecognition) {
+      this.voiceRecognition.abort();
+      this.voiceRecognition = null;
+    }
+  },
+
+  async _sendVoiceReply(sessionId, rawText) {
+    const status = document.getElementById('livechatReplyStatus');
+    if (status) { status.textContent = 'AI cleaning up your reply...'; status.style.color = ''; }
+
+    // Send the raw dictation with context so AI can clean it up and reply as J
+    try {
+      const result = await App.api('livechat/sessions/' + sessionId + '/reply', {
+        method: 'POST',
+        body: { text: rawText },
+      });
+      const input = document.getElementById('livechatReplyInput');
+      if (input) input.value = '';
+      if (status) { status.textContent = 'Sent!'; status.style.color = 'var(--green)'; }
+      setTimeout(() => this.openMessage(this.openId), 500);
+    } catch (err) {
+      if (status) { status.textContent = 'Failed: ' + err.message; status.style.color = 'var(--brick)'; }
+    }
+  },
+
+  _speakText(text) {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    window.speechSynthesis.speak(utterance);
+  },
+
   async endLivechatSession(sessionId) {
     try {
       await App.api('livechat/sessions/' + sessionId + '/end', { method: 'POST' });
@@ -726,7 +850,7 @@ const CommsView = {
   closeDetail() {
     this.openId = null;
     const detail = document.getElementById('commsDetail');
-    if (detail) { detail.style.display = 'none'; detail.style.flexDirection = ''; detail.classList.remove('mobile-open'); detail.innerHTML = ''; }
+    if (detail) { detail.style.display = 'none'; detail.style.flexDirection = ''; detail.style.overflow = ''; detail.classList.remove('mobile-open'); detail.innerHTML = ''; }
     document.querySelectorAll('.comms-item').forEach(el => el.classList.remove('active'));
   },
 
@@ -805,6 +929,12 @@ const CommsView = {
     `;
     thread.appendChild(div);
     thread.scrollTop = thread.scrollHeight;
+
+    // Voice mode: read visitor messages aloud
+    if (this.voiceMode && this._voiceSessionId === sessionId && message.from === 'visitor') {
+      const name = session?.visitor?.name || 'Visitor';
+      this._speakText(`${name} says: ${message.text}`);
+    }
   },
 
   onStats(stats) {

@@ -121,6 +121,7 @@ export default {
     if (path === '/api/chat/dnd' && method === 'POST') return handleSetDnd(request, env);
     if (path === '/api/chat/kb-sync' && method === 'POST') return handleKbSync(request, env);
     if (path.match(/^\/api\/chat\/[^/]+\/reply$/) && method === 'POST') return handleChatReply(request, env, path.split('/')[3]);
+    if (path.match(/^\/api\/chat\/[^/]+\/ai-draft$/) && method === 'POST') return handleAiDraft(request, env, path.split('/')[3]);
     if (path.match(/^\/api\/chat\/session\/[^/]+\/mode$/) && method === 'POST') return handleSetMode(request, env, path.split('/')[4]);
 
     // Stats & Status
@@ -1406,6 +1407,40 @@ async function handleChatReply(request, env, sessionId) {
   }
 
   return json({ ok: true, messageId: msgId });
+}
+
+// ── AI Draft — Hub requests an AI reply on J's behalf ──
+async function handleAiDraft(request, env, sessionId) {
+  const raw = await env.EVENTS.get(`chat:${sessionId}`);
+  if (!raw) return json({ error: 'Session not found' }, 404);
+
+  const session = JSON.parse(raw);
+  let body = {};
+  try { body = await request.json(); } catch {}
+
+  // Temporarily force AI mode to generate a reply
+  const prevMode = session.mode;
+  session.mode = 'ai';
+
+  // If J provided context, inject it as a system hint
+  if (body.context) {
+    const contextMsg = { id: `m-${Date.now().toString(36)}-ctx`, from: 'system', text: body.context, ts: new Date().toISOString() };
+    session.messages.push(contextMsg);
+  }
+
+  await env.EVENTS.put(`chat:${sessionId}`, JSON.stringify(session), { expirationTtl: 86400 });
+  await generateAiReply(env, sessionId, session);
+
+  // Read back to get the AI message that was appended
+  const updatedRaw = await env.EVENTS.get(`chat:${sessionId}`);
+  const updated = JSON.parse(updatedRaw);
+  const aiMsg = updated.messages.filter(m => m.from === 'ai').pop();
+
+  // Restore previous mode
+  updated.mode = prevMode;
+  await env.EVENTS.put(`chat:${sessionId}`, JSON.stringify(updated), { expirationTtl: 86400 });
+
+  return json({ ok: true, message: aiMsg });
 }
 
 // ── Set Session Mode (Hub pushes mode changes, e.g. decline → back to 'ai') ──
