@@ -598,6 +598,51 @@ const CommsView = {
     }
   },
 
+  _showHandoffBanner(data) {
+    const { sessionId, visitor, question } = data;
+    const name = visitor?.name || 'Visitor';
+
+    // Remove existing banner for this session if any
+    this._dismissHandoffBanner(sessionId);
+
+    const banner = document.createElement('div');
+    banner.id = `handoff-banner-${sessionId}`;
+    banner.className = 'handoff-banner';
+    banner.innerHTML = `
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:13px">${App.esc(name)} needs you</div>
+        <div style="font-size:12px;color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${App.esc(question || '')}</div>
+      </div>
+      <button class="btn" style="background:var(--green);color:#fff;padding:4px 12px;font-size:12px;border-radius:6px" onclick="CommsView.acceptHandoff('${sessionId}')">Join</button>
+      <button class="btn" style="background:var(--brick);color:#fff;padding:4px 12px;font-size:12px;border-radius:6px" onclick="CommsView.declineHandoff('${sessionId}')">Decline</button>
+    `;
+    const container = document.getElementById('commsStream') || document.getElementById('app');
+    container.prepend(banner);
+
+    // Auto-dismiss after 2 minutes
+    setTimeout(() => this._dismissHandoffBanner(sessionId), 120000);
+  },
+
+  _dismissHandoffBanner(sessionId) {
+    const el = document.getElementById(`handoff-banner-${sessionId}`);
+    if (el) el.remove();
+  },
+
+  async acceptHandoff(sessionId) {
+    this._dismissHandoffBanner(sessionId);
+    // Open the chat session so J can start replying
+    this.openMessage('livechat-' + sessionId);
+  },
+
+  async declineHandoff(sessionId) {
+    this._dismissHandoffBanner(sessionId);
+    try {
+      await App.api(`livechat/sessions/${sessionId}/decline`, { method: 'POST' });
+    } catch (err) {
+      console.error('Failed to decline handoff:', err);
+    }
+  },
+
   async sendLivechatReply(sessionId) {
     const input = document.getElementById('livechatReplyInput');
     const status = document.getElementById('livechatReplyStatus');
@@ -695,6 +740,19 @@ const CommsView = {
     if (type === 'livechat:dnd') {
       this.dndEnabled = !!data.enabled;
       this.renderDndButton();
+      return;
+    }
+
+    // Handoff request — show accept/decline banner
+    if (type === 'livechat:defer') {
+      this._showHandoffBanner(data);
+      return;
+    }
+
+    // Mode change (e.g. after decline)
+    if (type === 'livechat:mode') {
+      this._dismissHandoffBanner(data.sessionId);
+      if (this.openId === 'livechat-' + data.sessionId) this.openMessage(this.openId);
       return;
     }
 

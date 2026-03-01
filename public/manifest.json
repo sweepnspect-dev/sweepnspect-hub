@@ -1,0 +1,17 @@
+{
+  "name": "SweepNspect Command Center",
+  "short_name": "SweepNspect",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#12121e",
+  "theme_color": "#12121e",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/img/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

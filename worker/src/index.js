@@ -121,6 +121,7 @@ export default {
     if (path === '/api/chat/dnd' && method === 'POST') return handleSetDnd(request, env);
     if (path === '/api/chat/kb-sync' && method === 'POST') return handleKbSync(request, env);
     if (path.match(/^\/api\/chat\/[^/]+\/reply$/) && method === 'POST') return handleChatReply(request, env, path.split('/')[3]);
+    if (path.match(/^\/api\/chat\/session\/[^/]+\/mode$/) && method === 'POST') return handleSetMode(request, env, path.split('/')[4]);
 
     // Stats & Status
     if (path === '/api/stats' && method === 'GET') return handleGetStats(env);
@@ -1071,8 +1072,41 @@ async function handleChatMessage(request, env) {
   unacked.push(evtId);
   await env.EVENTS.put('_unacked', JSON.stringify(unacked));
 
-  // Generate AI reply inline — skip when agent has taken over
-  if (env.ANTHROPIC_API_KEY && session.mode !== 'agent') {
+  // Transferring timeout stages: 1min → check in, 2min → take a message
+  if (session.mode === 'transferring' && session.transferredAt) {
+    const elapsed = Date.now() - new Date(session.transferredAt).getTime();
+    if (elapsed > 120000) {
+      console.log(`[AI] Transfer timeout (${Math.round(elapsed/1000)}s) — resuming as message-taker`);
+      session.mode = 'ai';
+      session.takeMessageMode = true;
+      await env.EVENTS.put(`chat:${sessionId}`, JSON.stringify(session), { expirationTtl: 86400 });
+    } else if (elapsed > 60000 && !session.checkedIn) {
+      console.log(`[AI] 1min check-in for ${sessionId}`);
+      session.checkedIn = true;
+      // Send a check-in message from AI
+      const checkInMsg = {
+        id: `m-${Date.now().toString(36)}-checkin`,
+        from: 'ai',
+        text: "J's still on the way — would you like to keep waiting, or can I take a message and have him reach out to you directly?",
+        ts: now,
+      };
+      session.messages.push(checkInMsg);
+      await env.EVENTS.put(`chat:${sessionId}`, JSON.stringify(session), { expirationTtl: 86400 });
+      // Queue event so Hub/widget see it
+      const ciEvtId = `evt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      await env.EVENTS.put(ciEvtId, JSON.stringify({
+        id: ciEvtId, event: 'livechat:message', receivedAt: now,
+        summary: `AI check-in: asked if visitor wants to keep waiting`,
+        priority: 'normal', sessionId, message: checkInMsg, visitor: session.visitor,
+      }), { expirationTtl: 2592000 });
+      const ciUnacked = await getUnackedList(env);
+      ciUnacked.push(ciEvtId);
+      await env.EVENTS.put('_unacked', JSON.stringify(ciUnacked));
+    }
+  }
+
+  // Generate AI reply inline — skip when transferring (waiting for J) or agent has taken over
+  if (env.ANTHROPIC_API_KEY && session.mode === 'ai') {
     await generateAiReply(env, sessionId, session);
   }
 
@@ -1171,15 +1205,16 @@ async function generateAiReply(env, sessionId, session) {
       }
     } catch {}
 
-    // When DND is on, modify the system prompt to take messages instead of deferring
+    // When DND is on or J didn't respond in time, take a message instead of deferring
     let systemPrompt = CHAT_SYSTEM_PROMPT + learnedKbSection + `\n\nYou are chatting with ${visitorName}.`;
 
-    if (sessionMode === 'transferring') {
-      systemPrompt += `\n\nIMPORTANT — TRANSFER MODE:
-J (the founder) has been notified and is on the way. If the visitor asks about wait times or seems impatient, reassure them: "J is joining shortly — hang tight!" Continue answering knowledgebase questions normally. Do NOT say "let me get J" again — he's already been pinged.`;
-    }
-
-    if (dndEnabled) {
+    if (freshSession.takeMessageMode) {
+      systemPrompt += `\n\nIMPORTANT — TAKE A MESSAGE MODE:
+J was notified but hasn't joined yet. Do NOT say "let me get J" or try to transfer again.
+Instead, apologize for the wait and offer to take a message: "Sorry about the wait! J's tied up at the moment — can I grab your name and best number so he can get back to you personally?"
+If they already gave contact info, say: "Got it, I'll make sure J sees this and reaches out. Anything else I can help with in the meantime?"
+Continue answering knowledgebase questions normally.`;
+    } else if (dndEnabled) {
       systemPrompt += `\n\nIMPORTANT — DND MODE IS ON (founder is offline):
 When you don't know the answer or would normally hand off to J, DO NOT say "let me get J" or anything about connecting with the founder.
 Instead say something like: "Great question — J will want to get back to you on that personally. Can I grab your name and best number so he can reach out?"
@@ -1258,6 +1293,7 @@ Continue answering knowledgebase questions normally.`;
     if (isDefer && !dndEnabled) {
       // Normal mode: notify J immediately + set mode to transferring
       fresh.mode = 'transferring';
+      fresh.transferredAt = now;
       await env.EVENTS.put(`chat:${sessionId}`, JSON.stringify(fresh), { expirationTtl: 86400 });
 
       const deferEvtId = `evt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -1370,6 +1406,26 @@ async function handleChatReply(request, env, sessionId) {
   }
 
   return json({ ok: true, messageId: msgId });
+}
+
+// ── Set Session Mode (Hub pushes mode changes, e.g. decline → back to 'ai') ──
+async function handleSetMode(request, env, sessionId) {
+  let body;
+  try { body = await request.json(); }
+  catch { return json({ error: 'Invalid JSON' }, 400); }
+
+  const { mode } = body;
+  if (!['ai', 'transferring', 'agent'].includes(mode)) return json({ error: 'Invalid mode' }, 400);
+
+  const raw = await env.EVENTS.get(`chat:${sessionId}`);
+  if (!raw) return json({ error: 'Session not found' }, 404);
+
+  const session = JSON.parse(raw);
+  session.mode = mode;
+  await env.EVENTS.put(`chat:${sessionId}`, JSON.stringify(session), { expirationTtl: 86400 });
+
+  console.log(`[MODE] Session ${sessionId} mode set to '${mode}'`);
+  return json({ ok: true, mode });
 }
 
 // ── AI Note-Taking — extracts learnable info from agent replies ──

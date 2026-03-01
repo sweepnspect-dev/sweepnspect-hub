@@ -198,6 +198,39 @@ router.post('/sessions/:id/end', (req, res) => {
   res.json({ ok: true });
 });
 
+// POST /api/livechat/sessions/:id/decline — decline joining, resume AI mode
+router.post('/sessions/:id/decline', async (req, res) => {
+  const store = req.app.locals.jsonStore('livechat-sessions.json');
+  const sessions = store.read();
+  const session = sessions.find(s => s.id === req.params.id);
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+
+  session.mode = 'ai';
+  store.write(sessions);
+
+  // Push mode change to CF Worker so AI resumes replying
+  const workerUrl = req.app.locals.workerPoller?.config?.workerUrl;
+  if (workerUrl) {
+    try {
+      await fetch(`${workerUrl}/api/chat/session/${req.params.id}/mode`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.HUB_API_TOKEN || ''}`,
+        },
+        body: JSON.stringify({ mode: 'ai' }),
+      });
+    } catch (err) {
+      console.error('[LIVECHAT] Failed to push mode change to worker:', err.message);
+    }
+  }
+
+  const broadcast = req.app.locals.broadcast;
+  broadcast({ type: 'livechat:mode', data: { sessionId: req.params.id, mode: 'ai' } });
+
+  res.json({ ok: true });
+});
+
 // GET /api/livechat/dnd — check DND state from CF Worker
 router.get('/dnd', async (req, res) => {
   const workerUrl = req.app.locals.workerPoller?.config?.workerUrl;

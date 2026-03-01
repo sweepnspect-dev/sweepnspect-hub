@@ -2170,6 +2170,19 @@ body::after {
 .comms-chat-text { margin-top: 3px; color: var(--text); }
 .comms-chat-time { font-size: 10px; color: var(--text-muted); margin-top: 4px; font-family: var(--font-mono); }
 
+/* Handoff banner */
+.handoff-banner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; margin: 8px; border-radius: 8px;
+  background: linear-gradient(135deg, rgba(249,115,22,0.12), rgba(249,115,22,0.04));
+  border: 1px solid rgba(249,115,22,0.3);
+  animation: handoff-pulse 2s ease-in-out infinite;
+}
+@keyframes handoff-pulse {
+  0%, 100% { border-color: rgba(249,115,22,0.3); }
+  50% { border-color: rgba(249,115,22,0.7); }
+}
+
 /* Sync detail extras */
 .comms-sync-task, .comms-sync-status {
   margin-top: 8px;
