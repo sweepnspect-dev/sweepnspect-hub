@@ -1427,14 +1427,14 @@ async function handleVisitorTyping(request, env) {
   try { body = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
   const { sessionId } = body;
   if (!sessionId) return json({ error: 'sessionId required' }, 400);
-  await env.EVENTS.put(`visitor-typing:${sessionId}`, Date.now().toString(), { expirationTtl: 10 });
+  await env.EVENTS.put(`visitor-typing:${sessionId}`, Date.now().toString(), { expirationTtl: 60 });
   return json({ ok: true });
 }
 
 // ── Agent Typing Indicator — stores a short-lived flag ──
 async function handleTyping(env, sessionId) {
-  // Store typing timestamp — expires after 5 seconds
-  await env.EVENTS.put(`typing:${sessionId}`, Date.now().toString(), { expirationTtl: 10 });
+  // Store typing timestamp (KV requires TTL >= 60s, so we check freshness in poll)
+  await env.EVENTS.put(`typing:${sessionId}`, Date.now().toString(), { expirationTtl: 60 });
   return json({ ok: true });
 }
 
