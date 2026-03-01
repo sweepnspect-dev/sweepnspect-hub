@@ -1457,6 +1457,12 @@ async function handleSetMode(request, env, sessionId) {
 
   const session = JSON.parse(raw);
   session.mode = mode;
+  // Clear transfer state when going back to ai
+  if (mode === 'ai') {
+    session.takeMessageMode = false;
+    session.transferredAt = null;
+    session.checkedIn = false;
+  }
   await env.EVENTS.put(`chat:${sessionId}`, JSON.stringify(session), { expirationTtl: 86400 });
 
   console.log(`[MODE] Session ${sessionId} mode set to '${mode}'`);

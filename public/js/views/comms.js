@@ -234,13 +234,21 @@ const CommsView = {
   },
 
   renderDndButton() {
+    // Toolbar toggle
     const btn = document.getElementById('dndToggle');
-    if (!btn) return;
-    btn.textContent = this.dndEnabled ? 'DND: On' : 'DND: Off';
-    btn.style.background = this.dndEnabled ? 'var(--brick, #ef4444)' : '';
-    btn.style.color = this.dndEnabled ? '#fff' : '';
-    // Show on livechat or all view
-    btn.style.display = (!this.activeSource || this.activeSource === 'livechat') ? '' : 'none';
+    if (btn) {
+      btn.textContent = this.dndEnabled ? 'DND: On' : 'DND: Off';
+      btn.style.background = this.dndEnabled ? 'var(--brick, #ef4444)' : '';
+      btn.style.color = this.dndEnabled ? '#fff' : '';
+      btn.style.display = (!this.activeSource || this.activeSource === 'livechat') ? '' : 'none';
+    }
+    // In-chat toggle
+    const chatBtn = document.getElementById('chatDndToggle');
+    if (chatBtn) {
+      chatBtn.textContent = this.dndEnabled ? 'DND: On' : 'DND: Off';
+      chatBtn.style.background = this.dndEnabled ? 'var(--brick)' : '';
+      chatBtn.style.color = this.dndEnabled ? '#fff' : '';
+    }
   },
 
   async toggleDnd() {
@@ -536,10 +544,9 @@ const CommsView = {
             <button class="btn btn-primary" onclick="CommsView.sendLivechatReply('${lc.id}')" style="height:38px;padding:0 14px;flex-shrink:0">Send</button>
           </div>
           <div style="display:flex;align-items:center;gap:6px;margin-top:6px">
-            <button class="btn btn-ghost btn-sm" onclick="CommsView.sendLivechatAiReply('${lc.id}')" title="Let AI draft a reply">AI Reply</button>
-            <button class="btn btn-ghost btn-sm" id="voiceModeBtn" onclick="CommsView.toggleVoiceMode('${lc.id}')" title="Voice mode — dictate replies">&#127908;</button>
+            <button class="btn btn-ghost btn-sm" id="chatDndToggle" onclick="CommsView.toggleDnd()" style="${this.dndEnabled ? 'background:var(--brick);color:#fff' : ''}">${this.dndEnabled ? 'DND: On' : 'DND: Off'}</button>
             <span class="comms-reply-status" id="livechatReplyStatus" style="flex:1"></span>
-            <button class="btn btn-ghost btn-sm" onclick="CommsView.endLivechatSession('${lc.id}')" style="color:var(--brick)">End</button>
+            <button class="btn btn-ghost btn-sm" onclick="CommsView.handBackToAi('${lc.id}')">Hand Back</button>
           </div>
         </div>
       ` : ''}
@@ -796,6 +803,17 @@ const CommsView = {
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
     window.speechSynthesis.speak(utterance);
+  },
+
+  async handBackToAi(sessionId) {
+    const status = document.getElementById('livechatReplyStatus');
+    try {
+      await App.api(`livechat/sessions/${sessionId}/handback`, { method: 'POST' });
+      if (status) { status.textContent = 'Handed back to AI'; status.style.color = 'var(--green)'; }
+      setTimeout(() => this.openMessage(this.openId), 500);
+    } catch (err) {
+      if (status) { status.textContent = 'Failed: ' + err.message; status.style.color = 'var(--brick)'; }
+    }
   },
 
   async endLivechatSession(sessionId) {

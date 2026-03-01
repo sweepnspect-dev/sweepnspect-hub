@@ -126,6 +126,58 @@ router.post('/sessions/:id/ai-reply', async (req, res) => {
   }
 });
 
+// POST /api/livechat/sessions/:id/handback — hand chat back to AI
+router.post('/sessions/:id/handback', async (req, res) => {
+  const store = req.app.locals.jsonStore('livechat-sessions.json');
+  const sessions = store.read();
+  const session = sessions.find(s => s.id === req.params.id);
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+
+  const now = new Date().toISOString();
+
+  // Inject a message so the visitor knows
+  const msg = {
+    id: `m-${Date.now().toString(36)}-handback`,
+    from: 'ai',
+    text: "J's stepped away — I'm here if you need anything else!",
+    ts: now,
+  };
+  session.messages.push(msg);
+  session.mode = 'ai';
+  session.takeMessageMode = false;
+  session.transferredAt = null;
+  session.checkedIn = false;
+  session.lastActivity = now;
+  store.write(sessions);
+
+  // Push mode + message to CF Worker
+  const workerUrl = req.app.locals.workerPoller?.config?.workerUrl;
+  if (workerUrl) {
+    try {
+      // Set mode back to ai
+      await fetch(`${workerUrl}/api/chat/session/${req.params.id}/mode`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.HUB_API_TOKEN || ''}` },
+        body: JSON.stringify({ mode: 'ai' }),
+      });
+      // Push the handback message so visitor sees it
+      await fetch(`${workerUrl}/api/chat/${req.params.id}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.HUB_API_TOKEN || ''}` },
+        body: JSON.stringify({ text: msg.text, from: 'ai' }),
+      });
+    } catch (err) {
+      console.error('[LIVECHAT] Failed to push handback to worker:', err.message);
+    }
+  }
+
+  const broadcast = req.app.locals.broadcast;
+  broadcast({ type: 'livechat:reply', data: { sessionId: req.params.id, message: msg } });
+  broadcast({ type: 'livechat:mode', data: { sessionId: req.params.id, mode: 'ai' } });
+
+  res.json({ ok: true });
+});
+
 // POST /api/livechat/sessions/:id/end — end a session
 router.post('/sessions/:id/end', (req, res) => {
   const store = req.app.locals.jsonStore('livechat-sessions.json');
