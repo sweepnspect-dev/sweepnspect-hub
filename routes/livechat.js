@@ -38,7 +38,7 @@ router.post('/sessions/:id/reply', async (req, res) => {
     session.messages.push({
       id: `m-${Date.now().toString(36)}-handoff`,
       from: 'ai',
-      text: "Here's J now — you're in good hands!",
+      text: "Here he is now — you're in good hands!",
       ts: now,
     });
     session.mode = 'agent';

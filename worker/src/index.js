@@ -1381,7 +1381,7 @@ async function handleChatReply(request, env, sessionId) {
     const handoffMsg = {
       id: `m-${Date.now().toString(36)}-handoff`,
       from: 'ai',
-      text: "Here's J now — you're in good hands!",
+      text: "Here he is now — you're in good hands!",
       ts: now,
     };
     session.messages.push(handoffMsg);

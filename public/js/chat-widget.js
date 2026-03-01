@@ -213,6 +213,19 @@
         50% { opacity: 1; }
       }
 
+      /* ── Typing Indicator ── */
+      .snsp-typing { display: flex; align-items: center; gap: 4px; padding: 10px 14px; }
+      .snsp-typing-dot {
+        width: 7px; height: 7px; border-radius: 50%; background: #94a3b8;
+        animation: snsp-bounce 1.4s ease-in-out infinite;
+      }
+      .snsp-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+      .snsp-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+      @keyframes snsp-bounce {
+        0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+        30% { transform: translateY(-6px); opacity: 1; }
+      }
+
       /* ── Messages (card style) ── */
       .snsp-msg {
         max-width: 82%; padding: 10px 14px; font-size: 13px;
@@ -507,18 +520,52 @@
     }
   }
 
+  function showTypingIndicator(name) {
+    var el = document.getElementById('snspMessages'); if (!el) return;
+    var div = document.createElement('div');
+    div.id = 'snspTyping';
+    div.className = 'snsp-msg snsp-msg-agent';
+    div.innerHTML = '<div style="font-size:10px;color:#94a3b8;margin-bottom:2px">' + esc(name || 'J') + '</div>' +
+      '<div class="snsp-typing"><div class="snsp-typing-dot"></div><div class="snsp-typing-dot"></div><div class="snsp-typing-dot"></div></div>';
+    el.appendChild(div);
+    div.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function hideTypingIndicator() {
+    var el = document.getElementById('snspTyping'); if (el) el.remove();
+  }
+
   function startPolling() { if (state.pollTimer) return; state.pollTimer = setInterval(poll, POLL_INTERVAL); }
   async function poll() {
     if (!state.sessionId) return;
     try {
       const data = await get(`/api/chat/messages?session=${state.sessionId}&after=${encodeURIComponent(state.lastTs)}`);
       if (data.messages && data.messages.length > 0) {
+        var newMsgs = [];
         for (const m of data.messages) {
           if (m.from === 'visitor') { if (m.ts > state.lastTs) state.lastTs = m.ts; continue; }
-          if (!state.messages.find(x => x.id === m.id)) state.messages.push(m);
+          if (!state.messages.find(x => x.id === m.id)) { newMsgs.push(m); }
           if (m.ts > state.lastTs) state.lastTs = m.ts;
         }
-        renderMessages();
+        // Check for handoff sequence: AI handoff message + agent's first reply
+        var handoffIdx = newMsgs.findIndex(function(m) { return m.from === 'ai' && m.id && m.id.includes('handoff'); });
+        var agentMsg = handoffIdx >= 0 ? newMsgs.find(function(m) { return m.from === 'agent'; }) : null;
+        if (handoffIdx >= 0 && agentMsg) {
+          // Stagger: show handoff message → typing indicator → agent message
+          var handoffMsg = newMsgs[handoffIdx];
+          var otherMsgs = newMsgs.filter(function(m) { return m !== handoffMsg && m !== agentMsg; });
+          otherMsgs.forEach(function(m) { state.messages.push(m); });
+          state.messages.push(handoffMsg);
+          renderMessages();
+          showTypingIndicator('J');
+          setTimeout(function() {
+            hideTypingIndicator();
+            state.messages.push(agentMsg);
+            renderMessages();
+          }, 2500);
+        } else {
+          newMsgs.forEach(function(m) { state.messages.push(m); });
+          renderMessages();
+        }
       }
       // Update mode from server
       if (data.mode && data.mode !== state.mode) {
