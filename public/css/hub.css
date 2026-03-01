@@ -2170,6 +2170,13 @@ body::after {
 .comms-chat-text { margin-top: 3px; color: var(--text); }
 .comms-chat-time { font-size: 10px; color: var(--text-muted); margin-top: 4px; font-family: var(--font-mono); }
 
+/* Comms section headers */
+.comms-section-header {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--text-muted); padding: 10px 14px 4px; background: var(--navy);
+  border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1;
+}
+
 /* Handoff banner */
 .handoff-banner {
   display: flex; align-items: center; gap: 10px;

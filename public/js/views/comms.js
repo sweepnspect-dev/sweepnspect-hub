@@ -190,8 +190,13 @@ const CommsView = {
         });
       });
 
-      // Sort by date descending
-      unified.sort((a, b) => new Date(b.date) - new Date(a.date));
+      // Sort: active livechats first, then everything by date descending
+      unified.sort((a, b) => {
+        const aActive = a.source === 'livechat' && a.status === 'active' ? 1 : 0;
+        const bActive = b.source === 'livechat' && b.status === 'active' ? 1 : 0;
+        if (aActive !== bActive) return bActive - aActive;
+        return new Date(b.date) - new Date(a.date);
+      });
 
       // Apply source filter
       if (this.activeSource) {
@@ -341,22 +346,36 @@ const CommsView = {
       return;
     }
 
-    el.innerHTML = this.messages.map(msg => {
+    let html = '';
+    let lastSection = '';
+    this.messages.forEach(msg => {
+      // Section headers for livechat view
+      if (this.activeSource === 'livechat') {
+        const section = (msg.status === 'active') ? 'Active' : 'Ended';
+        if (section !== lastSection) {
+          html += `<div class="comms-section-header">${section}</div>`;
+          lastSection = section;
+        }
+      }
+
       const activeCls = msg.id === this.openId ? ' active' : '';
       const unreadCls = msg.unread ? ' unread' : '';
-      return `
+      const modeBadge = msg.raw?.mode === 'agent' ? '<span style="font-size:9px;color:var(--green);font-weight:600;margin-left:4px">LIVE</span>'
+        : msg.raw?.mode === 'transferring' ? '<span style="font-size:9px;color:#f59e0b;font-weight:600;margin-left:4px">WAITING</span>' : '';
+      html += `
         <div class="comms-item${unreadCls}${activeCls}" onclick="CommsView.openMessage('${msg.id}')" data-id="${msg.id}">
           <div class="comms-item-dot${msg.unread ? ' unread' : ''}"></div>
           <span class="source-badge ${msg.source}"></span>
           <div class="comms-item-body">
-            <div class="comms-item-from">${App.esc(msg.from)}</div>
+            <div class="comms-item-from">${App.esc(msg.from)}${modeBadge}</div>
             <div class="comms-item-subject">${App.esc(msg.subject)}</div>
             ${msg.categoryLabel ? '<span class="inbox-tag ' + msg.categoryCls + '">' + msg.categoryLabel + '</span>' : ''}
           </div>
           <div class="comms-item-time">${App.timeAgo(msg.date)}</div>
         </div>
       `;
-    }).join('');
+    });
+    el.innerHTML = html;
   },
 
   async openMessage(id) {
