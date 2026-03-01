@@ -126,6 +126,38 @@ router.post('/sessions/:id/ai-reply', async (req, res) => {
   }
 });
 
+// GET /api/livechat/sessions/:id/typing-status — check if visitor is typing
+router.get('/sessions/:id/typing-status', async (req, res) => {
+  const workerUrl = req.app.locals.workerPoller?.config?.workerUrl;
+  if (!workerUrl) return res.json({ visitorTyping: false });
+  try {
+    const resp = await fetch(`${workerUrl}/api/chat/messages?session=${req.params.id}&after=2099-01-01T00:00:00.000Z`, {
+      headers: { 'Authorization': `Bearer ${process.env.HUB_API_TOKEN || ''}` },
+    });
+    const data = await resp.json();
+    res.json({ visitorTyping: !!data.visitorTyping });
+  } catch {
+    res.json({ visitorTyping: false });
+  }
+});
+
+// POST /api/livechat/sessions/:id/typing — agent is typing
+router.post('/sessions/:id/typing', async (req, res) => {
+  const workerUrl = req.app.locals.workerPoller?.config?.workerUrl;
+  if (!workerUrl) return res.json({ ok: true });
+
+  try {
+    await fetch(`${workerUrl}/api/chat/${req.params.id}/typing`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.HUB_API_TOKEN || ''}`,
+      },
+    });
+  } catch {}
+  res.json({ ok: true });
+});
+
 // POST /api/livechat/sessions/:id/handback — hand chat back to AI
 router.post('/sessions/:id/handback', async (req, res) => {
   const store = req.app.locals.jsonStore('livechat-sessions.json');

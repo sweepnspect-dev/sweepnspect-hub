@@ -70,6 +70,7 @@ export default {
     // ── Live Chat (public — visitors use these) ──────────
     if (path === '/api/chat/start' && method === 'POST') return handleChatStart(request, env);
     if (path === '/api/chat/message' && method === 'POST') return handleChatMessage(request, env);
+    if (path === '/api/chat/visitor-typing' && method === 'POST') return handleVisitorTyping(request, env);
     if (path === '/api/chat/messages' && method === 'GET') return handleChatPoll(request, env);
     if (path === '/api/chat/dnd' && method === 'GET') return handleGetDnd(env);
     // Chat reply + DND toggle are auth-required — handled below
@@ -122,6 +123,7 @@ export default {
     if (path === '/api/chat/kb-sync' && method === 'POST') return handleKbSync(request, env);
     if (path.match(/^\/api\/chat\/[^/]+\/reply$/) && method === 'POST') return handleChatReply(request, env, path.split('/')[3]);
     if (path.match(/^\/api\/chat\/[^/]+\/ai-draft$/) && method === 'POST') return handleAiDraft(request, env, path.split('/')[3]);
+    if (path.match(/^\/api\/chat\/[^/]+\/typing$/) && method === 'POST') return handleTyping(env, path.split('/')[3]);
     if (path.match(/^\/api\/chat\/session\/[^/]+\/mode$/) && method === 'POST') return handleSetMode(request, env, path.split('/')[4]);
 
     // Stats & Status
@@ -1352,12 +1354,22 @@ async function handleChatPoll(request, env) {
   const session = JSON.parse(raw);
   const newMessages = session.messages.filter(m => m.ts > after);
 
+  // Check if agent is typing (KV key with short TTL)
+  const typingTs = await env.EVENTS.get(`typing:${sessionId}`);
+  const agentTyping = typingTs ? (Date.now() - parseInt(typingTs)) < 8000 : false;
+
+  // Check if visitor is typing
+  const visitorTypingTs = await env.EVENTS.get(`visitor-typing:${sessionId}`);
+  const visitorTyping = visitorTypingTs ? (Date.now() - parseInt(visitorTypingTs)) < 8000 : false;
+
   return json({
     sessionId,
     status: session.status,
     mode: session.mode || 'ai',
     messages: newMessages,
     visitor: session.visitor,
+    agentTyping,
+    visitorTyping,
   });
 }
 
@@ -1407,6 +1419,23 @@ async function handleChatReply(request, env, sessionId) {
   }
 
   return json({ ok: true, messageId: msgId });
+}
+
+// ── Visitor Typing — no auth needed ──
+async function handleVisitorTyping(request, env) {
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
+  const { sessionId } = body;
+  if (!sessionId) return json({ error: 'sessionId required' }, 400);
+  await env.EVENTS.put(`visitor-typing:${sessionId}`, Date.now().toString(), { expirationTtl: 10 });
+  return json({ ok: true });
+}
+
+// ── Agent Typing Indicator — stores a short-lived flag ──
+async function handleTyping(env, sessionId) {
+  // Store typing timestamp — expires after 5 seconds
+  await env.EVENTS.put(`typing:${sessionId}`, Date.now().toString(), { expirationTtl: 10 });
+  return json({ ok: true });
 }
 
 // ── AI Draft — Hub requests an AI reply on J's behalf ──

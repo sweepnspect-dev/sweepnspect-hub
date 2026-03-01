@@ -467,7 +467,7 @@
     `;
     document.getElementById('snspInputWrap').innerHTML = `
       <div class="snsp-input-area">
-        <input type="text" id="snspInput" placeholder="Message..." onkeydown="if(event.key==='Enter')window._snspSend()">
+        <input type="text" id="snspInput" placeholder="Message..." onkeydown="if(event.key==='Enter')window._snspSend()" oninput="window._snspVisitorTyping()">
         <button class="snsp-send-btn" onclick="window._snspSend()">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
@@ -490,6 +490,17 @@
     });
     msgs.appendChild(tiles);
   }
+
+  var _visitorTypingSent = false;
+  var _visitorTypingTimer = null;
+  window._snspVisitorTyping = function() {
+    if (!_visitorTypingSent && state.sessionId) {
+      _visitorTypingSent = true;
+      post('/api/chat/visitor-typing', { sessionId: state.sessionId }).catch(function(){});
+    }
+    clearTimeout(_visitorTypingTimer);
+    _visitorTypingTimer = setTimeout(function() { _visitorTypingSent = false; }, 3000);
+  };
 
   window._snspSend = async function() {
     const input = document.getElementById('snspInput');
@@ -566,6 +577,12 @@
           newMsgs.forEach(function(m) { state.messages.push(m); });
           renderMessages();
         }
+      }
+      // Agent typing indicator
+      if (data.agentTyping) {
+        if (!document.getElementById('snspTyping')) showTypingIndicator('J');
+      } else {
+        hideTypingIndicator();
       }
       // Update mode from server
       if (data.mode && data.mode !== state.mode) {

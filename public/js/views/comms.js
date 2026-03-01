@@ -559,7 +559,7 @@ const CommsView = {
       ${lc.status === 'active' ? `
         <div class="comms-reply livechat-reply" style="flex-shrink:0;padding:8px 10px;border-top:1px solid var(--border)">
           <div style="display:flex;gap:6px;align-items:flex-end">
-            <textarea class="comms-reply-input" id="livechatReplyInput" rows="1" placeholder="Reply..." style="margin:0;min-height:38px;flex:1;resize:none"></textarea>
+            <textarea class="comms-reply-input" id="livechatReplyInput" rows="1" placeholder="Reply..." style="margin:0;min-height:38px;flex:1;resize:none" oninput="CommsView._onTyping('${lc.id}')"></textarea>
             <button class="btn btn-primary" onclick="CommsView.sendLivechatReply('${lc.id}')" style="height:38px;padding:0 14px;flex-shrink:0">Send</button>
           </div>
           <div style="display:flex;align-items:center;gap:6px;margin-top:6px">
@@ -575,6 +575,12 @@ const CommsView = {
     // Scroll thread to bottom so latest messages are visible
     const thread = document.getElementById('livechatThread');
     if (thread) thread.scrollTop = thread.scrollHeight;
+
+    // Start visitor typing poll for active sessions
+    this._stopTypingPoll();
+    if (lc.status === 'active') {
+      this._typingPollId = setInterval(() => this._checkVisitorTyping(lc.id), 3000);
+    }
   },
 
   _renderNotesPanel(lc) {
@@ -824,6 +830,45 @@ const CommsView = {
     window.speechSynthesis.speak(utterance);
   },
 
+  _typingTimer: null,
+  _typingSent: false,
+  _typingPollId: null,
+
+  _stopTypingPoll() {
+    if (this._typingPollId) { clearInterval(this._typingPollId); this._typingPollId = null; }
+  },
+
+  async _checkVisitorTyping(sessionId) {
+    try {
+      const data = await App.api(`livechat/sessions/${sessionId}/typing-status`);
+      const indicator = document.getElementById('hubVisitorTyping');
+      if (data.visitorTyping) {
+        if (!indicator) {
+          const thread = document.getElementById('livechatThread');
+          if (thread) {
+            const div = document.createElement('div');
+            div.id = 'hubVisitorTyping';
+            div.className = 'comms-chat-msg from-visitor';
+            div.innerHTML = '<div class="comms-chat-sender" style="font-size:10px;color:var(--text-muted)">typing</div><div class="hub-typing-dots"><span></span><span></span><span></span></div>';
+            thread.appendChild(div);
+            div.scrollIntoView({ behavior: 'smooth', block: 'end' });
+          }
+        }
+      } else if (indicator) {
+        indicator.remove();
+      }
+    } catch {}
+  },
+
+  _onTyping(sessionId) {
+    if (!this._typingSent) {
+      this._typingSent = true;
+      App.api(`livechat/sessions/${sessionId}/typing`, { method: 'POST' }).catch(() => {});
+    }
+    clearTimeout(this._typingTimer);
+    this._typingTimer = setTimeout(() => { this._typingSent = false; }, 3000);
+  },
+
   async handBackToAi(sessionId) {
     const status = document.getElementById('livechatReplyStatus');
     try {
@@ -886,6 +931,7 @@ const CommsView = {
 
   closeDetail() {
     this.openId = null;
+    this._stopTypingPoll();
     const detail = document.getElementById('commsDetail');
     if (detail) { detail.style.display = 'none'; detail.style.flexDirection = ''; detail.style.overflow = ''; detail.classList.remove('mobile-open'); detail.innerHTML = ''; }
     document.querySelectorAll('.comms-item').forEach(el => el.classList.remove('active'));
