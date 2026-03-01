@@ -41,6 +41,7 @@ const CommsView = {
             </button>
           </div>
           <div class="comms-toolbar-right">
+            <button class="btn btn-sm btn-primary" onclick="CommsView.showComposeModal()">Compose</button>
             <button class="btn btn-sm btn-ghost comms-dnd-toggle" id="dndToggle" onclick="CommsView.toggleDnd()" title="Do Not Disturb — AI takes messages instead of pinging your phone" style="display:none">
               DND: Off
             </button>
@@ -940,6 +941,116 @@ const CommsView = {
   renderError(msg) {
     const el = document.getElementById('commsStream');
     if (el) el.innerHTML = `<div class="empty-state"><p>Error loading communications</p><p class="dim">${App.esc(msg)}</p></div>`;
+  },
+
+  // ── Compose Modal — Outbound SMS / Email / Broadcast ──
+  showComposeModal() {
+    App.showModal('Compose Message', `
+      <div class="form-group">
+        <label>Channel</label>
+        <select class="form-select" id="composeChannel" onchange="CommsView._onComposeChannelChange()">
+          <option value="email">Email</option>
+          <option value="sms">SMS</option>
+          <option value="broadcast-email">Broadcast Email</option>
+          <option value="broadcast-sms">Broadcast SMS</option>
+        </select>
+      </div>
+      <div id="composeRecipient">
+        <div class="form-group">
+          <label>To</label>
+          <input class="form-input" id="composeTo" placeholder="email@example.com">
+          <div id="composeSuggestions" style="font-size:11px;color:var(--text-dim);margin-top:4px"></div>
+        </div>
+      </div>
+      <div id="composeBroadcastSegment" style="display:none">
+        <div class="form-group">
+          <label>Segment</label>
+          <select class="form-select" id="composeSegment">
+            <option value="all">All Subscribers</option>
+            <option value="active">Active / Founding</option>
+            <option value="trial">Trial</option>
+            <option value="churned">Churned</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" id="composeSubjectGroup">
+        <label>Subject</label>
+        <input class="form-input" id="composeSubject" placeholder="Subject line">
+      </div>
+      <div class="form-group">
+        <label>Message</label>
+        <textarea class="form-textarea" id="composeBody" rows="5" placeholder="Type your message..."></textarea>
+      </div>
+    `, async (overlay) => {
+      const channel = overlay.querySelector('#composeChannel').value;
+      const body = overlay.querySelector('#composeBody').value;
+      if (!body) return HubNotify.toast('Message cannot be empty', 'error');
+
+      try {
+        if (channel === 'broadcast-email' || channel === 'broadcast-sms') {
+          const segment = overlay.querySelector('#composeSegment').value;
+          const subject = overlay.querySelector('#composeSubject')?.value;
+          const result = await App.api('comms/broadcast', {
+            method: 'POST',
+            body: { channel: channel.replace('broadcast-', ''), segment, subject, message: body }
+          });
+          HubNotify.toast(`Broadcast: ${result.sent} sent, ${result.failed} failed`, result.failed ? 'warning' : 'success');
+        } else if (channel === 'email') {
+          const to = overlay.querySelector('#composeTo').value;
+          const subject = overlay.querySelector('#composeSubject').value;
+          if (!to) return HubNotify.toast('Recipient required', 'error');
+          await App.api('comms/email/send', { method: 'POST', body: { to, subject, body } });
+          HubNotify.toast('Email sent', 'success');
+        } else if (channel === 'sms') {
+          const to = overlay.querySelector('#composeTo').value;
+          if (!to) return HubNotify.toast('Phone number required', 'error');
+          const result = await App.api('comms/sms/send', { method: 'POST', body: { to, message: body } });
+          HubNotify.toast(result.ok ? 'SMS sent' : 'SMS failed: ' + (result.delivery?.reason || 'unknown'), result.ok ? 'success' : 'error');
+        }
+        this.load();
+      } catch (err) {
+        HubNotify.toast('Send failed: ' + err.message, 'error');
+      }
+    });
+
+    // Load subscribers for autocomplete
+    this._loadSubscriberSuggestions();
+  },
+
+  _onComposeChannelChange() {
+    const channel = document.getElementById('composeChannel')?.value;
+    const recipientDiv = document.getElementById('composeRecipient');
+    const broadcastDiv = document.getElementById('composeBroadcastSegment');
+    const subjectGroup = document.getElementById('composeSubjectGroup');
+    const toInput = document.getElementById('composeTo');
+
+    if (channel?.startsWith('broadcast')) {
+      recipientDiv.style.display = 'none';
+      broadcastDiv.style.display = '';
+    } else {
+      recipientDiv.style.display = '';
+      broadcastDiv.style.display = 'none';
+    }
+
+    if (channel === 'sms' || channel === 'broadcast-sms') {
+      subjectGroup.style.display = 'none';
+      if (toInput) toInput.placeholder = '+15551234567';
+    } else {
+      subjectGroup.style.display = '';
+      if (toInput) toInput.placeholder = 'email@example.com';
+    }
+  },
+
+  async _loadSubscriberSuggestions() {
+    try {
+      const subs = await App.api('subscribers');
+      if (!Array.isArray(subs) || subs.length === 0) return;
+      const el = document.getElementById('composeSuggestions');
+      if (!el) return;
+      el.innerHTML = 'Quick pick: ' + subs.slice(0, 5).map(s =>
+        `<a href="#" onclick="event.preventDefault();document.getElementById('composeTo').value='${App.esc(s.email || s.phone || '')}'" style="color:var(--brass);text-decoration:underline;margin-right:8px">${App.esc(s.name || s.email)}</a>`
+      ).join('');
+    } catch {}
   },
 
   onWsMessage(type, data) {

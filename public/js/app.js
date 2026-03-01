@@ -469,6 +469,79 @@ const App = {
     return `${days}d ago`;
   },
 
+  // ── Global Search ───────────────────────────────────────
+  _searchTimeout: null,
+  _searchOpen: false,
+
+  onSearchInput(val) {
+    clearTimeout(this._searchTimeout);
+    if (!val || val.length < 2) {
+      document.getElementById('searchResults').style.display = 'none';
+      return;
+    }
+    this._searchTimeout = setTimeout(() => this._doSearch(val), 250);
+  },
+
+  onSearchFocus() {
+    const input = document.getElementById('globalSearchInput');
+    if (input?.value?.length >= 2) this._doSearch(input.value);
+  },
+
+  onSearchBlur() {
+    document.getElementById('searchResults').style.display = 'none';
+  },
+
+  async _doSearch(q) {
+    const el = document.getElementById('searchResults');
+    if (!el) return;
+
+    try {
+      const data = await this.api(`search?q=${encodeURIComponent(q)}&limit=15`);
+      if (!data.results || data.results.length === 0) {
+        el.innerHTML = '<div class="search-empty">No results</div>';
+        el.style.display = '';
+        return;
+      }
+
+      // Group by type
+      const groups = {};
+      for (const r of data.results) {
+        if (!groups[r.type]) groups[r.type] = [];
+        groups[r.type].push(r);
+      }
+
+      const typeLabels = {
+        subscriber: 'Customers', ticket: 'Tickets', sms: 'SMS',
+        email: 'Email', livechat: 'Live Chat', marketing: 'Marketing'
+      };
+      const typeIcons = {
+        subscriber: '&#128100;', ticket: '&#128196;', sms: '&#128241;',
+        email: '&#9993;', livechat: '&#128172;', marketing: '&#128640;'
+      };
+
+      let html = '';
+      for (const [type, items] of Object.entries(groups)) {
+        html += `<div class="search-group-label">${typeIcons[type] || ''} ${typeLabels[type] || type}</div>`;
+        for (const item of items.slice(0, 5)) {
+          html += `
+            <a class="search-result-item" href="${item.route}" onclick="document.getElementById('searchResults').style.display='none';document.getElementById('globalSearchInput').value=''">
+              <div class="search-result-title">${this.esc(item.title)}</div>
+              <div class="search-result-sub">${this.esc(item.subtitle)}</div>
+            </a>
+          `;
+        }
+      }
+      if (data.total > 15) {
+        html += `<div class="search-more">${data.total} total results</div>`;
+      }
+
+      el.innerHTML = html;
+      el.style.display = '';
+    } catch {
+      el.style.display = 'none';
+    }
+  },
+
   // ── Escape Helper ─────────────────────────────────────
   esc(str) {
     if (!str) return '';

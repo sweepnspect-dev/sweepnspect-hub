@@ -4,6 +4,7 @@
 const TicketsView = {
   tickets: [],
   filter: 'all',
+  categoryFilter: 'all',
   selectedTicket: null,
 
   render(container, hash) {
@@ -23,6 +24,13 @@ const TicketsView = {
             <button class="btn btn-sm ${this.filter === 'review' ? 'btn-primary' : 'btn-ghost'}" onclick="TicketsView.setFilter('review')">Review</button>
             <button class="btn btn-sm ${this.filter === 'resolved' ? 'btn-primary' : 'btn-ghost'}" onclick="TicketsView.setFilter('resolved')">Resolved</button>
           </div>
+          <div class="tickets-filters" style="margin-top:4px">
+            <button class="btn btn-xs ${this.categoryFilter === 'all' ? 'btn-primary' : 'btn-ghost'}" onclick="TicketsView.setCategoryFilter('all')">All Types</button>
+            <button class="btn btn-xs ${this.categoryFilter === 'bug' ? 'btn-primary' : 'btn-ghost'}" onclick="TicketsView.setCategoryFilter('bug')">Bugs</button>
+            <button class="btn btn-xs ${this.categoryFilter === 'feature-request' ? 'btn-primary' : 'btn-ghost'}" onclick="TicketsView.setCategoryFilter('feature-request')">Features</button>
+            <button class="btn btn-xs ${this.categoryFilter === 'question' ? 'btn-primary' : 'btn-ghost'}" onclick="TicketsView.setCategoryFilter('question')">Questions</button>
+            <button class="btn btn-xs ${this.categoryFilter === 'support' ? 'btn-primary' : 'btn-ghost'}" onclick="TicketsView.setCategoryFilter('support')">Support</button>
+          </div>
           <button class="btn btn-primary" onclick="TicketsView.showNewTicketModal()">+ New Ticket</button>
         </div>
         <div class="panel">
@@ -36,9 +44,17 @@ const TicketsView = {
   },
 
   async loadTickets() {
-    const filterParam = this.filter !== 'all' ? `?status=${this.filter}` : '';
-    this.tickets = await App.api(`tickets${filterParam}`);
+    const params = [];
+    if (this.filter !== 'all') params.push(`status=${this.filter}`);
+    if (this.categoryFilter !== 'all') params.push(`category=${this.categoryFilter}`);
+    const qs = params.length ? '?' + params.join('&') : '';
+    this.tickets = await App.api(`tickets${qs}`);
     this.renderList();
+  },
+
+  setCategoryFilter(f) {
+    this.categoryFilter = f;
+    App.route();
   },
 
   renderList() {
@@ -53,7 +69,7 @@ const TicketsView = {
         <div class="ticket-priority ${t.priority}"></div>
         <div class="ticket-info">
           <div class="ticket-subject">${App.esc(t.subject)}</div>
-          <div class="ticket-meta">${t.id} &middot; ${t.customer?.name || 'Unknown'} &middot; ${App.timeAgo(t.createdAt)}</div>
+          <div class="ticket-meta">${t.id} &middot; ${t.customer?.name || 'Unknown'} &middot; ${App.timeAgo(t.createdAt)}${t.category && t.category !== 'support' ? ` &middot; <span class="ticket-cat-badge cat-${t.category}">${t.category}</span>` : ''}</div>
         </div>
         <span class="ticket-status ${t.status}">${t.status.replace('-', ' ')}</span>
       </li>
@@ -96,6 +112,7 @@ const TicketsView = {
               <span>${ticket.id}</span>
               <span class="ticket-status ${ticket.status}">${ticket.status.replace('-', ' ')}</span>
               <span class="ticket-priority-badge" style="background:${priorityColor}">${ticket.priority}</span>
+              ${ticket.category ? `<span class="ticket-cat-badge cat-${ticket.category}">${ticket.category}</span>` : ''}
               <span>${ticket.customer?.name || 'Unknown'} (${ticket.customer?.email || ''})</span>
               <span>${App.timeAgo(ticket.createdAt)}</span>
             </div>
@@ -163,6 +180,15 @@ const TicketsView = {
         <input class="form-input" id="newTicketEmail" placeholder="email@example.com">
       </div>
       <div class="form-group">
+        <label>Category</label>
+        <select class="form-select" id="newTicketCategory">
+          <option value="support">Support</option>
+          <option value="bug">Bug</option>
+          <option value="feature-request">Feature Request</option>
+          <option value="question">Question</option>
+        </select>
+      </div>
+      <div class="form-group">
         <label>Priority</label>
         <select class="form-select" id="newTicketPriority">
           <option value="normal">Normal</option>
@@ -181,10 +207,11 @@ const TicketsView = {
       const email = overlay.querySelector('#newTicketEmail').value;
       const priority = overlay.querySelector('#newTicketPriority').value;
       const description = overlay.querySelector('#newTicketDesc').value;
+      const category = overlay.querySelector('#newTicketCategory').value;
       if (!subject) return HubNotify.toast('Subject is required', 'error');
       await App.api('tickets', {
         method: 'POST',
-        body: { subject, description, priority, customer: { name, email, subscriberId: '' } }
+        body: { subject, description, priority, category, customer: { name, email, subscriberId: '' } }
       });
       HubNotify.toast('Ticket created', 'success');
       this.loadTickets();

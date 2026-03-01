@@ -271,4 +271,190 @@ router.post('/sync', async (req, res) => {
   res.json({ synced: true, added, total: posts.length });
 });
 
+// ── Campaigns CRUD ────────────────────────────────────────────
+
+function campStore(req) { return req.app.locals.jsonStore('campaigns.json'); }
+
+// List campaigns
+router.get('/campaigns/list', (req, res) => {
+  const campaigns = campStore(req).read();
+  campaigns.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  res.json(campaigns);
+});
+
+// Create campaign
+router.post('/campaigns/create', (req, res) => {
+  const cs = campStore(req);
+  const campaigns = cs.read();
+  const now = new Date().toISOString();
+
+  const campaign = {
+    id: cs.nextId('camp'),
+    name: req.body.name || 'Untitled Campaign',
+    status: 'draft',
+    channels: req.body.channels || {},
+    scheduledFor: req.body.scheduledFor || null,
+    results: { fbReach: 0, emailsSent: 0, smsSent: 0, emailsFailed: 0, smsFailed: 0 },
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  campaigns.push(campaign);
+  cs.write(campaigns);
+  broadcast(req)({ type: 'marketing:campaign-created', data: campaign });
+  res.status(201).json(campaign);
+});
+
+// Update campaign
+router.put('/campaigns/:id', (req, res) => {
+  const cs = campStore(req);
+  const campaigns = cs.read();
+  const idx = campaigns.findIndex(c => c.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Campaign not found' });
+
+  const allowed = ['name', 'channels', 'scheduledFor', 'status'];
+  for (const key of allowed) {
+    if (req.body[key] !== undefined) campaigns[idx][key] = req.body[key];
+  }
+  campaigns[idx].updatedAt = new Date().toISOString();
+  cs.write(campaigns);
+  res.json(campaigns[idx]);
+});
+
+// Delete campaign
+router.delete('/campaigns/:id', (req, res) => {
+  const cs = campStore(req);
+  let campaigns = cs.read();
+  campaigns = campaigns.filter(c => c.id !== req.params.id);
+  cs.write(campaigns);
+  broadcast(req)({ type: 'marketing:campaign-deleted', data: { id: req.params.id } });
+  res.json({ ok: true });
+});
+
+// Execute campaign — fire all channels
+router.post('/campaigns/:id/execute', async (req, res) => {
+  const cs = campStore(req);
+  const campaigns = cs.read();
+  const idx = campaigns.findIndex(c => c.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Campaign not found' });
+
+  const campaign = campaigns[idx];
+  if (campaign.status === 'completed') return res.status(400).json({ error: 'Campaign already completed' });
+
+  campaign.status = 'running';
+  campaign.updatedAt = new Date().toISOString();
+  cs.write(campaigns);
+
+  const results = { fbReach: 0, emailsSent: 0, smsSent: 0, emailsFailed: 0, smsFailed: 0 };
+  const ch = campaign.channels;
+
+  // ── Facebook ──
+  if (ch.facebook?.enabled && ch.facebook?.message) {
+    try {
+      const fbResult = await fb(req).createPost(ch.facebook.message, ch.facebook.link || undefined);
+      if (fbResult.ok) {
+        results.fbPostId = fbResult.data.id;
+        // Also save as a marketing post
+        const ps = postStore(req);
+        const posts = ps.read();
+        posts.unshift({
+          id: ps.nextId('mp'),
+          fbPostId: fbResult.data.id,
+          platform: 'facebook',
+          status: 'published',
+          message: ch.facebook.message,
+          link: ch.facebook.link || '',
+          imageUrl: '',
+          scheduledFor: null,
+          publishedAt: new Date().toISOString(),
+          engagement: { likes: 0, comments: 0, shares: 0, reach: 0, impressions: 0 },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          campaignId: campaign.id,
+        });
+        ps.write(posts);
+      }
+    } catch {}
+  }
+
+  // ── Email blast ──
+  if (ch.email?.enabled && ch.email?.body) {
+    const nodemailer = require('nodemailer');
+    const poller = req.app.locals.emailPoller;
+    if (poller) {
+      try {
+        const smtpConfig = poller.getSmtpConfig();
+        const transport = nodemailer.createTransport(smtpConfig);
+        const subs = req.app.locals.jsonStore('subscribers.json').read();
+        let recipients = subs;
+        if (ch.email.segment === 'active') recipients = subs.filter(s => s.status === 'active' || s.status === 'founding');
+        else if (ch.email.segment === 'trial') recipients = subs.filter(s => s.status === 'trial');
+
+        for (const sub of recipients) {
+          if (!sub.email) { results.emailsFailed++; continue; }
+          try {
+            await transport.sendMail({
+              from: `"SweepNspect" <${smtpConfig.auth.user}>`,
+              to: sub.email,
+              subject: ch.email.subject || campaign.name,
+              text: ch.email.body,
+            });
+            results.emailsSent++;
+          } catch { results.emailsFailed++; }
+        }
+      } catch {}
+    }
+  }
+
+  // ── SMS blast ──
+  if (ch.sms?.enabled && ch.sms?.message) {
+    const smsService = req.app.locals.smsService;
+    if (smsService?.twilioConfigured) {
+      const https = require('https');
+      const subs = req.app.locals.jsonStore('subscribers.json').read();
+      let recipients = subs;
+      if (ch.sms.segment === 'active') recipients = subs.filter(s => s.status === 'active' || s.status === 'founding');
+      else if (ch.sms.segment === 'trial') recipients = subs.filter(s => s.status === 'trial');
+
+      for (const sub of recipients) {
+        if (!sub.phone) { results.smsFailed++; continue; }
+        try {
+          const body = new URLSearchParams({
+            To: sub.phone, From: smsService.from, Body: ch.sms.message.slice(0, 1600)
+          }).toString();
+          await new Promise((resolve, reject) => {
+            const options = {
+              hostname: 'api.twilio.com', port: 443,
+              path: `/2010-04-01/Accounts/${smsService.sid}/Messages.json`,
+              method: 'POST', auth: `${smsService.sid}:${smsService.token}`,
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(body) }
+            };
+            const r = https.request(options, (resp) => {
+              let data = '';
+              resp.on('data', c => data += c);
+              resp.on('end', () => resp.statusCode < 300 ? resolve() : reject(new Error(`HTTP ${resp.statusCode}`)));
+            });
+            r.on('error', reject);
+            r.write(body);
+            r.end();
+          });
+          results.smsSent++;
+        } catch { results.smsFailed++; }
+      }
+    }
+  }
+
+  // Update campaign with results
+  campaign.status = 'completed';
+  campaign.results = results;
+  campaign.executedAt = new Date().toISOString();
+  campaign.updatedAt = campaign.executedAt;
+  cs.write(campaigns);
+
+  broadcast(req)({ type: 'marketing:campaign-executed', data: campaign });
+  broadcast(req)({ type: 'activity', data: { icon: 'marketing', text: `Campaign "${campaign.name}" executed — ${results.emailsSent} emails, ${results.smsSent} SMS`, time: campaign.executedAt } });
+
+  res.json({ ok: true, campaign });
+});
+
 module.exports = router;

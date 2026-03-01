@@ -5,13 +5,15 @@
 const MarketingView = {
   posts: [],
   pageInfo: null,
-  activeSection: 'feed',  // feed, compose, insights
+  activeSection: 'feed',  // feed, compose, insights, campaigns
+  campaigns: [],
   editingPost: null,
 
   render(container, hash) {
     const parts = hash ? hash.split('/') : [];
     if (parts[1] === 'compose') this.activeSection = 'compose';
     else if (parts[1] === 'insights') this.activeSection = 'insights';
+    else if (parts[1] === 'campaigns') this.activeSection = 'campaigns';
     else if (parts[1] && parts[1].startsWith('post-')) {
       this.activeSection = 'feed';
       this.editingPost = parts[1].replace('post-', '');
@@ -55,6 +57,9 @@ const MarketingView = {
             <button class="source-btn${this.activeSection === 'insights' ? ' active' : ''}" data-section="insights" onclick="MarketingView.setSection('insights')">
               Insights
             </button>
+            <button class="source-btn${this.activeSection === 'campaigns' ? ' active' : ''}" data-section="campaigns" onclick="MarketingView.setSection('campaigns')">
+              Campaigns
+            </button>
           </div>
           <div class="comms-toolbar-right">
             <button class="btn btn-sm btn-ghost" onclick="MarketingView.syncFromFb()">Sync from Facebook</button>
@@ -71,9 +76,10 @@ const MarketingView = {
   },
 
   async loadAll() {
-    const [postsRes, pageRes] = await Promise.allSettled([
+    const [postsRes, pageRes, campsRes] = await Promise.allSettled([
       App.api('marketing/posts'),
       App.api('marketing/page').catch(() => null),
+      App.api('marketing/campaigns/list').catch(() => []),
     ]);
 
     this.posts = postsRes.status === 'fulfilled' ? postsRes.value : [];
@@ -82,6 +88,9 @@ const MarketingView = {
     if (pageRes.status === 'fulfilled' && pageRes.value) {
       this.pageInfo = pageRes.value;
     }
+
+    this.campaigns = campsRes.status === 'fulfilled' ? campsRes.value : [];
+    if (!Array.isArray(this.campaigns)) this.campaigns = [];
 
     this.renderStats();
     this.renderSection();
@@ -132,6 +141,7 @@ const MarketingView = {
     if (!el) return;
     if (this.activeSection === 'compose') this.renderCompose(el);
     else if (this.activeSection === 'insights') this.renderInsights(el);
+    else if (this.activeSection === 'campaigns') this.renderCampaigns(el);
     else this.renderFeed(el);
   },
 
@@ -440,6 +450,170 @@ const MarketingView = {
         </div>
       </div>
     `;
+  },
+
+  // ── Campaigns Section ───────────────────────────────────
+  renderCampaigns(el) {
+    let listHtml = '';
+    if (this.campaigns.length > 0) {
+      listHtml = `<div class="marketing-feed" style="margin-top:16px">
+        ${this.campaigns.map(c => {
+          const statusCls = c.status === 'completed' ? 'published' : c.status === 'running' ? 'scheduled' : 'draft';
+          const chList = [];
+          if (c.channels.facebook?.enabled) chList.push('FB');
+          if (c.channels.email?.enabled) chList.push('Email');
+          if (c.channels.sms?.enabled) chList.push('SMS');
+          return `
+            <div class="marketing-post-card">
+              <div class="marketing-post-header">
+                <span class="marketing-status-badge ${statusCls}">${c.status}</span>
+                <span class="marketing-post-date">${App.timeAgo(c.updatedAt || c.createdAt)}</span>
+              </div>
+              <div class="marketing-post-body">
+                <div class="marketing-post-message" style="font-weight:600">${App.esc(c.name)}</div>
+                <div style="font-size:12px;color:var(--text-dim);margin-top:4px">Channels: ${chList.join(', ') || 'None'}</div>
+                ${c.status === 'completed' ? `<div style="font-size:12px;margin-top:4px;color:var(--sage)">Results: ${c.results.emailsSent || 0} emails, ${c.results.smsSent || 0} SMS${c.results.fbPostId ? ', FB posted' : ''}</div>` : ''}
+              </div>
+              <div class="marketing-post-actions">
+                ${c.status === 'draft' ? `<button class="btn btn-xs btn-primary" onclick="MarketingView.executeCampaign('${c.id}')">Launch</button>` : ''}
+                ${c.status === 'draft' ? `<button class="btn btn-xs btn-ghost" onclick="MarketingView.editCampaign('${c.id}')">Edit</button>` : ''}
+                <button class="btn btn-xs btn-ghost" style="color:var(--brick-light)" onclick="MarketingView.deleteCampaign('${c.id}')">Delete</button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>`;
+    } else {
+      listHtml = '<div class="empty-state" style="margin-top:16px"><p>No campaigns yet</p></div>';
+    }
+
+    el.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3 style="color:var(--cream);margin:0">Campaigns</h3>
+        <button class="btn btn-primary btn-sm" onclick="MarketingView.showCampaignBuilder()">+ New Campaign</button>
+      </div>
+      ${listHtml}
+    `;
+  },
+
+  showCampaignBuilder(existing) {
+    const c = existing || {};
+    const ch = c.channels || {};
+    App.showModal(existing ? 'Edit Campaign' : 'New Campaign', `
+      <div class="form-group">
+        <label>Campaign Name</label>
+        <input class="form-input" id="campName" value="${App.esc(c.name || '')}" placeholder="e.g. Launch Announcement">
+      </div>
+      <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px">
+        <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer">
+          <input type="checkbox" id="campFbEnabled" ${ch.facebook?.enabled ? 'checked' : ''}> Facebook Post
+        </label>
+        <div id="campFbFields" style="${ch.facebook?.enabled ? '' : 'display:none'}">
+          <textarea class="form-textarea" id="campFbMsg" rows="3" placeholder="Facebook post message...">${App.esc(ch.facebook?.message || '')}</textarea>
+          <input class="form-input" id="campFbLink" placeholder="Link (optional)" value="${App.esc(ch.facebook?.link || '')}" style="margin-top:6px">
+        </div>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px">
+        <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer">
+          <input type="checkbox" id="campEmailEnabled" ${ch.email?.enabled ? 'checked' : ''}> Email Blast
+        </label>
+        <div id="campEmailFields" style="${ch.email?.enabled ? '' : 'display:none'}">
+          <select class="form-select" id="campEmailSegment" style="margin-bottom:6px">
+            <option value="all" ${ch.email?.segment === 'all' ? 'selected' : ''}>All Subscribers</option>
+            <option value="active" ${ch.email?.segment === 'active' ? 'selected' : ''}>Active</option>
+            <option value="trial" ${ch.email?.segment === 'trial' ? 'selected' : ''}>Trial</option>
+          </select>
+          <input class="form-input" id="campEmailSubject" placeholder="Subject" value="${App.esc(ch.email?.subject || '')}" style="margin-bottom:6px">
+          <textarea class="form-textarea" id="campEmailBody" rows="3" placeholder="Email body...">${App.esc(ch.email?.body || '')}</textarea>
+        </div>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px">
+        <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer">
+          <input type="checkbox" id="campSmsEnabled" ${ch.sms?.enabled ? 'checked' : ''}> SMS Blast
+        </label>
+        <div id="campSmsFields" style="${ch.sms?.enabled ? '' : 'display:none'}">
+          <select class="form-select" id="campSmsSegment" style="margin-bottom:6px">
+            <option value="all" ${ch.sms?.segment === 'all' ? 'selected' : ''}>All Subscribers</option>
+            <option value="active" ${ch.sms?.segment === 'active' ? 'selected' : ''}>Active</option>
+            <option value="trial" ${ch.sms?.segment === 'trial' ? 'selected' : ''}>Trial</option>
+          </select>
+          <textarea class="form-textarea" id="campSmsMsg" rows="2" placeholder="SMS message (160 chars ideal)...">${App.esc(ch.sms?.message || '')}</textarea>
+        </div>
+      </div>
+      ${existing ? `<input type="hidden" id="campEditId" value="${existing.id}">` : ''}
+    `, async (overlay) => {
+      const name = overlay.querySelector('#campName').value;
+      if (!name) return HubNotify.toast('Campaign name required', 'error');
+
+      const channels = {
+        facebook: {
+          enabled: overlay.querySelector('#campFbEnabled').checked,
+          message: overlay.querySelector('#campFbMsg').value,
+          link: overlay.querySelector('#campFbLink').value,
+        },
+        email: {
+          enabled: overlay.querySelector('#campEmailEnabled').checked,
+          segment: overlay.querySelector('#campEmailSegment').value,
+          subject: overlay.querySelector('#campEmailSubject').value,
+          body: overlay.querySelector('#campEmailBody').value,
+        },
+        sms: {
+          enabled: overlay.querySelector('#campSmsEnabled').checked,
+          segment: overlay.querySelector('#campSmsSegment').value,
+          message: overlay.querySelector('#campSmsMsg').value,
+        },
+      };
+
+      const editId = overlay.querySelector('#campEditId')?.value;
+      if (editId) {
+        await App.api('marketing/campaigns/' + editId, { method: 'PUT', body: { name, channels } });
+        HubNotify.toast('Campaign updated', 'success');
+      } else {
+        await App.api('marketing/campaigns/create', { method: 'POST', body: { name, channels } });
+        HubNotify.toast('Campaign created', 'success');
+      }
+      this.loadAll();
+    });
+
+    // Wire checkbox toggles
+    setTimeout(() => {
+      ['Fb', 'Email', 'Sms'].forEach(ch => {
+        const cb = document.getElementById(`camp${ch}Enabled`);
+        const fields = document.getElementById(`camp${ch}Fields`);
+        if (cb && fields) {
+          cb.onchange = () => { fields.style.display = cb.checked ? '' : 'none'; };
+        }
+      });
+    }, 50);
+  },
+
+  editCampaign(id) {
+    const c = this.campaigns.find(camp => camp.id === id);
+    if (c) this.showCampaignBuilder(c);
+  },
+
+  async executeCampaign(id) {
+    const c = this.campaigns.find(camp => camp.id === id);
+    if (!c) return;
+    if (!confirm(`Launch campaign "${c.name}"? This will send immediately to all selected channels.`)) return;
+
+    try {
+      const result = await App.api('marketing/campaigns/' + id + '/execute', { method: 'POST' });
+      if (result.ok) {
+        HubNotify.toast('Campaign launched!', 'success');
+      } else {
+        HubNotify.toast('Launch failed: ' + (result.error || 'unknown'), 'error');
+      }
+      this.loadAll();
+    } catch (err) {
+      HubNotify.toast('Launch error: ' + err.message, 'error');
+    }
+  },
+
+  async deleteCampaign(id) {
+    if (!confirm('Delete this campaign?')) return;
+    await App.api('marketing/campaigns/' + id, { method: 'DELETE' });
+    this.loadAll();
   },
 
   // ── Helpers ──────────────────────────────────────────────

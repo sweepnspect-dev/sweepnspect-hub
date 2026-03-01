@@ -118,6 +118,7 @@ app.use('/api/inbox', require('./routes/inbox'));
 app.use('/api/comms', require('./routes/comms'));
 app.use('/api/livechat', require('./routes/livechat'));
 app.use('/api/automation', require('./routes/automation'));
+app.use('/api/search', require('./routes/search'));
 
 // ── Alert API ────────────────────────────────────────────
 app.get('/api/alerts', (req, res) => {
@@ -310,8 +311,10 @@ const DATA_STORES = {
   commands:      { file: 'commands.json',        empty: { tasks: [], schedule: [] }, label: 'Tasks & Schedule' },
   'comms-fb':    { file: 'comms-facebook.json',   empty: [],  label: 'Facebook Messages' },
   'comms-sms':   { file: 'comms-sms.json',       empty: [],  label: 'SMS Messages' },
+  'comms-email-sent': { file: 'comms-email-sent.json', empty: [], label: 'Sent Emails' },
   marketing:     { file: 'marketing.json',        empty: [],  label: 'Marketing' },
   'marketing-posts': { file: 'marketing-posts.json', empty: [], label: 'Marketing Posts' },
+  campaigns:     { file: 'campaigns.json',         empty: [],  label: 'Campaigns' },
   'auto-log':    { file: 'automation-log.json',   empty: [],  label: 'Automation Log' },
   'livechat':    { file: 'livechat-sessions.json', empty: [], label: 'Live Chat Sessions' },
 };

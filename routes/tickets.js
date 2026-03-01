@@ -9,6 +9,7 @@ router.get('/', (req, res) => {
   let tickets = store(req).read();
   if (req.query.status) tickets = tickets.filter(t => t.status === req.query.status);
   if (req.query.priority) tickets = tickets.filter(t => t.priority === req.query.priority);
+  if (req.query.category) tickets = tickets.filter(t => t.category === req.query.category);
   // Sort: newest first
   tickets.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   res.json(tickets);
@@ -30,6 +31,7 @@ router.post('/', (req, res) => {
     id: s.nextId('t'),
     status: req.body.status || 'new',
     priority: req.body.priority || 'normal',
+    category: req.body.category || 'support',
     source: req.body.source || '',
     emailUid: req.body.emailUid || null,
     customer: req.body.customer || { name: '', email: '', subscriberId: '' },
@@ -65,7 +67,7 @@ router.put('/:id', (req, res) => {
   const idx = tickets.findIndex(t => t.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'Ticket not found' });
 
-  const allowed = ['status', 'priority', 'resolution', 'aiAnalysis', 'subject', 'description', 'customer', 'source'];
+  const allowed = ['status', 'priority', 'category', 'resolution', 'aiAnalysis', 'subject', 'description', 'customer', 'source'];
   for (const key of allowed) {
     if (req.body[key] !== undefined) tickets[idx][key] = req.body[key];
   }

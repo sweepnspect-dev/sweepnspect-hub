@@ -607,6 +607,87 @@ body::after {
   opacity: 0.8;
 }
 
+/* ── Global Search ─────────────────────────────────────── */
+.header-search {
+  position: relative;
+  display: none;
+}
+.header-search-input {
+  width: 180px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--navy-light);
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  transition: width 0.2s, border-color 0.15s;
+}
+.header-search-input:focus {
+  width: 260px;
+  border-color: var(--brass);
+  outline: none;
+}
+.header-search-input::placeholder { color: var(--text-muted); }
+
+.search-results-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 340px;
+  max-height: 420px;
+  overflow-y: auto;
+  background: var(--soot);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  z-index: 200;
+}
+.search-group-label {
+  padding: 8px 12px 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+}
+.search-group-label:first-child { border-top: none; }
+.search-result-item {
+  display: block;
+  padding: 8px 12px;
+  text-decoration: none;
+  color: var(--text);
+  transition: background 0.1s;
+  cursor: pointer;
+}
+.search-result-item:hover { background: rgba(255,255,255,0.04); }
+.search-result-title {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.search-result-sub {
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.search-empty, .search-more {
+  padding: 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Show search on wider screens */
+@media (min-width: 600px) {
+  .header-search { display: block; }
+}
+
 .notif-badge {
   position: absolute;
   top: -5px;
@@ -831,6 +912,16 @@ body::after {
 .ticket-status.resolved { background: var(--green-dim); color: var(--green); }
 .ticket-status.escalated { background: var(--brick-dim); color: var(--brick-light); }
 .ticket-status.closed { background: var(--soot-light); color: var(--text-dim); }
+
+/* Category badges */
+.ticket-cat-badge {
+  display: inline-block; padding: 1px 6px; border-radius: 3px;
+  font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;
+}
+.cat-bug { background: var(--brick-dim); color: var(--brick-light); }
+.cat-feature-request { background: var(--purple-dim); color: var(--purple); }
+.cat-question { background: var(--cyan-dim); color: var(--cyan); }
+.cat-support { background: var(--soot-light); color: var(--text-dim); }
 
 /* Source badges (comms) */
 .source-badge {

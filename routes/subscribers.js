@@ -180,7 +180,7 @@ router.put('/:id', (req, res) => {
   const idx = subs.findIndex(sub => sub.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'Subscriber not found' });
 
-  const allowed = ['name', 'email', 'plan', 'mrr', 'status', 'source', 'phone'];
+  const allowed = ['name', 'email', 'plan', 'mrr', 'status', 'source', 'phone', 'trialEndsAt'];
   for (const key of allowed) {
     if (req.body[key] !== undefined) subs[idx][key] = req.body[key];
   }
